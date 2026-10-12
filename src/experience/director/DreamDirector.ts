@@ -211,7 +211,7 @@ export class DreamDirector {
     this.lines = new PhotoLines(this.moments.textures);
     this.sea = new DreamSea({ alley: ctx.alley, photographer: ctx.photographer, moments: this.moments.textures, moonPhoto: this.foundRT.texture });
     ctx.look.pointsOfInterest.push(
-      { position: new Vector3(...inSea(seaConfig.moon.at)), radius: seaConfig.moon.poi.radius, zoom: seaConfig.moon.poi.zoom, memory: 'moon' },
+      { position: new Vector3(...inSea(seaConfig.moon.at)), radius: seaConfig.moon.poi.radius, zoom: seaConfig.moon.poi.zoom, reach: seaConfig.moon.poi.reach, memory: 'moon' },
       {
         position: new Vector3(...inSea(seaConfig.figure.position)).setY(D.figure.poi.height),
         radius: D.figure.poi.radius,

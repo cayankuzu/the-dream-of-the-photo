@@ -64,11 +64,11 @@
 :root {
   --ink: #e6e1d6;
   --ink-dim: rgba(230, 225, 214, 0.62);
-  --ink-faint: rgba(230, 225, 214, 0.32);
+  --ink-faint: rgba(230, 225, 214, 0.5);
   --line: rgba(230, 225, 214, 0.2);
   --accent: #e9c48f;
   --accent-soft: rgba(233, 196, 143, 0.34);
-  --panel: rgba(11, 12, 16, 0.46);
+  --panel: rgba(11, 12, 16, 0.62);
   --panel-strong: rgba(11, 12, 16, 0.78);
   --bg: #0b0c0e;
   --serif: 'Cormorant Garamond', 'Iowan Old Style', Georgia, serif;
@@ -302,6 +302,19 @@ body.is-exploring #stage.is-grabbing {
   background: rgba(233, 196, 143, 0.1);
 }
 
+/* keyboard focus is always visible, whatever else the control shows */
+.seg button:focus-visible,
+.icon-btn:focus-visible,
+.btn:focus-visible,
+.menu__credits a:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: -4px;
+}
+
+.btn:focus-visible {
+  outline-offset: 3px;
+}
+
 .seg--small button {
   min-width: 2.3rem;
   min-height: 2.3rem;
@@ -503,6 +516,7 @@ body.is-ending .hud > :not(.hud__corner) {
   letter-spacing: 0.4em;
   text-transform: uppercase;
   color: var(--accent);
+  text-shadow: 0 0 0.8rem rgba(0, 0, 0, 0.85), 0 0 0.25rem rgba(0, 0, 0, 0.7);
 }
 
 .chapter__name {
@@ -663,6 +677,7 @@ body.is-exploring .reticle {
   flex-direction: column;
   align-items: center;
   gap: 0.4rem;
+  width: max-content;
   max-width: 88vw;
   padding: 0.9rem 1.8rem 1rem;
   border: 1px solid var(--accent-soft);
@@ -783,7 +798,8 @@ body.is-exploring .reticle {
   font-size: 0.56rem;
   letter-spacing: 0.2em;
   text-align: right;
-  color: var(--ink-faint);
+  color: var(--ink-dim);
+  text-shadow: 0 0 0.6rem rgba(0, 0, 0, 0.85);
 }
 
 /* controls, bottom left */
@@ -1001,6 +1017,10 @@ body.is-ending .end {
   margin: 0;
 }
 
+.menu__settings > div[hidden] {
+  display: none;
+}
+
 .menu__subtitle {
   margin: 0 0 0.9rem;
   font-weight: 400;
@@ -1038,6 +1058,11 @@ body.is-ending .end {
     --edge-bottom: max(1.1rem, env(safe-area-inset-bottom));
   }
 
+  /* left of the corner cluster, wrapping rather than running under it */
+  .chapter {
+    max-width: calc(100vw - 2 * var(--edge-x) - 10.5rem);
+  }
+
   .chapter__name {
     font-size: 0.98rem;
   }
@@ -1059,8 +1084,9 @@ body.is-ending .end {
     width: min(76vw, 22rem);
   }
 
+  /* above the tutorial prompt, which wraps to two lines here */
   .narration {
-    bottom: calc(var(--edge-bottom) + 5.4rem);
+    bottom: calc(var(--edge-bottom) + 7.8rem);
     font-size: 1.1rem;
   }
 
@@ -1069,6 +1095,31 @@ body.is-ending .end {
     max-width: 88vw;
     white-space: normal;
     text-align: center;
+  }
+}
+
+/* phones held sideways: little height, so only what matters stays at the bottom */
+@media (max-height: 30rem) {
+  .keys:not(.keys--menu) {
+    display: none;
+  }
+
+  .tutorial {
+    bottom: calc(var(--edge-bottom) + 1.9rem);
+  }
+
+  .narration {
+    bottom: calc(var(--edge-bottom) + 4.9rem);
+    font-size: 1.05rem;
+  }
+
+  .toast {
+    top: calc(var(--edge-top) + 3rem);
+    padding: 0.6rem 1.4rem 0.7rem;
+  }
+
+  .menu__panel {
+    padding: 1.4rem 1.6rem;
   }
 }
 

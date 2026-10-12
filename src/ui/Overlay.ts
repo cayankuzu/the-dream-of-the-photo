@@ -1,6 +1,6 @@
 import { chapters, memories, type Lang, type MemoryId, type UiKey } from '../config/copy.config';
 import { cueToProgress } from '../experience/timeline/Timeline';
-import { lang, onLang, say, setLang, tr } from './i18n';
+import { lang, onLang, percent, say, setLang, tr } from './i18n';
 import { Narration } from './Narration';
 
 /** Timeline position after which the piece counts as started (the scroll cue is gone). */
@@ -8,8 +8,11 @@ const STARTED_AT = 0.008;
 /** How long a new chapter stays announced, and a found memory on screen (ms). */
 const CHAPTER_MS = 3600;
 const TOAST_MS = 3400;
-/** Seconds of exploring before the gaze tutorial appears (if no memory has been found yet). */
-const GAZE_TUTORIAL_AFTER = 9;
+/**
+ * Tutorials, in seconds of exploring: how to look is shown until the viewer has looked around (or for
+ * `look` s at most); how to find memories follows `gazeAfter` s later for `gaze` s, unless one is found.
+ */
+const TUTORIAL = { look: 14, gazeAfter: 4, gaze: 12 };
 /** Circumference of the reticle's ring (r = 15 in its 40-unit view box). */
 const RING = 2 * Math.PI * 15;
 
@@ -86,13 +89,23 @@ export class Overlay {
   private toastTimer = 0;
   private toastMemory: MemoryId | null = null;
   private dragHintDone = false;
-  private exploringSince = 0;
+  /** Seconds spent exploring so far, and when the look tutorial ended (in those seconds). */
+  private explored = 0;
+  private lookTaughtAt = -1;
+  private lastTick = 0;
   private found = 0;
   private lastFill = -1;
+  private loaded = 0;
+  private readonly ticks: HTMLElement[] = [];
+  private menuOpener: HTMLElement | null = null;
+  private readonly menuSound = q<HTMLButtonElement>('menu-sound');
+  private readonly fullscreen = q<HTMLButtonElement>('fullscreen');
+  /** Everything the pause menu covers (inert while it is open). */
+  private readonly behindMenu = [q('hud'), q('end'), q('start'), document.getElementById('stage')!];
 
   onSoundToggle: (() => void) | null = null;
-  /** The first step: Begin pressed (a user gesture: sound may start). */
-  onBegin: (() => void) | null = null;
+  /** The first step; `gesture` is true when it came from a click or a key (sound may start then). */
+  onBegin: ((gesture: boolean) => void) | null = null;
   onPause: ((paused: boolean) => void) | null = null;
   onRestart: (() => void) | null = null;
 
@@ -103,19 +116,27 @@ export class Overlay {
         if (button) setLang(button.dataset.lang as Lang);
       });
     }
-    this.startButton.addEventListener('click', () => this.begin());
+    this.startButton.addEventListener('click', () => this.begin(true));
     this.sound.addEventListener('click', () => this.onSoundToggle?.());
-    q('menu-sound').addEventListener('click', () => this.onSoundToggle?.());
-    q('menu-button').addEventListener('click', () => this.setPaused(true));
+    this.menuSound.addEventListener('click', () => this.onSoundToggle?.());
+    q('menu-button').addEventListener('click', (e) => this.setPaused(true, e.currentTarget as HTMLElement));
     q('resume').addEventListener('click', () => this.setPaused(false));
     q('restart').addEventListener('click', () => {
       this.setPaused(false);
       this.onRestart?.();
     });
-    q('replay').addEventListener('click', () => this.onRestart?.());
-    const fullscreen = q('fullscreen');
+    q('replay').addEventListener('click', (e) => {
+      (e.currentTarget as HTMLElement).blur();
+      this.onRestart?.();
+    });
+    // a mouse click leaves focus on the HUD's buttons, where Space would press them again: hand it back
+    for (const b of document.querySelectorAll<HTMLButtonElement>('.hud button')) {
+      b.addEventListener('click', (e) => {
+        if (e.detail > 0 && !this.paused) b.blur();
+      });
+    }
     if (document.fullscreenEnabled) {
-      fullscreen.addEventListener('click', () => {
+      this.fullscreen.addEventListener('click', () => {
         const done = document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen();
         done.catch(() => undefined);
       });
@@ -123,6 +144,8 @@ export class Overlay {
     } else {
       q('fullscreen-row').hidden = true;
     }
+    this.menu.setAttribute('role', 'dialog');
+    this.menu.setAttribute('aria-modal', 'true');
     window.addEventListener('keydown', this.onKey);
 
     // the journey's chapters, marked on its bar
@@ -130,6 +153,7 @@ export class Overlay {
       const tick = document.createElement('i');
       tick.style.left = `${(at * 100).toFixed(2)}%`;
       this.journeyTicks.appendChild(tick);
+      this.ticks.push(tick);
     }
     onLang(() => this.translate());
   }
@@ -156,6 +180,8 @@ export class Overlay {
     for (const b of document.querySelectorAll<HTMLButtonElement>('button[data-lang]')) b.setAttribute('aria-pressed', String(b.dataset.lang === lang()));
     if (this.chapterIndex >= 0) this.chapterName.textContent = tr(chapters[this.chapterIndex].name);
     if (this.toastMemory) this.toastName.textContent = tr(memories[this.toastMemory]);
+    this.loaderLabel.textContent = percent(this.loaded);
+    this.journeyPercent.textContent = percent(Math.max(0, this.lastFill) / 100);
     this.writeKeys();
     this.writeSound();
     this.writeFullscreen();
@@ -172,7 +198,7 @@ export class Overlay {
       : [
           { keys: ['wheel', '↑ ↓'], does: 'walk' },
           { keys: ['drag', '← →'], does: 'look' },
-          { keys: ['Esc'], does: 'menu' },
+          { keys: ['Esc', 'M'], does: 'menu' },
         ];
     for (const list of [this.keys, this.menuKeys]) {
       list.replaceChildren(
@@ -195,18 +221,22 @@ export class Overlay {
 
   private writeSound(): void {
     this.sound.setAttribute('aria-pressed', String(this.soundOn));
+    this.menuSound.setAttribute('aria-pressed', String(this.soundOn));
     this.menuSoundLabel.textContent = say(this.soundOn ? 'on' : 'off');
   }
 
   private writeFullscreen(): void {
-    this.fullscreenLabel.textContent = say(document.fullscreenElement ? 'on' : 'off');
+    const on = !!document.fullscreenElement;
+    this.fullscreen.setAttribute('aria-pressed', String(on));
+    this.fullscreenLabel.textContent = say(on ? 'on' : 'off');
   }
 
   // ------------------------------------------------------------------ the title screen
 
   setLoadProgress(fraction: number): void {
+    this.loaded = fraction;
     this.bar.style.transform = `scaleX(${fraction.toFixed(3)})`;
-    this.loaderLabel.textContent = `${Math.round(fraction * 100)}%`;
+    this.loaderLabel.textContent = percent(fraction);
   }
 
   ready(): void {
@@ -216,31 +246,47 @@ export class Overlay {
     this.startButton.focus({ preventScroll: true });
   }
 
-  /** Leave the title screen (Begin, or the first scroll into the piece). */
-  private begin(): void {
+  /** Leave the title screen (Begin, Enter / Space, or the first scroll into the piece). */
+  private begin(gesture: boolean): void {
     if (this.begun || !this.isReady) return;
     this.begun = true;
     document.body.classList.add('has-begun');
     this.startButton.blur();
-    this.onBegin?.();
+    // the chapter is announced as the HUD appears (not under the title screen)
+    this.chapterIndex = -1;
+    this.onBegin?.(gesture);
   }
 
   // ------------------------------------------------------------------ pause menu
 
-  private setPaused(paused: boolean): void {
+  /** Open or close the pause menu (a modal: the rest is inert while it is open). */
+  private setPaused(paused: boolean, opener: HTMLElement | null = null): void {
     if (paused === this.paused || (paused && !this.begun)) return;
     this.menu.hidden = !paused;
     document.body.classList.toggle('is-paused', paused);
-    if (paused) q<HTMLButtonElement>('resume').focus({ preventScroll: true });
+    for (const el of this.behindMenu) el.inert = paused;
+    if (paused) {
+      this.menuOpener = opener;
+      q<HTMLButtonElement>('resume').focus({ preventScroll: true });
+    } else {
+      // back where the menu was opened from; opened by key, focus simply leaves the menu
+      const back = this.menuOpener;
+      this.menuOpener = null;
+      if (back && back.offsetParent) back.focus({ preventScroll: true });
+      else (document.activeElement as HTMLElement | null)?.blur();
+    }
     this.onPause?.(paused);
   }
 
   private onKey = (e: KeyboardEvent): void => {
-    if (e.key === 'Escape') {
+    if (e.repeat) return;
+    // M as well as Esc: in full screen the browser keeps Esc for itself
+    const m = e.key.toLowerCase() === 'm' && !e.ctrlKey && !e.metaKey && !e.altKey && this.begun;
+    if (e.key === 'Escape' || m) {
       this.setPaused(!this.paused);
       e.preventDefault();
     } else if (!this.begun && this.isReady && (e.key === 'Enter' || e.key === ' ') && !this.isInterface(e.target)) {
-      this.begin();
+      this.begin(true);
       e.preventDefault();
     }
   };
@@ -248,7 +294,7 @@ export class Overlay {
   // ------------------------------------------------------------------ per frame
 
   update(s: HudState): void {
-    if (s.progress > STARTED_AT) this.begin();
+    if (s.progress > STARTED_AT) this.begin(false);
     document.body.classList.toggle('is-ending', s.ending);
     document.body.classList.toggle('is-exploring', s.exploring && !this.paused);
     this.scrollCue.classList.toggle('is-visible', this.begun && s.progress <= STARTED_AT);
@@ -279,8 +325,8 @@ export class Overlay {
     if (fill === this.lastFill) return;
     this.lastFill = fill;
     this.journeyFill.style.width = `${fill}%`;
-    this.journeyPercent.textContent = `${Math.round(fill)}%`;
-    this.journeyTicks.querySelectorAll('i').forEach((tick, k) => tick.classList.toggle('is-passed', progress >= chapterStarts[k + 1]));
+    this.journeyPercent.textContent = percent(fill / 100);
+    this.ticks.forEach((tick, k) => tick.classList.toggle('is-passed', progress >= chapterStarts[k + 1]));
   }
 
   private updateMemories(s: HudState): void {
@@ -301,6 +347,8 @@ export class Overlay {
   memoryFound(id: MemoryId): void {
     this.toastMemory = id;
     this.toastName.textContent = tr(memories[id]);
+    // only a showing toast is announced (a language switch rewrites its label without a new find)
+    this.toast.removeAttribute('aria-hidden');
     this.toast.classList.add('is-visible');
     this.memoriesChip.classList.remove('is-pulsing');
     void this.memoriesChip.offsetWidth;
@@ -308,6 +356,8 @@ export class Overlay {
     window.clearTimeout(this.toastTimer);
     this.toastTimer = window.setTimeout(() => {
       this.toast.classList.remove('is-visible');
+      this.toast.setAttribute('aria-hidden', 'true');
+      this.toastName.textContent = '';
       this.toastMemory = null;
     }, TOAST_MS);
   }
@@ -315,15 +365,22 @@ export class Overlay {
   /** First how to look, then how to find memories. */
   private updateTutorial(s: HudState): void {
     const now = performance.now() / 1000;
-    if (!s.exploring) this.exploringSince = now;
-    if (s.turned > s.dragHintAfter) this.dragHintDone = true;
+    const dt = Math.min(0.1, now - this.lastTick);
+    this.lastTick = now;
+    const active = s.exploring && !s.ending && !this.paused;
+    if (active) this.explored += dt;
+    if (!this.dragHintDone && (s.turned > s.dragHintAfter || this.explored > TUTORIAL.look)) {
+      this.dragHintDone = true;
+      this.lookTaughtAt = this.explored;
+    }
     let key = '';
     let text: UiKey | null = null;
-    if (s.exploring && !s.ending && !this.paused) {
+    if (active) {
+      const sinceLook = this.explored - this.lookTaughtAt;
       if (!this.dragHintDone) {
         key = TOUCH ? '' : say('drag');
         text = TOUCH ? 'tutorialLookTouch' : 'tutorialLook';
-      } else if (s.found === 0 && now - this.exploringSince > GAZE_TUTORIAL_AFTER) {
+      } else if (s.found === 0 && sinceLook > TUTORIAL.gazeAfter && sinceLook < TUTORIAL.gazeAfter + TUTORIAL.gaze) {
         text = 'tutorialMemory';
       }
     }

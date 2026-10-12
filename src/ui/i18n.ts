@@ -40,6 +40,17 @@ export const tr = (text: Text): string => text[current];
 /** A UI string in the language showing now. */
 export const say = (key: UiKey): string => ui[key][current];
 
+/** A share as a percentage, written the way the language writes it ('%45' in Turkish, '45%' in English). */
+export const percent = (fraction: number): string => {
+  let format = percentFormats.get(current);
+  if (!format) {
+    format = new Intl.NumberFormat(current, { style: 'percent', maximumFractionDigits: 0 });
+    percentFormats.set(current, format);
+  }
+  return format.format(fraction);
+};
+const percentFormats = new Map<Lang, Intl.NumberFormat>();
+
 /** Switch language everywhere at once (and remember it). */
 export function setLang(next: Lang): void {
   if (next === current || !LANGS.includes(next)) return;

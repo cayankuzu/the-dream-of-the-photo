@@ -2,6 +2,7 @@ import { MathUtils, Quaternion, Vector3 } from 'three';
 import type { MemoryId } from '../../config/copy.config';
 import { lookConfig, REDUCED_MOTION } from '../../config/experience.config';
 import { damp, DEG } from '../math';
+import { walkKey } from './ScrollInput';
 
 export interface PointOfInterest {
   position: Vector3;
@@ -13,6 +14,8 @@ export interface PointOfInterest {
   active?: () => boolean;
   /** A memory: a long enough look finds it (the HUD counts them). */
   memory?: MemoryId;
+  /** Farther than this (m) it does not catch the eye (default `lookConfig.attention.reach`). */
+  reach?: number;
 }
 
 const forward = new Vector3();
@@ -102,7 +105,7 @@ export class LookControls {
 
   /** Left / right arrows turn the head (up / down stay the timeline's). */
   private onKey = (e: KeyboardEvent): void => {
-    if (!this.enabled || (e.target instanceof HTMLElement && e.target.closest('button, a, input'))) return;
+    if (!this.enabled || !walkKey(e)) return;
     if (e.key === 'ArrowLeft') this.keyTurn = 1;
     else if (e.key === 'ArrowRight') this.keyTurn = -1;
     else return;
@@ -158,12 +161,17 @@ export class LookControls {
     let bestAngle = Infinity;
     for (const poi of this.pointsOfInterest) {
       if (poi.active && !poi.active()) continue;
-      const angle = forward.angleTo(toPoi.subVectors(poi.position, cameraPos)) / DEG;
+      toPoi.subVectors(poi.position, cameraPos);
+      // only what is near enough to be looked at (the alley and the sea also lie 700 m from each other)
+      if (toPoi.length() > (poi.reach ?? lookConfig.attention.reach)) continue;
+      const angle = forward.angleTo(toPoi) / DEG;
       if (angle < poi.radius && angle < bestAngle) {
         best = poi;
         bestAngle = angle;
       }
     }
+    // a gaze only counts while it is yours: no dwell piles up during the passage, the ending or a pause
+    if (!this.enabled) best = null;
     if (best !== this.dwellTarget) {
       this.dwellTarget = best;
       this.dwell = 0;

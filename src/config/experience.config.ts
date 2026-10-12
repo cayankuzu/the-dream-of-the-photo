@@ -165,7 +165,7 @@ export const lookConfig = {
    * Attention zoom: dwelling on a point of interest slowly narrows the view (dream focus), never so far
    * that the point leaves the inner `frameShare` of the half-frame.
    */
-  attention: { dwellSeconds: 1.1, zoomRate: 0.35, releaseRate: 1.2, frameShare: 0.6 },
+  attention: { dwellSeconds: 1.1, zoomRate: 0.35, releaseRate: 1.2, frameShare: 0.6, /** m */ reach: 38 },
   /** Seconds a memory must hold the gaze before it is found. */
   discoverSeconds: 1.6,
   hintFadeAfterDegrees: 50,

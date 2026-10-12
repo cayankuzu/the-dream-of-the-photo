@@ -93,8 +93,8 @@ export const seaConfig = {
     scale: 440,
     glow: 2.6,
     halo: { size: 2.4, strength: 0.45, color: 0xffe9cf, scatter: 6, behind: 4 },
-    /** Looking at it long enough draws the view toward it (angular radius deg, zoom). */
-    poi: { radius: 9, zoom: 0.55 },
+    /** Looking at it long enough draws the view toward it (angular radius deg, zoom, reach m: it is far up in the sky). */
+    poi: { radius: 9, zoom: 0.55, reach: 200 },
   },
   /** Photographs drifting over the water like slow birds. */
   prints: {

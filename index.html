@@ -31,8 +31,8 @@
           </button>
           <div class="start__options">
             <div class="seg" role="group" data-ui="lang" data-i18n-label="language">
-              <button type="button" data-lang="tr">TR</button>
-              <button type="button" data-lang="en">EN</button>
+              <button type="button" data-lang="tr" lang="tr">TR</button>
+              <button type="button" data-lang="en" lang="en">EN</button>
             </div>
             <p class="start__note">
               <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 10V8a5 5 0 0110 0v2M3 10h2v4H3zM11 10h2v4h-2z" /></svg>
@@ -44,20 +44,20 @@
 
       <!-- the HUD while playing -->
       <div class="hud" data-ui="hud">
-        <div class="chapter" data-ui="chapter" aria-live="polite">
+        <div class="chapter" data-ui="chapter">
           <span class="chapter__index"><span data-i18n="chapter">Chapter</span> <span data-ui="chapter-number">I</span></span>
-          <span class="chapter__name" data-ui="chapter-name"></span>
+          <span class="chapter__name" data-ui="chapter-name" aria-live="polite"></span>
         </div>
 
         <div class="hud__corner">
-          <div class="memories" data-ui="memories" aria-live="polite">
+          <div class="memories" data-ui="memories">
             <svg viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="2" width="10" height="12" rx="0.8" /><rect x="4.6" y="3.6" width="6.8" height="6.8" /></svg>
-            <span class="memories__count" data-ui="memories-count">0/8</span>
+            <span class="memories__count" data-ui="memories-count" aria-live="polite">0/8</span>
             <span class="memories__label" data-i18n="memories">Memories</span>
           </div>
           <div class="seg seg--small" role="group" data-ui="lang" data-i18n-label="language">
-            <button type="button" data-lang="tr">TR</button>
-            <button type="button" data-lang="en">EN</button>
+            <button type="button" data-lang="tr" lang="tr">TR</button>
+            <button type="button" data-lang="en" lang="en">EN</button>
           </div>
           <button class="icon-btn" type="button" data-ui="sound" aria-pressed="false" data-i18n-label="soundLabel">
             <svg class="icon-btn__on" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 6h3l4-3v10L5 10H2zM11 5.5a3.5 3.5 0 010 5M12.8 3.6a6 6 0 010 8.8" /></svg>
@@ -77,13 +77,13 @@
           <i class="reticle__dot"></i>
         </div>
 
-        <div class="toast" data-ui="toast" role="status">
+        <div class="toast" data-ui="toast" role="status" aria-hidden="true">
           <span class="toast__kicker" data-i18n="memoryFound">Memory found</span>
           <span class="toast__name" data-ui="toast-name"></span>
         </div>
 
         <div class="tutorial" data-ui="tutorial">
-          <span class="tutorial__key" data-ui="tutorial-key"></span>
+          <span class="key tutorial__key" data-ui="tutorial-key"></span>
           <span data-ui="tutorial-text"></span>
         </div>
 
@@ -124,18 +124,26 @@
               <dt data-i18n="language">Language</dt>
               <dd>
                 <div class="seg" role="group" data-ui="lang" data-i18n-label="language">
-                  <button type="button" data-lang="tr">Türkçe</button>
-                  <button type="button" data-lang="en">English</button>
+                  <button type="button" data-lang="tr" lang="tr">Türkçe</button>
+                  <button type="button" data-lang="en" lang="en">English</button>
                 </div>
               </dd>
             </div>
             <div>
-              <dt data-i18n="sound">Sound</dt>
-              <dd><button class="btn btn--small" type="button" data-ui="menu-sound"><span data-ui="menu-sound-label">Off</span></button></dd>
+              <dt id="menu-sound-name" data-i18n="sound">Sound</dt>
+              <dd>
+                <button class="btn btn--small" type="button" data-ui="menu-sound" aria-pressed="false" aria-labelledby="menu-sound-name">
+                  <span data-ui="menu-sound-label">Off</span>
+                </button>
+              </dd>
             </div>
             <div data-ui="fullscreen-row">
-              <dt data-i18n="fullscreen">Full screen</dt>
-              <dd><button class="btn btn--small" type="button" data-ui="fullscreen"><span data-ui="fullscreen-label">Off</span></button></dd>
+              <dt id="menu-fullscreen-name" data-i18n="fullscreen">Full screen</dt>
+              <dd>
+                <button class="btn btn--small" type="button" data-ui="fullscreen" aria-pressed="false" aria-labelledby="menu-fullscreen-name">
+                  <span data-ui="fullscreen-label">Off</span>
+                </button>
+              </dd>
             </div>
           </dl>
           <h3 class="menu__subtitle" data-i18n="controls">Controls</h3>

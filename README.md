@@ -18,7 +18,7 @@ and scrolling becomes walking through its dream:
 
 It plays like a game: a title screen, chapters announced as you reach them, a journey bar, a gaze reticle,
 eight hidden **memories** that reveal themselves to a long enough look (found ones are remembered between
-visits), a pause menu (Esc) and an ending. Every word, the narration included, is in Turkish and English;
+visits), a pause menu (Esc or M) and an ending. Every word, the narration included, is in Turkish and English;
 switch at any time from the title screen, the HUD or the menu (the browser's language is the default, the
 choice is remembered, and `?lang=en` / `?lang=tr` force one).
 
@@ -44,7 +44,7 @@ in later); the title screen shows the progress.
 | --- | --- |
 | Mouse wheel, trackpad | Move through the moment, forward or back; inside the photograph, walk. Scroll is time: input is damped, speed-limited and slowed down around key beats, so nothing can be skipped. |
 | Touch | Swipe vertically to move through the moment and to walk. Inside the photograph a drag that starts sideways looks around; two fingers always walk. |
-| Keyboard | Arrow Down / Space forward, Arrow Up back; Page Down / Page Up take three steps; Arrow Left / Right turn the head inside the photograph; Enter begins; Esc opens and closes the menu. |
+| Keyboard | Arrow Down / Space forward, Arrow Up back; Page Down / Page Up take three steps; Arrow Left / Right turn the head inside the photograph; Enter begins; Esc or M opens and closes the menu (M also in full screen, where the browser keeps Esc). |
 | Drag (mouse or touch) | Look around inside the photograph; while you walk the gaze drifts back to the way ahead. Resting your gaze on something draws the view toward it, and fills the reticle's ring when it is a memory. |
 | HUD | Top right: memories found, language (TR / EN), sound, menu. The menu resumes, starts over, switches language, sound and full screen, and lists the controls. |
 

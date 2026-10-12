@@ -3,6 +3,16 @@ import { clamp } from '../math';
 import type { Timeline } from '../timeline/Timeline';
 
 const LINE_HEIGHT = 16;
+
+/**
+ * Keys inside the menu belong to the menu; on any other focused control only Space (and Enter) press
+ * it, while the arrows and Page keys still move through the piece.
+ */
+export function walkKey(e: KeyboardEvent): boolean {
+  const t = e.target instanceof Element ? e.target : null;
+  if (t?.closest('.menu, input, textarea')) return false;
+  return !((e.key === ' ' || e.key === 'Enter') && t?.closest('button, a'));
+}
 /** Pixels a one-finger drag travels before it is decided to be a look (sideways) or a walk (up/down). */
 const AXIS_LOCK = 10;
 
@@ -36,8 +46,9 @@ export class ScrollInput {
   }
 
   private onWheel = (e: WheelEvent): void => {
+    // the menu scrolls itself, and Ctrl + wheel (or a trackpad pinch) zooms the page as usual
+    if (!this.enabled || e.ctrlKey || (e.target instanceof Element && e.target.closest('.menu'))) return;
     e.preventDefault();
-    if (!this.enabled) return;
     let dy = e.deltaY;
     if (e.deltaMode === 1) dy *= LINE_HEIGHT;
     else if (e.deltaMode === 2) dy *= window.innerHeight;
@@ -86,8 +97,7 @@ export class ScrollInput {
   };
 
   private onKey = (e: KeyboardEvent): void => {
-    // keys on a focused control belong to that control
-    if (!this.enabled || (e.target instanceof HTMLElement && e.target.closest('button, a, input'))) return;
+    if (!this.enabled || !walkKey(e)) return;
     const step = timelineConfig.keyStep;
     switch (e.key) {
       case 'ArrowDown':

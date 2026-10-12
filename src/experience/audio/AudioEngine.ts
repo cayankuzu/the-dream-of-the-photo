@@ -43,14 +43,26 @@ export class AudioEngine {
   private nextDreamCall = 0;
   private lastChord = -1;
 
-  /** Must be called from a user gesture. Returns the new on/off state. */
+  /**
+   * Must be called from a user gesture. Returns the new on/off state. Everything happens synchronously,
+   * inside the gesture: the state flips first, and a suspended context is asked to resume right away.
+   */
   async toggle(): Promise<boolean> {
-    if (!this.ctx) await this.start();
+    if (!this.ctx) this.start();
     if (!this.ctx) return false;
     this.enabled = !this.enabled;
     this.applyMaster(audioConfig.fadeSeconds);
-    if (this.enabled && this.ctx.state === 'suspended') await this.ctx.resume().catch(() => undefined);
+    this.resume();
     return this.enabled;
+  }
+
+  /** True once the browser lets the context play. */
+  get running(): boolean {
+    return this.ctx?.state === 'running';
+  }
+
+  private resume(): void {
+    if (this.enabled && this.ctx?.state === 'suspended') this.ctx.resume().catch(() => undefined);
   }
 
   /** A hidden tab falls silent; sound comes back (if it was on) when the tab returns. */
@@ -73,13 +85,14 @@ export class AudioEngine {
     this.master.gain.setTargetAtTime(level, t, timeConstant);
   }
 
-  /** First gesture anywhere: switch sound on (the default intention). */
+  /** A gesture: switch sound on the first time (the default intention), and wake a context the browser held back. */
   async unlock(): Promise<boolean> {
-    if (this.ctx) return this.enabled;
-    return this.toggle();
+    if (!this.ctx) return this.toggle();
+    this.resume();
+    return this.enabled;
   }
 
-  private async start(): Promise<void> {
+  private start(): void {
     const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     if (!Ctx) return;
     try {
@@ -132,7 +145,6 @@ export class AudioEngine {
     this.buildSea();
     this.buildPad();
     void this.loadRecordings();
-    if (ctx.state === 'suspended') await ctx.resume().catch(() => undefined);
   }
 
   // ---------------------------------------------------------------- recordings

@@ -136,6 +136,7 @@ export class Experience {
     this.pipeline = new Pipeline(canvas);
     this.look = new LookControls(canvas);
     this.scroll = new ScrollInput(this.timeline, canvas);
+    this.scroll.enabled = false;
     this.look.touchAllowed = () => this.scroll.touchAxis === 'x';
     canvas.addEventListener('webglcontextlost', (e) => {
       e.preventDefault();
@@ -165,18 +166,24 @@ export class Experience {
       sheenOffset: 0,
     };
     this.overlay.onSoundToggle = () => void this.audio.toggle().then((on) => this.overlay.setSound(on));
-    // the first gesture anywhere switches sound on (pointerup/keydown are user activations, also on touch);
-    // the sound button handles its own clicks
+    // the first gesture anywhere switches sound on (pointerup and most keydowns are user activations, also
+    // on touch; Esc is not); the sound switches handle their own clicks. It listens until the browser
+    // actually lets the sound play.
     const unlock = (e: Event) => {
-      if (this.overlay.isSoundControl(e.target)) return;
-      window.removeEventListener('pointerup', unlock);
-      window.removeEventListener('keydown', unlock);
-      void this.audio.unlock().then((on) => this.overlay.setSound(on));
+      if (this.overlay.isSoundControl(e.target) || (e instanceof KeyboardEvent && e.key === 'Escape')) return;
+      void this.audio.unlock().then((on) => {
+        this.overlay.setSound(on);
+        if (!this.audio.running) return;
+        window.removeEventListener('pointerup', unlock);
+        window.removeEventListener('keydown', unlock);
+      });
     };
     window.addEventListener('pointerup', unlock);
     window.addEventListener('keydown', unlock);
-    // the title screen's Begin is a gesture too
-    this.overlay.onBegin = () => void this.audio.unlock().then((on) => this.overlay.setSound(on));
+    // Begin (a click or a key) is a gesture too; beginning by scrolling is not, and waits for the next one
+    this.overlay.onBegin = (gesture) => {
+      if (gesture) void this.audio.unlock().then((on) => this.overlay.setSound(on));
+    };
     this.overlay.onPause = (paused) => {
       this.paused = paused;
       this.scroll.enabled = !paused;
@@ -203,6 +210,8 @@ export class Experience {
       if (seek) this.timeline.seek(Number(seek));
       (window as unknown as { __exp: unknown }).__exp = this;
     }
+    // input waits for the piece: a scroll during loading must not skip the title screen
+    this.scroll.enabled = true;
     this.overlay.ready();
     this.last = performance.now();
     this.pipeline.renderer.setAnimationLoop((now) => this.frame(now));
@@ -430,8 +439,9 @@ export class Experience {
       world.position.add(SEA);
       world.updateMatrixWorld(true);
     }
-    this.look.updateAttention(world.quaternion, world.position, world.fov, dt);
-    this.discover();
+    // paused, the gaze holds still: nothing is found behind the menu
+    this.look.updateAttention(world.quaternion, world.position, world.fov, this.paused ? 0 : dt);
+    if (!this.paused) this.discover();
 
     const previous = this.view;
     if (p < phaseStart('PHOTO_DEPTH')) this.view = 'outer';

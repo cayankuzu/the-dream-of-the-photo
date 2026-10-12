@@ -26,7 +26,7 @@ import {
   type Material,
   type Texture,
 } from 'three';
-import { say } from '../../ui/i18n';
+import { onLang, say } from '../../ui/i18n';
 import { dreamConfig } from '../../config/dream.config';
 import { photoConfig, REDUCED_MOTION } from '../../config/experience.config';
 import { fireEscape, LIGHT_COLORS } from '../../config/scene.config';
@@ -311,11 +311,11 @@ function paperGeometry(): BoxGeometry {
 }
 
 /** The back of an instant print: dark film and a line written on it by hand (grain seeded: the same every time). */
-function filmBack(caption: string): CanvasTexture {
+/** The film's back, drawn into `canvas` with a handwritten `caption` (redrawn when the language changes). */
+function drawFilmBack(canvas: HTMLCanvasElement, caption: string): void {
   const B = seaConfig.printBack;
   const w = B.resolution;
   const h = Math.round((w * print.height) / print.width);
-  const canvas = document.createElement('canvas');
   canvas.width = w;
   canvas.height = h;
   const ctx = canvas.getContext('2d')!;
@@ -338,10 +338,6 @@ function filmBack(caption: string): CanvasTexture {
   ctx.rotate(B.caption.tilt);
   ctx.fillText(caption, 0, 0);
   ctx.restore();
-  const tex = new CanvasTexture(canvas);
-  tex.colorSpace = SRGBColorSpace;
-  tex.anisotropy = 4;
-  return tex;
 }
 
 // ------------------------------------------------------------------ drifting prints
@@ -692,7 +688,15 @@ export class DreamSea {
     const B = seaConfig.printBack;
     const geometry = new PlaneGeometry(print.width * G.scale, print.height * G.scale);
     geometry.rotateY(Math.PI);
-    const film = filmBack(say('printBack'));
+    const canvas = document.createElement('canvas');
+    const film = new CanvasTexture(canvas);
+    film.colorSpace = SRGBColorSpace;
+    film.anisotropy = 4;
+    // the handwriting is in the visitor's language, and changes with it
+    onLang(() => {
+      drawFilmBack(canvas, say('printBack'));
+      film.needsUpdate = true;
+    });
     const material = new MeshStandardMaterial({
       map: film,
       roughness: B.roughness,
