@@ -202,6 +202,11 @@ export class Photograph extends Group {
     this.imageMaterial = new ShaderMaterial({
       vertexShader: IMAGE_VERT,
       fragmentShader: IMAGE_FRAG,
+      // the image lies a hair over the paper: pulled toward the eye so the two never fight at a distance
+      // (the moon and the giant print are prints seen from tens of meters)
+      polygonOffset: true,
+      polygonOffsetFactor: -1,
+      polygonOffsetUnits: -2,
       uniforms: {
         tPhoto: { value: opts.photo },
         tPortal: { value: null },
