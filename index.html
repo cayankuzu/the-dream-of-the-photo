@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#0b0c0e" />
+    <title>The Dream of the Photo</title>
+    <meta name="description" content="Step into a photograph and walk through its dream. An interactive cinematic piece." />
+    <meta property="og:title" content="The Dream of the Photo" />
+    <meta property="og:description" content="Every photograph is a door that opens only once." />
+    <link rel="preload" href="/fonts/cormorant-garamond-400.woff2" as="font" type="font/woff2" crossorigin />
+  </head>
+  <body>
+    <canvas id="stage" aria-label="The Dream of the Photo — interactive scene"></canvas>
+
+    <div class="overlay" aria-live="polite">
+      <header class="title">
+        <h1>The Dream of the Photo</h1>
+        <div class="loader"><span data-ui="loader-bar"></span></div>
+      </header>
+
+      <p class="narration" data-ui="narration" aria-live="polite"></p>
+
+      <div class="hint hint--scroll" data-ui="hint-scroll">
+        <span data-ui="hint-scroll-label">scroll</span>
+        <i></i>
+      </div>
+
+      <div class="hint hint--drag" data-ui="hint-drag">
+        <span data-ui="hint-drag-label">drag to look around</span>
+      </div>
+
+      <button class="sound" data-ui="sound" type="button" aria-pressed="false" aria-label="Toggle sound">
+        <span class="sound__bars"><i></i><i></i><i></i></span>
+        <span class="sound__label" data-ui="sound-label">sound off</span>
+      </button>
+    </div>
+
+    <noscript><p class="noscript">This piece needs JavaScript and WebGL.</p></noscript>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

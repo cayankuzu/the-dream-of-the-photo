@@ -1,0 +1,311 @@
+{
+  "models": [
+    {
+      "key": "photographer",
+      "source": "local",
+      "path": ".asset-cache/character/photographer.glb",
+      "textureSize": 1024
+    },
+    {
+      "key": "kit_apartments",
+      "source": "polyhaven",
+      "id": "modular_urban_apartments_facade",
+      "res": "1k",
+      "textureSize": 1024,
+      "simplify": 0.15,
+      "simplifyError": 0.006,
+      "keep": [
+        "wall_standard_standard_01",
+        "wall_window_centered_small_0[12]",
+        "wall_window_centered_large_0[12]",
+        "wall_window_centered_double_0[12]",
+        "wall_window_offset_small_0[13]",
+        "wall_door_centered_small_0[12]",
+        "wall_door_centered_large_01",
+        "window_centered_small_0[12]",
+        "window_centered_large_0[12]",
+        "window_centered_double_0[12]",
+        "window_offset_small_0[13]",
+        "door_centered_small_0[12]",
+        "door_centered_large_01",
+        "cornice_standard_standard_01",
+        "crown_standard_standard_01"
+      ],
+      "zeroNodeTranslations": true
+    },
+    {
+      "key": "kit_factory",
+      "source": "polyhaven",
+      "id": "modular_factory_facade",
+      "res": "1k",
+      "textureSize": 1024,
+      "simplify": 0.15,
+      "simplifyError": 0.006,
+      "keep": [
+        "wall_standard_standard_01",
+        "wall_window_tall_small_0[12]",
+        "wall_window_tall_large_0[12]",
+        "wall_window_centered_medium_0[12]",
+        "wall_window_centered_small_0[12]",
+        "wall_door_recessed_large_01",
+        "wall_door_centered_large_01",
+        "wall_door_garage_door_01",
+        "window_tall_small_0[12]",
+        "window_tall_large_0[12]",
+        "window_centered_medium_0[12]",
+        "window_centered_small_0[12]",
+        "door_recessed_large_01",
+        "door_centered_large_01",
+        "door_garage_door_01",
+        "cornice01_standard_standard_01",
+        "crown_standard_standard_01"
+      ],
+      "zeroNodeTranslations": true
+    },
+    {
+      "key": "street_lamp_wall",
+      "source": "polyhaven",
+      "id": "street_lamp_02",
+      "res": "1k",
+      "textureSize": 1024,
+      "simplify": 0.5
+    },
+    {
+      "key": "street_lamp_post",
+      "source": "polyhaven",
+      "id": "street_lamp_01",
+      "res": "1k",
+      "textureSize": 512,
+      "simplify": 0.35
+    },
+    {
+      "key": "security_light",
+      "source": "polyhaven",
+      "id": "security_light",
+      "res": "1k",
+      "textureSize": 512
+    },
+    {
+      "key": "pull_chain_socket",
+      "source": "polyhaven",
+      "id": "pull_chain_light_socket",
+      "res": "1k",
+      "textureSize": 512,
+      "simplify": 0.4
+    },
+    {
+      "key": "lightbulb",
+      "source": "polyhaven",
+      "id": "lightbulb_01",
+      "res": "1k",
+      "textureSize": 256
+    },
+    {
+      "key": "hanging_lamp",
+      "source": "polyhaven",
+      "id": "hanging_industrial_lamp",
+      "res": "1k",
+      "textureSize": 512
+    },
+    {
+      "key": "trash_can",
+      "source": "polyhaven",
+      "id": "metal_trash_can",
+      "res": "1k",
+      "textureSize": 1024,
+      "simplify": 0.5
+    },
+    {
+      "key": "trashbag",
+      "source": "polyhaven",
+      "id": "trashbag",
+      "res": "1k",
+      "textureSize": 512
+    },
+    {
+      "key": "cardboard_box",
+      "source": "polyhaven",
+      "id": "cardboard_box_01",
+      "res": "1k",
+      "textureSize": 512,
+      "simplify": 0.4
+    },
+    {
+      "key": "wooden_crate",
+      "source": "polyhaven",
+      "id": "wooden_crate_02",
+      "res": "1k",
+      "textureSize": 512
+    },
+    {
+      "key": "plastic_crate",
+      "source": "polyhaven",
+      "id": "plastic_crate_03",
+      "res": "1k",
+      "textureSize": 512,
+      "simplify": 0.25,
+      "simplifyError": 0.02
+    },
+    {
+      "key": "monobloc_chair",
+      "source": "polyhaven",
+      "id": "plastic_monobloc_chair_01",
+      "res": "1k",
+      "textureSize": 1024
+    },
+    {
+      "key": "cafe_set",
+      "source": "polyhaven",
+      "id": "outdoor_table_chair_set_01",
+      "res": "1k",
+      "textureSize": 1024
+    },
+    {
+      "key": "aircon",
+      "source": "polyhaven",
+      "id": "exterior_aircon_unit",
+      "res": "1k",
+      "textureSize": 512,
+      "simplify": 0.4
+    },
+    {
+      "key": "gutter_kit",
+      "source": "polyhaven",
+      "id": "modular_metal_gutter",
+      "res": "1k",
+      "textureSize": 512
+    },
+    {
+      "key": "cable_kit",
+      "source": "polyhaven",
+      "id": "modular_electric_cables",
+      "res": "1k",
+      "textureSize": 512,
+      "keep": [
+        "cable_straight_long",
+        "cable_mount",
+        "cable_turn_long",
+        "cable_box_3way"
+      ]
+    },
+    {
+      "key": "utility_box",
+      "source": "polyhaven",
+      "id": "utility_box_01",
+      "res": "1k",
+      "textureSize": 512
+    },
+    {
+      "key": "power_box",
+      "source": "polyhaven",
+      "id": "power_box_01",
+      "res": "1k",
+      "textureSize": 512,
+      "simplify": 0.4
+    },
+    {
+      "key": "manhole",
+      "source": "polyhaven",
+      "id": "water_manhole_cover",
+      "res": "1k",
+      "textureSize": 512
+    },
+    {
+      "key": "fire_escape",
+      "source": "polyhaven",
+      "id": "modular_fire_escape",
+      "res": "1k",
+      "textureSize": 1024
+    },
+    {
+      "key": "wall_clock",
+      "source": "polyhaven",
+      "id": "wall_clock",
+      "res": "1k",
+      "textureSize": 512
+    },
+    {
+      "key": "potted_plant",
+      "source": "polyhaven",
+      "id": "potted_plant_02",
+      "res": "1k",
+      "textureSize": 512,
+      "simplify": 0.25,
+      "simplifyError": 0.02
+    },
+    {
+      "key": "weeds",
+      "source": "polyhaven",
+      "id": "weed_plant_02",
+      "res": "1k",
+      "textureSize": 512
+    },
+    {
+      "key": "planter_pot",
+      "source": "polyhaven",
+      "id": "planter_pot_clay",
+      "res": "1k",
+      "textureSize": 512
+    },
+    {
+      "key": "security_camera",
+      "source": "polyhaven",
+      "id": "security_camera_02",
+      "res": "1k",
+      "textureSize": 512,
+      "simplify": 0.4
+    }
+  ],
+  "materials": [
+    {
+      "key": "setts_wet",
+      "source": "ambientcg",
+      "id": "PavingStones115C",
+      "res": "2K",
+      "size": 2048
+    },
+    {
+      "key": "concrete_worn",
+      "source": "polyhaven",
+      "id": "concrete_floor_worn_001",
+      "res": "1k",
+      "size": 1024
+    },
+    {
+      "key": "asphalt",
+      "source": "polyhaven",
+      "id": "asphalt_02",
+      "res": "1k",
+      "size": 1024
+    },
+    {
+      "key": "plaster_damaged",
+      "source": "polyhaven",
+      "id": "damaged_plaster",
+      "res": "1k",
+      "size": 1024
+    }
+  ],
+  "hdris": [
+    {
+      "key": "env_evening",
+      "id": "evening_museum_courtyard",
+      "res": "1k"
+    },
+    {
+      "key": "sky_dusk",
+      "id": "qwantani_dusk_1_puresky",
+      "res": "1k"
+    },
+    {
+      "key": "sky_dream",
+      "id": "qwantani_dusk_2_puresky",
+      "res": "1k"
+    },
+    {
+      "key": "sky_impossible",
+      "id": "kloofendal_48d_partly_cloudy_puresky",
+      "res": "1k"
+    }
+  ]
+}

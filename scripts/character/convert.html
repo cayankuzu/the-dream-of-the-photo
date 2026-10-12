@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Photographer converter (dev tool)</title>
+    <style>
+      html, body { margin: 0; height: 100%; background: #222; color: #ccc; font: 12px monospace; }
+      #log { position: fixed; left: 8px; top: 8px; white-space: pre; text-shadow: 0 0 2px #000; }
+    </style>
+    <script type="importmap">
+      { "imports": { "three": "/three/build/three.module.js", "three/addons/": "/three/examples/jsm/" } }
+    </script>
+  </head>
+  <body>
+    <div id="log"></div>
+    <script type="module">
+      // Rocketbox (MIT) FBX -> glTF: meters, PBR materials (roughness derived from the specular map),
+      // alpha-tested hair cards, and the animation clips the piece scrubs with the timeline.
+      import * as THREE from 'three';
+      import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
+      import { TGALoader } from 'three/addons/loaders/TGALoader.js';
+      import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
+
+      const AVATAR = 'Male_Adult_07';
+      const ANIMATIONS = ['m_idle_breathe_01', 'm_take_picture'];
+      const logEl = document.getElementById('log');
+      const log = (...a) => (logEl.textContent += a.join(' ') + '\n');
+
+      const manager = new THREE.LoadingManager();
+      manager.isLoading = true;
+      const settled = () =>
+        new Promise((resolve) => {
+          const check = () => (manager.isLoading ? setTimeout(check, 100) : resolve());
+          check();
+        });
+      manager.onProgress = (url, loaded, total) => (manager.isLoading = loaded < total);
+      manager.onLoad = () => (manager.isLoading = false);
+      manager.addHandler(/\.tga$/i, new TGALoader(manager));
+      manager.setURLModifier((url) => (/\.tga$/i.test(url) ? `/src/${url.split(/[\\/]/).pop()}` : url));
+      const fbx = new FBXLoader(manager);
+
+      const SIZE = 1024;
+
+      // TGALoader yields upright RGBA rows; GLTFExporter cannot resize DataTextures,
+      // so every map goes through a canvas (downscaled) and behaves like a normal image texture.
+      function toCanvasTexture(tex, transform) {
+        const { width, height, data } = tex.image;
+        const src = document.createElement('canvas');
+        src.width = width;
+        src.height = height;
+        const pixels = new Uint8ClampedArray(data.length);
+        for (let i = 0; i < data.length; i += 4) {
+          const px = transform ? transform(data[i], data[i + 1], data[i + 2], data[i + 3]) : [data[i], data[i + 1], data[i + 2], data[i + 3]];
+          pixels.set(px, i);
+        }
+        src.getContext('2d').putImageData(new ImageData(pixels, width, height), 0, 0);
+        const dst = document.createElement('canvas');
+        dst.width = dst.height = SIZE;
+        const ctx = dst.getContext('2d');
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(src, 0, 0, SIZE, SIZE);
+        const t = new THREE.CanvasTexture(dst);
+        t.flipY = tex.flipY;
+        return t;
+      }
+
+      const specToRoughness = (r, g, b) => {
+        const s = (r + g + b) / (3 * 255);
+        return [255, Math.round(255 * Math.min(1, Math.max(0.38, 0.95 - s * 0.9))), 0, 255];
+      };
+
+      function toStandard(m) {
+        const s = new THREE.MeshStandardMaterial({ name: m.name, color: 0xffffff, roughness: 1, metalness: 0 });
+        if (m.map) {
+          s.map = toCanvasTexture(m.map);
+          s.map.colorSpace = THREE.SRGBColorSpace;
+        }
+        if (m.normalMap) s.normalMap = toCanvasTexture(m.normalMap);
+        if (m.specularMap) s.roughnessMap = s.metalnessMap = toCanvasTexture(m.specularMap, specToRoughness);
+        if (/opacity/i.test(m.name) || m.transparent) {
+          s.alphaTest = 0.45;
+          s.transparent = false;
+          s.side = THREE.DoubleSide;
+        }
+        return s;
+      }
+
+      async function run() {
+        const root = await fbx.loadAsync(`/src/${AVATAR}.fbx`);
+        await settled(); // textures finish after the model
+        root.name = 'Photographer';
+        root.scale.setScalar(0.01); // centimeters -> meters
+        const names = new Set();
+        root.traverse((o) => {
+          names.add(o.name);
+          if (o.isMesh) {
+            o.material = Array.isArray(o.material) ? o.material.map(toStandard) : toStandard(o.material);
+            log('mesh', o.name, o.isSkinnedMesh ? 'skinned' : '', o.geometry.attributes.position.count, 'verts');
+          }
+        });
+        const clips = [];
+        for (const name of ANIMATIONS) {
+          const a = await fbx.loadAsync(`/src/${name}.max.fbx`);
+          const clip = a.animations[0];
+          clip.name = name;
+          clip.tracks = clip.tracks.filter((t) => names.has(t.name.split('.')[0]));
+          clip.optimize();
+          clips.push(clip);
+          log('clip', name, clip.duration.toFixed(2) + 's', clip.tracks.length, 'tracks');
+        }
+        const glb = await new GLTFExporter().parseAsync(root, {
+          binary: true,
+          animations: clips,
+          maxTextureSize: SIZE,
+          onlyVisible: true,
+        });
+        const res = await fetch('/save/photographer.glb', { method: 'PUT', body: glb });
+        log(await res.text(), (glb.byteLength / 1e6).toFixed(2), 'MB');
+        await preview(glb);
+        log('DONE');
+      }
+
+      // Round-trip check: reload the exported file and show it from the front and from behind.
+      async function preview(glb) {
+        const { GLTFLoader } = await import('three/addons/loaders/GLTFLoader.js');
+        const gltf = await new GLTFLoader().parseAsync(glb, '');
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(innerWidth, innerHeight);
+        renderer.outputColorSpace = THREE.SRGBColorSpace;
+        renderer.toneMapping = THREE.AgXToneMapping;
+        document.body.appendChild(renderer.domElement);
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x30333a);
+        scene.add(new THREE.HemisphereLight(0xdde6ff, 0x302f2a, 1.8));
+        const key = new THREE.DirectionalLight(0xffffff, 2.5);
+        key.position.set(2, 4, 3);
+        scene.add(key);
+        const a = gltf.scene.clone();
+        const b = gltf.scene.clone();
+        a.position.x = -0.5;
+        b.position.x = 0.5;
+        b.rotation.y = Math.PI;
+        scene.add(a, b);
+        const cam = new THREE.PerspectiveCamera(30, innerWidth / innerHeight, 0.01, 50);
+        cam.position.set(0, 1.0, 5.2);
+        cam.lookAt(0, 0.9, 0);
+        renderer.render(scene, cam);
+        log('bones', (() => { let n = 0; gltf.scene.traverse((o) => o.isBone && n++); return n; })(), 'clips', gltf.animations.map((c) => c.name).join(','));
+      }
+      run().catch((e) => log('ERROR', e.stack || e));
+    </script>
+  </body>
+</html>
