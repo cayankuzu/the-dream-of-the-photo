@@ -14,7 +14,7 @@ import {
   Vector4,
   WebGLRenderTarget,
 } from 'three';
-import { endTitleFrom, say } from '../config/copy.config';
+import { endTitleFrom } from '../config/copy.config';
 import {
   DEBUG_MODE,
   directorConfig,
@@ -28,6 +28,7 @@ import {
 import { lightingConfig } from '../config/scene.config';
 import { inSea, seaConfig } from '../config/sea.config';
 import { walkConfig } from '../config/walk.config';
+import { say } from '../ui/i18n';
 import { Overlay } from '../ui/Overlay';
 import { Assets } from './assets/Assets';
 import { AudioEngine } from './audio/AudioEngine';
@@ -37,6 +38,7 @@ import { CameraDirector, type ShotState } from './director/CameraDirector';
 import { DreamDirector } from './director/DreamDirector';
 import { DreamWalk } from './director/DreamWalk';
 import { LookControls } from './interaction/LookControls';
+import { Memories } from './Memories';
 import { ScrollInput } from './interaction/ScrollInput';
 import { clamp, DEG, range, smootherstep } from './math';
 import { Photograph } from './photograph/Photograph';
@@ -93,6 +95,7 @@ export class Experience {
   private readonly portal = new PhotoPortal();
   private readonly walk = new DreamWalk();
   private readonly look: LookControls;
+  private readonly memories = new Memories();
   private readonly scroll: ScrollInput;
   private readonly assets = new Assets(import.meta.env.BASE_URL);
   private readonly captureRT = new WebGLRenderTarget(photoConfig.captureResolution, photoConfig.captureResolution, {
@@ -116,6 +119,7 @@ export class Experience {
   private readonly composite: CompositeState;
 
   private captured = false;
+  private paused = false;
   private lastTaken = false;
   private shutterTime = -10;
   private time = 0;
@@ -164,13 +168,21 @@ export class Experience {
     // the first gesture anywhere switches sound on (pointerup/keydown are user activations, also on touch);
     // the sound button handles its own clicks
     const unlock = (e: Event) => {
-      if (this.overlay.isSoundButton(e.target)) return;
+      if (this.overlay.isSoundControl(e.target)) return;
       window.removeEventListener('pointerup', unlock);
       window.removeEventListener('keydown', unlock);
       void this.audio.unlock().then((on) => this.overlay.setSound(on));
     };
     window.addEventListener('pointerup', unlock);
     window.addEventListener('keydown', unlock);
+    // the title screen's Begin is a gesture too
+    this.overlay.onBegin = () => void this.audio.unlock().then((on) => this.overlay.setSound(on));
+    this.overlay.onPause = (paused) => {
+      this.paused = paused;
+      this.scroll.enabled = !paused;
+      this.audio.setPaused(paused);
+    };
+    this.overlay.onRestart = () => this.timeline.seek(0);
     window.addEventListener('resize', () => (this.resizePending = true));
     document.addEventListener('visibilitychange', () => this.audio.setHidden(document.hidden));
   }
@@ -377,13 +389,17 @@ export class Experience {
     this.time += dt;
     this.pipeline.renderer.info.reset();
 
-    this.timeline.update(dt);
+    // paused, the dream goes on breathing but time in it stands still
+    if (!this.paused) this.timeline.update(dt);
     const p = this.timeline.progress;
     if (p > SHUTTER_PROGRESS && !this.captured) {
       // arrived here without crossing the shutter (deep link): take the picture at its exact beat
       this.photographer.update(SHUTTER_PROGRESS, this.time);
       this.captured = true;
       this.capture();
+    } else if (p < SHUTTER_PROGRESS && this.captured) {
+      // jumped back before it (starting over)
+      this.untakePicture();
     }
     // deep links (or the debug keys) jump without crossing: keep the last picture in step with the timeline
     if (p > LAST_PICTURE && !this.lastTaken) this.takeLastPicture();
@@ -407,7 +423,7 @@ export class Experience {
     const walking = clamp(speed / lookConfig.walkSpeed, 0, 1);
     this.look.moving = walking > 0.05;
     if (p >= WALK_START) this.look.recenter(walking, dt);
-    this.look.update(dt);
+    if (!this.paused) this.look.update(dt);
     const world = this.poseInside(p, travel, entry, aspect);
     const sea = p >= WALK_START && (this.walkEye.z < walkConfig.printZ || this.dream.giant.covers(world));
     if (sea) {
@@ -415,6 +431,7 @@ export class Experience {
       world.updateMatrixWorld(true);
     }
     this.look.updateAttention(world.quaternion, world.position, world.fov, dt);
+    this.discover();
 
     const previous = this.view;
     if (p < phaseStart('PHOTO_DEPTH')) this.view = 'outer';
@@ -466,7 +483,17 @@ export class Experience {
       },
       dt,
     );
-    this.overlay.update(p, this.look.enabled, this.look.turned, lookConfig.hintFadeAfterDegrees, p >= TITLE_BACK);
+    const focus = this.look.focus?.memory;
+    this.overlay.update({
+      progress: p,
+      exploring: this.look.enabled,
+      turned: this.look.turned,
+      dragHintAfter: lookConfig.hintFadeAfterDegrees,
+      ending: p >= TITLE_BACK,
+      focus: focus ? { memory: focus, progress: this.look.focusSeconds / lookConfig.discoverSeconds, known: this.memories.has(focus) } : null,
+      found: this.memories.count,
+      total: this.memories.total,
+    });
     // resolution never changes mid-transition, around the shutter or at the passages
     const quiet = this.view === 'portal' || Math.abs(p - SHUTTER_PROGRESS) < directorConfig.adaptQuiet || Math.abs(p - LAST_PICTURE) < directorConfig.adaptQuiet;
     this.pipeline.adapt(dt, !quiet);
@@ -479,6 +506,14 @@ export class Experience {
         assets: `${this.assets.loaded}/${this.assets.total}${this.assets.failed.length ? ` failed ${this.assets.failed.length}` : ''}`,
       });
     }
+  }
+
+  /** A memory holding the gaze long enough is found. */
+  private discover(): void {
+    const id = this.look.focus?.memory;
+    if (!id || this.look.focusSeconds < lookConfig.discoverSeconds || !this.memories.find(id)) return;
+    this.overlay.memoryFound(id);
+    this.audio.discover();
   }
 
   /**

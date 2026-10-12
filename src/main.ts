@@ -1,6 +1,6 @@
 import './styles/main.css';
 import { Experience } from './experience/Experience';
-import { say } from './config/copy.config';
+import { say } from './ui/i18n';
 import { Overlay } from './ui/Overlay';
 
 const canvas = document.querySelector<HTMLCanvasElement>('#stage')!;

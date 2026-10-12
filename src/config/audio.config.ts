@@ -33,6 +33,19 @@ export const audioConfig = {
   /** Time constants (s): sound switching on/off, and falling silent when the tab is hidden. */
   fadeSeconds: 0.6,
   hideSeconds: 0.05,
+  /** Share of the level left while the pause menu is open. */
+  pausedLevel: 0.35,
+  /** The bell of a found memory: note (Hz), partials (multiple, amplitude), envelope (s). */
+  discover: {
+    note: 783.99,
+    partials: [
+      [1, 0.09],
+      [2.01, 0.035],
+      [3.97, 0.012],
+    ] as [number, number][],
+    attack: 0.008,
+    release: 3.2,
+  },
   /**
    * Story mix: how much the alley ducks while the lens focuses, how fast the beds react (s), how much the
    * muffle opens again inside, and the music's level outside the picture (fraction of musicGain).

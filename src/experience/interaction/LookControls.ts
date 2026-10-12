@@ -1,4 +1,5 @@
 import { MathUtils, Quaternion, Vector3 } from 'three';
+import type { MemoryId } from '../../config/copy.config';
 import { lookConfig, REDUCED_MOTION } from '../../config/experience.config';
 import { damp, DEG } from '../math';
 
@@ -10,6 +11,8 @@ export interface PointOfInterest {
   zoom: number;
   /** Points can exist only part of the time (e.g. after a change in the dream). */
   active?: () => boolean;
+  /** A memory: a long enough look finds it (the HUD counts them). */
+  memory?: MemoryId;
 }
 
 const forward = new Vector3();
@@ -27,6 +30,9 @@ export class LookControls {
   readonly pointsOfInterest: PointOfInterest[] = [];
   /** Current attention zoom multiplier (1 = none). */
   zoom = 1;
+  /** What the gaze rests on now (only while looking is possible), and for how long (s). */
+  focus: PointOfInterest | null = null;
+  focusSeconds = 0;
   /** The viewer is walking (scrolling): attention does not narrow the view meanwhile. */
   moving = false;
   /** Whether a touch drag may turn the head (a sideways swipe looks, an upward one walks). */
@@ -163,6 +169,8 @@ export class LookControls {
       this.dwell = 0;
     }
     this.dwell += dt;
+    this.focus = this.enabled ? best : null;
+    this.focusSeconds = this.focus ? this.dwell : 0;
     const engaged = !REDUCED_MOTION && this.enabled && !this.moving && best && this.dwell > lookConfig.attention.dwellSeconds && !this.dragging;
     // never zoom so far that the thing looked at leaves the frame
     const keepInFrame = (bestAngle * DEG) / Math.atan(Math.tan((fov * DEG) / 2) * lookConfig.attention.frameShare);

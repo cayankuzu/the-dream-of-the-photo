@@ -219,8 +219,8 @@ export const dreamConfig = {
     period: [7, 13] as const,
     spin: [2, 7] as const,
     /** The chair as large as a child remembers it, standing over the alley (overall width, m). */
-    giantChair: { at: [0, 0, -44] as V3, heading: 180, width: 3.5 },
+    giantChair: { at: [0, 0, -44] as V3, heading: 180, width: 3.5, poi: { height: 2.6, radius: 8, zoom: 0.8 } },
     /** A clock the size of a window over the giant print, its hands running backwards (× real time). */
-    giantClock: { at: [0, 9.6, -95.85] as V3, diameter: 2.4, rate: -14 },
+    giantClock: { at: [0, 9.6, -95.85] as V3, diameter: 2.4, rate: -14, poi: { radius: 3.5, zoom: 0.5 } },
   },
 } as const;

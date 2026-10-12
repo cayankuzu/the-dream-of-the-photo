@@ -121,13 +121,13 @@ before it could be added.
 
 ## Fonts (redistributed)
 
-Latin subsets of three typefaces (and the latin-ext subset of Cormorant Garamond, for the Turkish narration) are self-hosted in `public/fonts/` (WOFF2, from Google Fonts) and ship
+Latin subsets of three typefaces (and the latin-ext subsets of Cormorant Garamond and IBM Plex Mono, for Turkish) are self-hosted in `public/fonts/` (WOFF2, from Google Fonts) and ship
 with the build, each next to its license:
 
 | Typeface | Files | Designer | License | License file |
 | --- | --- | --- | --- | --- |
 | Cormorant Garamond | `cormorant-garamond-400{,-italic}.woff2`, `cormorant-garamond-400{,-italic}-latin-ext.woff2` | Christian Thalmann | SIL Open Font License 1.1 | `public/fonts/OFL-CormorantGaramond.txt` |
-| IBM Plex Mono | `ibm-plex-mono-400.woff2` | Mike Abbink, Bold Monday (for IBM) | SIL Open Font License 1.1 | `public/fonts/OFL-IBMPlexMono.txt` |
+| IBM Plex Mono | `ibm-plex-mono-400{,-latin-ext}.woff2` | Mike Abbink, Bold Monday (for IBM) | SIL Open Font License 1.1 | `public/fonts/OFL-IBMPlexMono.txt` |
 | Homemade Apple | `homemade-apple-400.woff2` | Font Diner | Apache License 2.0 | `public/fonts/LICENSE-HomemadeApple.txt` |
 
 The fonts are unmodified apart from Google Fonts' subsetting; the OFL fonts are not sold on their own and

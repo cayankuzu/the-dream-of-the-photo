@@ -16,6 +16,8 @@ export class ScrollInput {
    * when it starts up or down; two fingers always walk. Otherwise every drag walks.
    */
   lookEnabled = false;
+  /** Off while the pause menu is open. */
+  enabled = true;
   /** The axis the current one-finger gesture was decided on. */
   touchAxis: 'none' | 'x' | 'y' = 'none';
   private lastTouchY: number | null = null;
@@ -35,6 +37,7 @@ export class ScrollInput {
 
   private onWheel = (e: WheelEvent): void => {
     e.preventDefault();
+    if (!this.enabled) return;
     let dy = e.deltaY;
     if (e.deltaMode === 1) dy *= LINE_HEIGHT;
     else if (e.deltaMode === 2) dy *= window.innerHeight;
@@ -57,7 +60,7 @@ export class ScrollInput {
   };
 
   private onTouchMove = (e: TouchEvent): void => {
-    if (e.touches.length > 2) return;
+    if (e.touches.length > 2 || !this.enabled) return;
     e.preventDefault();
     if (this.touchAxis === 'none') {
       const dx = e.touches[0].clientX - this.startX;
@@ -83,8 +86,8 @@ export class ScrollInput {
   };
 
   private onKey = (e: KeyboardEvent): void => {
-    // keys on a focused control (the sound switch) belong to that control
-    if (e.target instanceof HTMLElement && e.target.closest('button, a, input')) return;
+    // keys on a focused control belong to that control
+    if (!this.enabled || (e.target instanceof HTMLElement && e.target.closest('button, a, input'))) return;
     const step = timelineConfig.keyStep;
     switch (e.key) {
       case 'ArrowDown':

@@ -1,25 +1,14 @@
 /**
- * Every word the piece says, in English and Turkish. The language follows the browser
- * (Turkish when it is preferred, English otherwise); `?lang=en` or `?lang=tr` overrides it.
+ * Every word the piece says, in English and Turkish (the visitor switches between them at any time;
+ * see src/ui/i18n.ts for which one is showing).
  */
 import type { Cue } from './experience.config';
 
 export type Lang = 'en' | 'tr';
 
-function pickLang(): Lang {
-  const asked = new URLSearchParams(window.location.search).get('lang');
-  if (asked === 'en' || asked === 'tr') return asked;
-  const preferred = navigator.languages?.length ? navigator.languages : [navigator.language];
-  for (const l of preferred) {
-    if (/^tr\b/i.test(l)) return 'tr';
-    if (/^en\b/i.test(l)) return 'en';
-  }
-  return 'en';
-}
+export const LANGS: readonly Lang[] = ['tr', 'en'];
 
-export const LANG: Lang = pickLang();
-
-type Text = Readonly<Record<Lang, string>>;
+export type Text = Readonly<Record<Lang, string>>;
 
 /** A line of narration, shown between two cues (it fades in and out over `fade` of its span). */
 export interface NarrationLine {
@@ -134,13 +123,76 @@ export const narrationFade = 0.22;
 /** The title comes back at the very end (EXPLORATION fraction). */
 export const endTitleFrom = 0.82;
 
-const ui = {
-  scroll: { en: 'scroll', tr: 'kaydır' },
-  drag: { en: 'drag to look around', tr: 'etrafa bakmak için sürükle' },
-  dragTouch: { en: 'swipe sideways to look · up to walk', tr: 'bakmak için yana · yürümek için yukarı kaydır' },
-  soundOn: { en: 'sound on', tr: 'ses açık' },
-  soundOff: { en: 'sound off', tr: 'ses kapalı' },
+/**
+ * Chapters of the journey: where each begins, and its name. The HUD names the one you are in and
+ * marks them all on the journey bar.
+ */
+export const chapters: readonly { at: Cue; name: Text }[] = [
+  { at: ['INTRO', 0], name: { en: 'The Shutter', tr: 'Deklanşör' } },
+  { at: ['PHOTO_EJECT', 0], name: { en: 'Developing', tr: 'Banyo' } },
+  { at: ['PHOTO_APPROACH', 0], name: { en: 'The Threshold', tr: 'Eşik' } },
+  { at: ['WORLD', 0], name: { en: 'The Rain That Waits', tr: 'Bekleyen Yağmur' } },
+  { at: ['WORLD', 0.15], name: { en: 'Pictures From Further On', tr: 'İleriden Fotoğraflar' } },
+  { at: ['WORLD', 0.31], name: { en: 'The Street That Goes On', tr: 'Bitmeyen Sokak' } },
+  { at: ['WORLD', 0.45], name: { en: 'Weightless', tr: 'Yerçekimsiz' } },
+  { at: ['WORLD', 0.6], name: { en: 'The Print That Waits', tr: 'Bekleyen Fotoğraf' } },
+  { at: ['WORLD', 0.82], name: { en: 'The Mirror Sea', tr: 'Ayna Deniz' } },
+  { at: ['WORLD', 0.95], name: { en: 'The Photographer', tr: 'Fotoğrafçı' } },
+  { at: ['EXPLORATION', 0.07], name: { en: 'Waking', tr: 'Uyanış' } },
+];
+
+/** Memories: things inside the dream that reveal themselves to a long look (the HUD counts them). */
+export const memories = {
+  figure: { en: 'The one at the far end', tr: 'Uzaktaki fotoğrafçı' },
+  found: { en: 'The found photograph', tr: 'Bulunmuş fotoğraf' },
+  window: { en: 'A window onto the real moment', tr: 'Gerçek ana açılan pencere' },
+  chair: { en: 'The chair, as large as you remember it', tr: 'Hatırladığın büyüklükte sandalye' },
+  clock: { en: 'The clock that runs backwards', tr: 'Geri giden saat' },
+  giant: { en: 'The print that waits', tr: 'Bekleyen fotoğraf' },
+  moon: { en: 'The moon is a photograph', tr: 'Ay bir fotoğraf' },
+  photographer: { en: 'The photographer on the water', tr: 'Sudaki fotoğrafçı' },
+} satisfies Record<string, Text>;
+
+export type MemoryId = keyof typeof memories;
+
+export const ui = {
+  kicker: { en: 'an interactive dream', tr: 'etkileşimli bir rüya' },
+  subtitle: { en: 'Step into a photograph and walk through its dream.', tr: 'Bir fotoğrafın içine gir ve rüyasında yürü.' },
+  loading: { en: 'Developing', tr: 'Banyo ediliyor' },
+  start: { en: 'Begin', tr: 'Başla' },
+  resume: { en: 'Resume', tr: 'Devam et' },
+  restart: { en: 'Start over', tr: 'Baştan başla' },
+  replay: { en: 'Dream again', tr: 'Yeniden düşle' },
+  headphones: { en: 'Best with headphones', tr: 'Kulaklıkla deneyimleyin' },
+  paused: { en: 'Paused', tr: 'Duraklatıldı' },
+  language: { en: 'Language', tr: 'Dil' },
+  sound: { en: 'Sound', tr: 'Ses' },
+  on: { en: 'On', tr: 'Açık' },
+  off: { en: 'Off', tr: 'Kapalı' },
+  fullscreen: { en: 'Full screen', tr: 'Tam ekran' },
+  controls: { en: 'Controls', tr: 'Kontroller' },
+  credits: { en: 'Assets: CC0 (Poly Haven, ambientCG, Freesound) and MIT (Microsoft Rocketbox).', tr: 'Varlıklar: CC0 (Poly Haven, ambientCG, Freesound) ve MIT (Microsoft Rocketbox).' },
+  source: { en: 'Source code', tr: 'Kaynak kod' },
+  menu: { en: 'Menu', tr: 'Menü' },
+  chapter: { en: 'Chapter', tr: 'Bölüm' },
+  memories: { en: 'Memories', tr: 'Anılar' },
+  memoryFound: { en: 'Memory found', tr: 'Anı bulundu' },
+  journey: { en: 'Journey', tr: 'Yolculuk' },
+  scroll: { en: 'Scroll', tr: 'Kaydır' },
+  walk: { en: 'Walk', tr: 'Yürü' },
+  look: { en: 'Look', tr: 'Bak' },
+  turn: { en: 'Turn', tr: 'Dön' },
+  wheel: { en: 'Wheel', tr: 'Tekerlek' },
+  drag: { en: 'Drag', tr: 'Sürükle' },
+  swipeUp: { en: 'Swipe up', tr: 'Yukarı kaydır' },
+  swipeSide: { en: 'Swipe sideways', tr: 'Yana kaydır' },
+  twoFingers: { en: 'Two fingers', tr: 'İki parmak' },
+  tutorialLook: { en: 'Look around', tr: 'Etrafına bak' },
+  tutorialLookTouch: { en: 'Swipe sideways to look, up to walk', tr: 'Bakmak için yana, yürümek için yukarı kaydır' },
+  tutorialMemory: { en: 'Hold your gaze on something strange to find a memory', tr: 'Tuhaf bir şeye bakışını sabitle: anıyı bul' },
+  endMemories: { en: 'memories found', tr: 'anı bulundu' },
   soundLabel: { en: 'Toggle sound', tr: 'Sesi aç / kapat' },
+  menuLabel: { en: 'Open the menu', tr: 'Menüyü aç' },
   noWebgl: { en: 'This piece needs a browser with WebGL 2.', tr: 'Bu eser WebGL 2 destekleyen bir tarayıcı gerektirir.' },
   failed: { en: 'The picture could not be developed. Please reload.', tr: 'Fotoğraf banyo edilemedi. Lütfen sayfayı yenileyin.' },
   lost: { en: 'The picture faded. Please reload the page.', tr: 'Fotoğraf soldu. Lütfen sayfayı yenileyin.' },
@@ -148,5 +200,4 @@ const ui = {
   printBack: { en: 'you were here', tr: 'buradaydın' },
 } satisfies Record<string, Text>;
 
-/** A UI string in the visitor's language. */
-export const say = (key: keyof typeof ui): string => ui[key][LANG];
+export type UiKey = keyof typeof ui;

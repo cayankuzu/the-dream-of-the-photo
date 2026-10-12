@@ -177,6 +177,7 @@ export class DreamDirector {
       radius: D.figure.poi.radius,
       zoom: D.figure.poi.zoom,
       active: () => this.retreat < 0.5,
+      memory: 'figure',
     };
     ctx.look.pointsOfInterest.push(this.figurePoi);
 
@@ -190,7 +191,7 @@ export class DreamDirector {
     this.windowGlow = anchors.get('roomWindow') as Mesh | undefined;
     this.windowMaterial.color.setScalar(D.window.brightness);
     if (this.windowGlow) {
-      ctx.look.pointsOfInterest.push({ position: this.windowGlow.getWorldPosition(new Vector3()), radius: D.window.poiRadius, zoom: D.window.zoom, active: () => this.state.window });
+      ctx.look.pointsOfInterest.push({ position: this.windowGlow.getWorldPosition(new Vector3()), radius: D.window.poiRadius, zoom: D.window.zoom, active: () => this.state.window, memory: 'window' });
     }
     this.windowRoomMaterial = this.windowGlow?.material as Material | undefined;
     this.bulb = ctx.alley.bulbLight;
@@ -200,13 +201,23 @@ export class DreamDirector {
     this.buildStairs();
     this.buildFoundPhotograph();
     this.giant = new GiantPrint(ctx.portal);
-    ctx.look.pointsOfInterest.push({ position: this.giant.imageCenter, radius: D.giantPrint.poi.radius, zoom: D.giantPrint.poi.zoom });
+    ctx.look.pointsOfInterest.push({ position: this.giant.imageCenter, radius: D.giantPrint.poi.radius, zoom: D.giantPrint.poi.zoom, memory: 'giant' });
     this.floating = new FloatingThings(ctx.alley);
+    const { giantChair, giantClock } = D.floating;
+    ctx.look.pointsOfInterest.push(
+      { position: new Vector3(giantChair.at[0], giantChair.poi.height, giantChair.at[2]), radius: giantChair.poi.radius, zoom: giantChair.poi.zoom, memory: 'chair' },
+      { position: new Vector3(...giantClock.at), radius: giantClock.poi.radius, zoom: giantClock.poi.zoom, memory: 'clock' },
+    );
     this.lines = new PhotoLines(this.moments.textures);
     this.sea = new DreamSea({ alley: ctx.alley, photographer: ctx.photographer, moments: this.moments.textures, moonPhoto: this.foundRT.texture });
     ctx.look.pointsOfInterest.push(
-      { position: new Vector3(...inSea(seaConfig.moon.at)), radius: 9, zoom: 0.55 },
-      { position: new Vector3(...inSea(seaConfig.figure.position)).setY(D.figure.poi.height), radius: D.figure.poi.radius, zoom: D.figure.poi.zoom },
+      { position: new Vector3(...inSea(seaConfig.moon.at)), radius: seaConfig.moon.poi.radius, zoom: seaConfig.moon.poi.zoom, memory: 'moon' },
+      {
+        position: new Vector3(...inSea(seaConfig.figure.position)).setY(D.figure.poi.height),
+        radius: D.figure.poi.radius,
+        zoom: D.figure.poi.zoom,
+        memory: 'photographer',
+      },
     );
     this.root.add(this.figure, this.extension, this.stairs, this.giant.root, this.rain.mesh, this.floating.root, this.lines.root, this.sea.root);
     this.root.traverse((o) => o.layers.set(LAYERS.DREAM));
@@ -308,7 +319,7 @@ export class DreamDirector {
     print.position.copy(spot);
     print.rotation.set(0, -Math.PI / 2, D.found.tilt * DEG, 'YXZ');
     this.root.add(print);
-    this.ctx.look.pointsOfInterest.push({ position: spot, radius: D.found.radius, zoom: D.found.zoom });
+    this.ctx.look.pointsOfInterest.push({ position: spot, radius: D.found.radius, zoom: D.found.zoom, memory: 'found' });
   }
 
   /**

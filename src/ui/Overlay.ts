@@ -1,73 +1,343 @@
-import { LANG, say } from '../config/copy.config';
+import { chapters, memories, type Lang, type MemoryId, type UiKey } from '../config/copy.config';
+import { cueToProgress } from '../experience/timeline/Timeline';
+import { lang, onLang, say, setLang, tr } from './i18n';
 import { Narration } from './Narration';
 
-/** Timeline position after which the piece counts as started (title gone, scroll hint gone). */
+/** Timeline position after which the piece counts as started (the scroll cue is gone). */
 const STARTED_AT = 0.008;
-/** The scroll hint waits a moment after the title appears. */
-const HINT_DELAY_MS = 1800;
+/** How long a new chapter stays announced, and a found memory on screen (ms). */
+const CHAPTER_MS = 3600;
+const TOAST_MS = 3400;
+/** Seconds of exploring before the gaze tutorial appears (if no memory has been found yet). */
+const GAZE_TUTORIAL_AFTER = 9;
+/** Circumference of the reticle's ring (r = 15 in its 40-unit view box). */
+const RING = 2 * Math.PI * 15;
 
-const q = <T extends HTMLElement>(name: string): T => {
-  const el = document.querySelector<T>(`[data-ui="${name}"]`);
+const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
+/** UI keys that name a control (anything else in a key row is printed as it is, e.g. arrows). */
+const NAMED_KEYS = new Set<string>(['wheel', 'drag', 'swipeUp', 'swipeSide', 'twoFingers']);
+const chapterStarts = chapters.map((c) => cueToProgress(c.at));
+const TOUCH = window.matchMedia('(pointer: coarse)').matches;
+
+/** What the piece tells the HUD every frame. */
+export interface HudState {
+  progress: number;
+  /** Looking around is possible (inside the picture). */
+  exploring: boolean;
+  /** Degrees the viewer has turned their head so far. */
+  turned: number;
+  dragHintAfter: number;
+  /** The last shot: the title comes back. */
+  ending: boolean;
+  /** A memory the gaze rests on: how much of the look it needs is done (0..1), and whether it was found before. */
+  focus: { memory: MemoryId; progress: number; known: boolean } | null;
+  found: number;
+  total: number;
+}
+
+const q = <T extends HTMLElement>(name: string, root: ParentNode = document): T => {
+  const el = root.querySelector<T>(`[data-ui="${name}"]`);
   if (!el) throw new Error(`missing ui element: ${name}`);
   return el;
 };
 
-/** The only DOM UI: a title that dissolves (and returns at the end), the narration, two whispers and a sound switch. */
+/** A row of the controls: keycaps, then what they do. */
+type KeyRow = { keys: UiKey[] | string[]; does: UiKey };
+
+/**
+ * The game's interface over the scene: a title screen that loads and waits for the first step, then a
+ * HUD (chapter, memories, language, sound, menu, the gaze, the journey, controls, subtitles), a pause
+ * menu and an ending. Every word follows the language switch at once.
+ */
 export class Overlay {
   private readonly bar = q('loader-bar');
-  private readonly scrollHint = q('hint-scroll');
-  private readonly dragHint = q('hint-drag');
+  private readonly loaderLabel = q('loader-label');
+  private readonly startButton = q<HTMLButtonElement>('start-button');
+  private readonly chapter = q('chapter');
+  private readonly chapterNumber = q('chapter-number');
+  private readonly chapterName = q('chapter-name');
+  private readonly memoriesChip = q('memories');
+  private readonly memoriesCount = q('memories-count');
+  private readonly reticle = q('reticle');
+  private readonly reticleFill = q('reticle-fill');
+  private readonly toast = q('toast');
+  private readonly toastName = q('toast-name');
+  private readonly tutorial = q('tutorial');
+  private readonly tutorialKey = q('tutorial-key');
+  private readonly tutorialText = q('tutorial-text');
+  private readonly journeyFill = q('journey-fill');
+  private readonly journeyTicks = q('journey-ticks');
+  private readonly journeyPercent = q('journey-percent');
+  private readonly keys = q<HTMLUListElement>('keys');
+  private readonly menuKeys = q<HTMLUListElement>('menu-keys');
+  private readonly scrollCue = q('scroll-cue');
+  private readonly endCount = q('end-count');
+  private readonly menu = q('menu');
   private readonly sound = q<HTMLButtonElement>('sound');
-  private readonly soundLabel = q('sound-label');
-  private readonly narration = new Narration();
+  private readonly menuSoundLabel = q('menu-sound-label');
+  private readonly fullscreenLabel = q('fullscreen-label');
+  private readonly narration = new Narration(q('narration'));
+
+  private begun = false;
+  private isReady = false;
+  private soundOn = false;
+  private chapterIndex = -1;
+  private chapterTimer = 0;
+  private toastTimer = 0;
+  private toastMemory: MemoryId | null = null;
   private dragHintDone = false;
-  private scrollHintArmed = false;
+  private exploringSince = 0;
+  private found = 0;
+  private lastFill = -1;
 
   onSoundToggle: (() => void) | null = null;
+  /** The first step: Begin pressed (a user gesture: sound may start). */
+  onBegin: (() => void) | null = null;
+  onPause: ((paused: boolean) => void) | null = null;
+  onRestart: (() => void) | null = null;
 
   constructor() {
-    document.documentElement.lang = LANG;
-    q('hint-scroll-label').textContent = say('scroll');
-    // on touch screens a sideways swipe looks, an upward one walks
-    const touch = window.matchMedia('(pointer: coarse)').matches;
-    q('hint-drag-label').textContent = say(touch ? 'dragTouch' : 'drag');
-    this.sound.setAttribute('aria-label', say('soundLabel'));
-    this.setSound(false);
-    this.sound.addEventListener('click', (e) => {
-      e.stopPropagation();
-      this.onSoundToggle?.();
+    for (const group of document.querySelectorAll<HTMLElement>('[data-ui="lang"]')) {
+      group.addEventListener('click', (e) => {
+        const button = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-lang]');
+        if (button) setLang(button.dataset.lang as Lang);
+      });
+    }
+    this.startButton.addEventListener('click', () => this.begin());
+    this.sound.addEventListener('click', () => this.onSoundToggle?.());
+    q('menu-sound').addEventListener('click', () => this.onSoundToggle?.());
+    q('menu-button').addEventListener('click', () => this.setPaused(true));
+    q('resume').addEventListener('click', () => this.setPaused(false));
+    q('restart').addEventListener('click', () => {
+      this.setPaused(false);
+      this.onRestart?.();
     });
+    q('replay').addEventListener('click', () => this.onRestart?.());
+    const fullscreen = q('fullscreen');
+    if (document.fullscreenEnabled) {
+      fullscreen.addEventListener('click', () => {
+        const done = document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen();
+        done.catch(() => undefined);
+      });
+      document.addEventListener('fullscreenchange', () => this.writeFullscreen());
+    } else {
+      q('fullscreen-row').hidden = true;
+    }
+    window.addEventListener('keydown', this.onKey);
+
+    // the journey's chapters, marked on its bar
+    for (const at of chapterStarts.slice(1)) {
+      const tick = document.createElement('i');
+      tick.style.left = `${(at * 100).toFixed(2)}%`;
+      this.journeyTicks.appendChild(tick);
+    }
+    onLang(() => this.translate());
   }
 
-  /** True for events coming from the sound switch (it handles its own clicks). */
-  isSoundButton(target: EventTarget | null): boolean {
-    return target instanceof Node && this.sound.contains(target);
+  /** True for events coming from the interface itself (it handles its own clicks and keys). */
+  isInterface(target: EventTarget | null): boolean {
+    return target instanceof Element && !!target.closest('button, a, .menu');
   }
+
+  /** True for the sound switches (they toggle sound themselves). */
+  isSoundControl(target: EventTarget | null): boolean {
+    return target instanceof Element && !!target.closest('[data-ui="sound"], [data-ui="menu-sound"]');
+  }
+
+  get paused(): boolean {
+    return !this.menu.hidden;
+  }
+
+  // ------------------------------------------------------------------ language
+
+  private translate(): void {
+    for (const el of document.querySelectorAll<HTMLElement>('[data-i18n]')) el.textContent = say(el.dataset.i18n as UiKey);
+    for (const el of document.querySelectorAll<HTMLElement>('[data-i18n-label]')) el.setAttribute('aria-label', say(el.dataset.i18nLabel as UiKey));
+    for (const b of document.querySelectorAll<HTMLButtonElement>('button[data-lang]')) b.setAttribute('aria-pressed', String(b.dataset.lang === lang()));
+    if (this.chapterIndex >= 0) this.chapterName.textContent = tr(chapters[this.chapterIndex].name);
+    if (this.toastMemory) this.toastName.textContent = tr(memories[this.toastMemory]);
+    this.writeKeys();
+    this.writeSound();
+    this.writeFullscreen();
+    this.tutorialText.dataset.key = '';
+  }
+
+  private writeKeys(): void {
+    const rows: KeyRow[] = TOUCH
+      ? [
+          { keys: ['swipeUp'], does: 'walk' },
+          { keys: ['swipeSide'], does: 'look' },
+          { keys: ['twoFingers'], does: 'walk' },
+        ]
+      : [
+          { keys: ['wheel', '↑ ↓'], does: 'walk' },
+          { keys: ['drag', '← →'], does: 'look' },
+          { keys: ['Esc'], does: 'menu' },
+        ];
+    for (const list of [this.keys, this.menuKeys]) {
+      list.replaceChildren(
+        ...rows.map((row) => {
+          const li = document.createElement('li');
+          for (const k of row.keys) {
+            const cap = document.createElement('span');
+            cap.className = 'key';
+            cap.textContent = NAMED_KEYS.has(k) ? say(k as UiKey) : k;
+            li.appendChild(cap);
+          }
+          const does = document.createElement('span');
+          does.textContent = say(row.does);
+          li.appendChild(does);
+          return li;
+        }),
+      );
+    }
+  }
+
+  private writeSound(): void {
+    this.sound.setAttribute('aria-pressed', String(this.soundOn));
+    this.menuSoundLabel.textContent = say(this.soundOn ? 'on' : 'off');
+  }
+
+  private writeFullscreen(): void {
+    this.fullscreenLabel.textContent = say(document.fullscreenElement ? 'on' : 'off');
+  }
+
+  // ------------------------------------------------------------------ the title screen
 
   setLoadProgress(fraction: number): void {
     this.bar.style.transform = `scaleX(${fraction.toFixed(3)})`;
+    this.loaderLabel.textContent = `${Math.round(fraction * 100)}%`;
   }
 
   ready(): void {
+    this.isReady = true;
     document.body.classList.add('is-ready');
-    window.setTimeout(() => (this.scrollHintArmed = true), HINT_DELAY_MS);
+    this.startButton.disabled = false;
+    this.startButton.focus({ preventScroll: true });
   }
 
-  /** Called every frame with the visible timeline position. */
-  update(progress: number, exploring: boolean, turnedDegrees: number, dragHintAfter: number, ending: boolean): void {
-    const started = progress > STARTED_AT;
-    document.body.classList.toggle('has-started', started);
-    document.body.classList.toggle('is-ending', ending);
-    this.scrollHint.classList.toggle('is-visible', this.scrollHintArmed && !started);
-    document.body.classList.toggle('is-exploring', exploring);
-    if (turnedDegrees > dragHintAfter) this.dragHintDone = true;
-    this.dragHint.classList.toggle('is-visible', exploring && !this.dragHintDone);
-    this.narration.update(progress);
+  /** Leave the title screen (Begin, or the first scroll into the piece). */
+  private begin(): void {
+    if (this.begun || !this.isReady) return;
+    this.begun = true;
+    document.body.classList.add('has-begun');
+    this.startButton.blur();
+    this.onBegin?.();
+  }
+
+  // ------------------------------------------------------------------ pause menu
+
+  private setPaused(paused: boolean): void {
+    if (paused === this.paused || (paused && !this.begun)) return;
+    this.menu.hidden = !paused;
+    document.body.classList.toggle('is-paused', paused);
+    if (paused) q<HTMLButtonElement>('resume').focus({ preventScroll: true });
+    this.onPause?.(paused);
+  }
+
+  private onKey = (e: KeyboardEvent): void => {
+    if (e.key === 'Escape') {
+      this.setPaused(!this.paused);
+      e.preventDefault();
+    } else if (!this.begun && this.isReady && (e.key === 'Enter' || e.key === ' ') && !this.isInterface(e.target)) {
+      this.begin();
+      e.preventDefault();
+    }
+  };
+
+  // ------------------------------------------------------------------ per frame
+
+  update(s: HudState): void {
+    if (s.progress > STARTED_AT) this.begin();
+    document.body.classList.toggle('is-ending', s.ending);
+    document.body.classList.toggle('is-exploring', s.exploring && !this.paused);
+    this.scrollCue.classList.toggle('is-visible', this.begun && s.progress <= STARTED_AT);
+    this.narration.update(s.progress);
+    this.updateChapter(s.progress);
+    this.updateJourney(s.progress);
+    this.updateMemories(s);
+    this.updateTutorial(s);
+  }
+
+  private updateChapter(progress: number): void {
+    let i = chapterStarts.length - 1;
+    while (i > 0 && progress < chapterStarts[i]) i--;
+    if (i === this.chapterIndex) return;
+    this.chapterIndex = i;
+    this.chapterNumber.textContent = ROMAN[i];
+    this.chapterName.textContent = tr(chapters[i].name);
+    // replay the announcement
+    this.chapter.classList.remove('is-new');
+    void this.chapter.offsetWidth;
+    this.chapter.classList.add('is-new');
+    window.clearTimeout(this.chapterTimer);
+    this.chapterTimer = window.setTimeout(() => this.chapter.classList.remove('is-new'), CHAPTER_MS);
+  }
+
+  private updateJourney(progress: number): void {
+    const fill = Math.round(progress * 1000) / 10;
+    if (fill === this.lastFill) return;
+    this.lastFill = fill;
+    this.journeyFill.style.width = `${fill}%`;
+    this.journeyPercent.textContent = `${Math.round(fill)}%`;
+    this.journeyTicks.querySelectorAll('i').forEach((tick, k) => tick.classList.toggle('is-passed', progress >= chapterStarts[k + 1]));
+  }
+
+  private updateMemories(s: HudState): void {
+    if (s.found !== this.found || !this.memoriesCount.textContent?.endsWith(`/${s.total}`)) {
+      this.found = s.found;
+      const text = `${s.found}/${s.total}`;
+      this.memoriesCount.textContent = text;
+      this.endCount.textContent = text;
+    }
+    const focus = s.exploring ? s.focus : null;
+    this.reticle.classList.toggle('is-focusing', !!focus);
+    this.reticle.classList.toggle('is-known', !!focus?.known);
+    const offset = focus ? RING * (1 - (focus.known ? 1 : focus.progress)) : RING;
+    this.reticleFill.style.strokeDashoffset = offset.toFixed(2);
+  }
+
+  /** A memory found: name it for a moment, and let the counter glow. */
+  memoryFound(id: MemoryId): void {
+    this.toastMemory = id;
+    this.toastName.textContent = tr(memories[id]);
+    this.toast.classList.add('is-visible');
+    this.memoriesChip.classList.remove('is-pulsing');
+    void this.memoriesChip.offsetWidth;
+    this.memoriesChip.classList.add('is-pulsing');
+    window.clearTimeout(this.toastTimer);
+    this.toastTimer = window.setTimeout(() => {
+      this.toast.classList.remove('is-visible');
+      this.toastMemory = null;
+    }, TOAST_MS);
+  }
+
+  /** First how to look, then how to find memories. */
+  private updateTutorial(s: HudState): void {
+    const now = performance.now() / 1000;
+    if (!s.exploring) this.exploringSince = now;
+    if (s.turned > s.dragHintAfter) this.dragHintDone = true;
+    let key = '';
+    let text: UiKey | null = null;
+    if (s.exploring && !s.ending && !this.paused) {
+      if (!this.dragHintDone) {
+        key = TOUCH ? '' : say('drag');
+        text = TOUCH ? 'tutorialLookTouch' : 'tutorialLook';
+      } else if (s.found === 0 && now - this.exploringSince > GAZE_TUTORIAL_AFTER) {
+        text = 'tutorialMemory';
+      }
+    }
+    this.tutorial.classList.toggle('is-visible', !!text);
+    const id = `${text}:${key}:${lang()}`;
+    if (!text || this.tutorialText.dataset.key === id) return;
+    this.tutorialText.dataset.key = id;
+    this.tutorialKey.textContent = key;
+    this.tutorialText.textContent = say(text);
   }
 
   setSound(on: boolean): void {
-    this.sound.setAttribute('aria-pressed', String(on));
-    this.soundLabel.textContent = say(on ? 'soundOn' : 'soundOff');
+    this.soundOn = on;
+    this.writeSound();
   }
 
   fail(message: string): void {

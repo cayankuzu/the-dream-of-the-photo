@@ -37,6 +37,8 @@ export class AudioEngine {
   private beds = new Map<BedKey, Voice>();
   private padVoices: { osc: OscillatorNode; gain: GainNode }[] = [];
   private enabled = false;
+  private hidden = false;
+  private paused = false;
   private nextDrip = 0;
   private nextDreamCall = 0;
   private lastChord = -1;
@@ -46,19 +48,29 @@ export class AudioEngine {
     if (!this.ctx) await this.start();
     if (!this.ctx) return false;
     this.enabled = !this.enabled;
-    const t = this.ctx.currentTime;
-    this.master.gain.cancelScheduledValues(t);
-    this.master.gain.setTargetAtTime(this.enabled ? audioConfig.masterGain : 0, t, audioConfig.fadeSeconds);
+    this.applyMaster(audioConfig.fadeSeconds);
     if (this.enabled && this.ctx.state === 'suspended') await this.ctx.resume().catch(() => undefined);
     return this.enabled;
   }
 
   /** A hidden tab falls silent; sound comes back (if it was on) when the tab returns. */
   setHidden(hidden: boolean): void {
+    this.hidden = hidden;
+    this.applyMaster(hidden ? audioConfig.hideSeconds : audioConfig.fadeSeconds);
+  }
+
+  /** The pause menu: the dream goes on, quieter. */
+  setPaused(paused: boolean): void {
+    this.paused = paused;
+    this.applyMaster(audioConfig.fadeSeconds);
+  }
+
+  private applyMaster(timeConstant: number): void {
     if (!this.ctx) return;
     const t = this.ctx.currentTime;
+    const level = this.enabled && !this.hidden ? audioConfig.masterGain * (this.paused ? audioConfig.pausedLevel : 1) : 0;
     this.master.gain.cancelScheduledValues(t);
-    this.master.gain.setTargetAtTime(this.enabled && !hidden ? audioConfig.masterGain : 0, t, hidden ? audioConfig.hideSeconds : audioConfig.fadeSeconds);
+    this.master.gain.setTargetAtTime(level, t, timeConstant);
   }
 
   /** First gesture anywhere: switch sound on (the default intention). */
@@ -561,6 +573,22 @@ export class AudioEngine {
     src.start(t);
     src.stop(t + dur + 0.05);
     this.burst(t + dur - 0.04, 3000, 3, 0.12, 0.03);
+  }
+
+  /** A memory found: a small, clear bell, far away. */
+  discover(): void {
+    if (!this.ready()) return;
+    const t = this.ctx!.currentTime;
+    const d = audioConfig.discover;
+    for (const [mul, amp] of d.partials) {
+      const o = this.ctx!.createOscillator();
+      const g = this.gainNode(0);
+      o.frequency.value = d.note * mul;
+      o.connect(g).connect(this.sfx);
+      this.env(g, t, d.attack, amp, d.release);
+      o.start(t);
+      o.stop(t + d.attack + d.release + 0.1);
+    }
   }
 
   /** Fingers taking the print. */

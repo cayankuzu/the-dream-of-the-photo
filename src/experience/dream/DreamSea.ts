@@ -26,7 +26,7 @@ import {
   type Material,
   type Texture,
 } from 'three';
-import { say } from '../../config/copy.config';
+import { say } from '../../ui/i18n';
 import { dreamConfig } from '../../config/dream.config';
 import { photoConfig, REDUCED_MOTION } from '../../config/experience.config';
 import { fireEscape, LIGHT_COLORS } from '../../config/scene.config';

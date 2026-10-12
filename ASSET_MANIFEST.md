@@ -15,8 +15,8 @@ Sizes are those of the shipped files (1 KiB = 1024 bytes). Triangle counts are a
 | PBR materials (Poly Haven, ambientCG) | 12 | 4.51 MiB |
 | HDRIs (Poly Haven) | 4 | 4.81 MiB |
 | Audio (Freesound, CC0) | 7 | 1.67 MiB |
-| Fonts (Google Fonts, OFL / Apache 2.0) and their licenses | 9 | 0.16 MiB |
-| **Total** | **60** | **21.67 MiB** |
+| Fonts (Google Fonts, OFL / Apache 2.0) and their licenses | 10 | 0.17 MiB |
+| **Total** | **61** | **21.68 MiB** |
 
 ## 3D models
 
@@ -135,18 +135,18 @@ Total: 7 files, 1,751,633 bytes (1.67 MiB).
 ## Fonts
 
 Source: [Google Fonts](https://fonts.google.com), the WOFF2 subsets its CSS API serves (`latin`, and
-`latin-ext` for Cormorant Garamond so the Turkish narration has every letter), self-hosted unmodified in
+`latin-ext` for Cormorant Garamond and IBM Plex Mono so Turkish has every letter), self-hosted unmodified in
 `public/fonts/` with their licenses (see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)).
 
 | Asset (files) | Typeface (designer) | Source | URL | License | Version used | Size | Purpose in the piece |
 | --- | --- | --- | --- | --- | --- | ---: | --- |
 | `fonts/cormorant-garamond-400.woff2`, `fonts/cormorant-garamond-400-latin-ext.woff2` | Cormorant Garamond Regular (Christian Thalmann) | Google Fonts | [fonts.google.com/specimen/Cormorant+Garamond](https://fonts.google.com/specimen/Cormorant+Garamond) | OFL 1.1 | v21, latin + latin-ext | 42 KiB | The title. |
 | `fonts/cormorant-garamond-400-italic.woff2`, `fonts/cormorant-garamond-400-italic-latin-ext.woff2` | Cormorant Garamond Italic (Christian Thalmann) | Google Fonts | same as above | OFL 1.1 | v21, latin + latin-ext | 43 KiB | The narration (English and Turkish). |
-| `fonts/ibm-plex-mono-400.woff2` | IBM Plex Mono Regular (Mike Abbink, Bold Monday for IBM) | Google Fonts | [fonts.google.com/specimen/IBM+Plex+Mono](https://fonts.google.com/specimen/IBM+Plex+Mono) | OFL 1.1 | v20, latin | 14 KiB | The hints and the sound switch. |
+| `fonts/ibm-plex-mono-400.woff2`, `fonts/ibm-plex-mono-400-latin-ext.woff2` | IBM Plex Mono Regular (Mike Abbink, Bold Monday for IBM) | Google Fonts | [fonts.google.com/specimen/IBM+Plex+Mono](https://fonts.google.com/specimen/IBM+Plex+Mono) | OFL 1.1 | v20, latin + latin-ext | 27 KiB | The HUD, the menus and the controls (latin-ext for Turkish capitals such as Ş, Ğ, İ). |
 | `fonts/homemade-apple-400.woff2` | Homemade Apple (Font Diner) | Google Fonts | [fonts.google.com/specimen/Homemade+Apple](https://fonts.google.com/specimen/Homemade+Apple) | Apache 2.0 | v24, latin | 47 KiB | Handwriting on the prints: the date on the found photograph, the words on the back of the giant print. |
 | `fonts/OFL-CormorantGaramond.txt`, `fonts/OFL-IBMPlexMono.txt`, `fonts/LICENSE-HomemadeApple.txt` | License texts | — | — | — | — | 20 KiB | Shipped next to the fonts, as their licenses require. |
 
-Total: 9 files, 169,961 bytes (0.16 MiB).
+Total: 10 files, 183,309 bytes (0.17 MiB).
 
 ## Made for this piece
 

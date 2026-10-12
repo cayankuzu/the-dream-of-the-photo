@@ -166,6 +166,8 @@ export const lookConfig = {
    * that the point leaves the inner `frameShare` of the half-frame.
    */
   attention: { dwellSeconds: 1.1, zoomRate: 0.35, releaseRate: 1.2, frameShare: 0.6 },
+  /** Seconds a memory must hold the gaze before it is found. */
+  discoverSeconds: 1.6,
   hintFadeAfterDegrees: 50,
 } as const;
 

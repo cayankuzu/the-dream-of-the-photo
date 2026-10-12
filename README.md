@@ -16,8 +16,11 @@ and scrolling becomes walking through its dream:
 - behind it lies a mirror-still sea at dusk, lamps and doors standing in the water, a photograph for a moon,
   and the photographer, waiting with the camera raised. The last picture is of you, arriving.
 
-A few lines of narration, in English or Turkish (the browser's language; `?lang=en` / `?lang=tr` override
-it), come and go with the scroll.
+It plays like a game: a title screen, chapters announced as you reach them, a journey bar, a gaze reticle,
+eight hidden **memories** that reveal themselves to a long enough look (found ones are remembered between
+visits), a pause menu (Esc) and an ending. Every word, the narration included, is in Turkish and English;
+switch at any time from the title screen, the HUD or the menu (the browser's language is the default, the
+choice is remembered, and `?lang=en` / `?lang=tr` force one).
 
 A scroll-driven real-time piece built with three.js, TypeScript and Vite. No framework.
 
@@ -41,9 +44,9 @@ in later); the title screen shows the progress.
 | --- | --- |
 | Mouse wheel, trackpad | Move through the moment, forward or back; inside the photograph, walk. Scroll is time: input is damped, speed-limited and slowed down around key beats, so nothing can be skipped. |
 | Touch | Swipe vertically to move through the moment and to walk. Inside the photograph a drag that starts sideways looks around; two fingers always walk. |
-| Keyboard | Arrow Down / Space forward, Arrow Up back; Page Down / Page Up take three steps; Arrow Left / Right turn the head inside the photograph. |
-| Drag (mouse or touch) | Look around inside the photograph; while you walk the gaze drifts back to the way ahead. Resting your gaze on something slowly draws the view toward it. |
-| Sound button | Sound switches on with the first click, tap or key press; the button toggles it. |
+| Keyboard | Arrow Down / Space forward, Arrow Up back; Page Down / Page Up take three steps; Arrow Left / Right turn the head inside the photograph; Enter begins; Esc opens and closes the menu. |
+| Drag (mouse or touch) | Look around inside the photograph; while you walk the gaze drifts back to the way ahead. Resting your gaze on something draws the view toward it, and fills the reticle's ring when it is a memory. |
+| HUD | Top right: memories found, language (TR / EN), sound, menu. The menu resumes, starts over, switches language, sound and full screen, and lists the controls. |
 
 ## Debug overlay
 
@@ -84,7 +87,7 @@ src/
     world/                   Alley (facades, ground, props, cables, lights), FacadeBuilder, props, SkyDome
     audio/AudioEngine.ts     Web Audio: synthesized bed and mechanics, optional recorded samples
     debug/Debug.ts           development overlay (loaded on demand)
-  ui/                        Overlay (title, loader, hints, sound switch), Narration (the dream's voice)
+  ui/                        Overlay (title screen, HUD, pause menu, ending), Narration (subtitles), i18n (TR / EN)
 ```
 
 - **Configuration.** `experience.config.ts` holds the twelve phases and their positions on the timeline,
@@ -92,8 +95,8 @@ src/
   `scene.config.ts` holds the alley layout, the facades, the lights and the instant camera's dimensions;
   `dream.config.ts` what differs inside the picture and its set pieces; `walk.config.ts` the walk (the
   camera path through the dream, and the waking); `sea.config.ts` the sea behind the giant print;
-  `copy.config.ts` every word in both languages, and when each narration line appears; `audio.config.ts`
-  the mix.
+  `copy.config.ts` every word in both languages: the narration and when each line appears, the chapters,
+  the memories and the interface; `audio.config.ts` the mix.
 - **One scene, two worlds.** The real alley and the world inside the photograph are the same scene.
   Render layers separate what exists only in the real moment (the photographer, the held camera and
   print) from what exists only in the dream. `DreamDirector.setPass` switches shared objects (puddle
