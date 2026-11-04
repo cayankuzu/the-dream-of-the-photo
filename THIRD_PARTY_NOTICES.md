@@ -5,8 +5,10 @@ asset file is listed individually in [ASSET_MANIFEST.md](ASSET_MANIFEST.md).
 
 ## Microsoft Rocketbox (MIT)
 
-The photographer (`public/models/photographer.glb`) is converted from the Microsoft Rocketbox avatar
-library: avatar `Male_Adult_07` and the animations `m_idle_breathe_01` and `m_take_picture`.
+The photographer and the people of the nightmare (`public/models/photographer.glb`, `figure_man.glb`, `figure_nurse.glb`,
+`figure_woman.glb`, `figure_child.glb`) are converted from the Microsoft Rocketbox avatar library: avatars `Male_Adult_07`,
+`Male_Adult_03`, `Medical_Female_01`, `Female_Adult_02`, `Male_Child_01` and the animations listed in
+`scripts/character/avatars.json`.
 
 Source: https://github.com/microsoft/Microsoft-Rocketbox
 
@@ -105,6 +107,24 @@ Vite injects a short module-preload polyfill into the production bundle.
 Copyright (c) 2019-present, VoidZero Inc. and Vite contributors. MIT License, same terms as above.
 Source: https://github.com/vitejs/vite
 
+## CC BY assets (credit required)
+
+- **Realistic Human Heart** by neshallads, CC BY 4.0, https://sketchfab.com/3d-models/realistic-human-heart-3f8072336ce94d18b3d0d055a1ece089 (converted, decimated).
+- **土偶 [馬高遺跡出土] (Clay figurines)** by 長岡市立科学博物館 / Nagaoka Municipal Science Museum, CC BY 4.0, https://sketchfab.com/3d-models/clay-figurines-c65e79e6c6db4f96b40dcfaa4c1be80b (converted, decimated).
+- **Victorian age Dentist chair** by li chang, CC BY 3.0, https://poly.pizza/m/83KoxfvZ1pO (converted, merged).
+- **Teeth** by Poly by Google, CC BY 3.0, https://poly.pizza/m/eNR_DPPP1Hp (split, normalized).
+- **Raven** by Poly by Google, CC BY 3.0, https://poly.pizza/m/5oae0lwh9fF (repainted).
+
+## Public domain and CC0 scans
+
+Royal Cast Collection, SMK (Statens Museum for Kunst), Public Domain Mark 1.0; Smithsonian Institution, CC0 1.0; The Hunt Museum and Musée Saint-Raymond,
+CC0 1.0 (via Wikimedia Commons and Sketchfab); OpenGameArt authors Drummyfish, CDmir and plaggy, CC0 1.0; Khronos glTF Sample Assets (Corset, Antique Camera), CC0 1.0;
+Poly Pizza authors hat_my_guy and iPoly3D, CC0 1.0. No credit is required for these; it is given with thanks. Each file is listed in ASSET_MANIFEST.md.
+
+## Courtesy credits for sounds (CC0)
+
+Freesound uploaders who ask for or welcome a credit: 232148 (Ring Around the Rosie, Child Vocal), 367679 (Horror Scream Echo); every sound is listed in ASSET_MANIFEST.md.
+
 ## CC0 assets: Poly Haven, ambientCG, Freesound
 
 All models, materials and HDRIs other than the photographer come from
@@ -121,14 +141,5 @@ before it could be added.
 
 ## Fonts (redistributed)
 
-Latin subsets of three typefaces (and the latin-ext subsets of Cormorant Garamond and IBM Plex Mono, for Turkish) are self-hosted in `public/fonts/` (WOFF2, from Google Fonts) and ship
-with the build, each next to its license:
-
-| Typeface | Files | Designer | License | License file |
-| --- | --- | --- | --- | --- |
-| Cormorant Garamond | `cormorant-garamond-400{,-italic}.woff2`, `cormorant-garamond-400{,-italic}-latin-ext.woff2` | Christian Thalmann | SIL Open Font License 1.1 | `public/fonts/OFL-CormorantGaramond.txt` |
-| IBM Plex Mono | `ibm-plex-mono-400{,-latin-ext}.woff2` | Mike Abbink, Bold Monday (for IBM) | SIL Open Font License 1.1 | `public/fonts/OFL-IBMPlexMono.txt` |
-| Homemade Apple | `homemade-apple-400.woff2` | Font Diner | Apache License 2.0 | `public/fonts/LICENSE-HomemadeApple.txt` |
-
-The fonts are unmodified apart from Google Fonts' subsetting; the OFL fonts are not sold on their own and
-keep their reserved names.
+Anton, Courier Prime, Protest Revolution and Just Me Again Down Here are under the SIL Open Font License 1.1; Special Elite under the Apache License 2.0.
+Their licence files ship verbatim next to them in `public/fonts/`. Sources are listed in ASSET_MANIFEST.md.

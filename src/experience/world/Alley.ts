@@ -83,6 +83,10 @@ export class Alley {
   readonly cables: { pivot: Object3D; axis: Vector3; phase: number }[] = [];
   /** The bare bulb over the far door. */
   bulbLight: PointLight | undefined;
+  /** The three spotlights: shared by the real moment and (moved around) by every space of the dream. */
+  spots: SpotLight[] = [];
+  /** The alley's small lights: real only (the dream gives its fixed pool of lights to their places). */
+  readonly pointLights: PointLight[] = [];
 
   private readonly facadeBuilder = new FacadeBuilder();
   private readonly curtainTime = { value: 0 };
@@ -101,6 +105,7 @@ export class Alley {
     this.buildLights();
     this.buildCurtain();
     this.root.traverse((o) => o.layers.set(LAYERS.WORLD));
+    for (const l of this.pointLights) l.layers.set(LAYERS.OUTER);
   }
 
   private model(key: string) {
@@ -379,14 +384,13 @@ uniform float uTime;`)
     key.shadow.bias = ks.bias;
     key.shadow.normalBias = ks.normalBias;
     key.shadow.radius = ks.radius;
-    spot(lightingConfig.security);
-    const cross = spot(lightingConfig.crossStreet);
-    this.farEnd.add(cross, cross.target);
+    this.spots = [key, spot(lightingConfig.security), spot(lightingConfig.crossStreet)];
 
     const b = lightingConfig.bulb;
     this.bulbLight = new PointLight(b.color, b.intensity, b.distance, 2);
     this.bulbLight.position.set(...b.position);
     this.root.add(this.bulbLight);
+    this.pointLights.push(this.bulbLight);
 
     // warm rooms behind a few windows
     const r = lightingConfig.room;
@@ -406,6 +410,7 @@ uniform float uTime;`)
       const room = new PointLight(LIGHT_COLORS.window, w.intensity, r.distance, 2);
       room.position.copy(glow.position).add(new Vector3(Math.sin(yaw), 0, Math.cos(yaw)).multiplyScalar(r.offset));
       parent.add(room);
+      this.pointLights.push(room);
     }
   }
 }

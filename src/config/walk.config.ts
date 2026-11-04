@@ -31,26 +31,35 @@ export const walkConfig = {
    */
   keys: [
     { at: 0, position: [0.15, 1.57, -4.5], yaw: 0, pitch: 0, fov: 58 }, // inside the picture (replaced)
-    { at: 0.07, position: [0.05, 1.6, -9.5], yaw: 3, pitch: 4, fov: 60 }, // the rain that waits
-    { at: 0.15, position: [-0.1, 1.62, -15.5], yaw: -4, pitch: 12, fov: 62 }, // the first line of prints
-    { at: 0.23, position: [0.05, 1.64, -23], yaw: 2, pitch: 15, fov: 62 }, // under the prints
-    { at: 0.31, position: [0.1, 1.62, -32], yaw: 0, pitch: 5, fov: 58 }, // where the street should end
-    { at: 0.38, position: [0, 1.62, -40.5], yaw: 0, pitch: 18, fov: 66 }, // the chair, as large as remembered
-    { at: 0.45, position: [-0.15, 1.75, -47.5], yaw: 10, pitch: 10, fov: 62 }, // gravity forgets
-    { at: 0.53, position: [0.2, 2.1, -55], yaw: -12, pitch: 14, fov: 62 }, // and so do you, a little
-    { at: 0.6, position: [0, 1.9, -62.5], yaw: 0, pitch: 3, fov: 52 }, // the print at the end
-    { at: 0.7, position: [0, 2.05, -75], yaw: 0, pitch: 2, fov: 82 }, // the closer you come, the farther it waits
-    { at: 0.78, position: [0, 2.4, -88.2], yaw: 0, pitch: 0.5, fov: 60 }, // rising to the middle of the picture
-    { at: 0.81, position: [0, 2.47, -91.4], yaw: 0, pitch: 0, fov: 56 }, // the image covers everything
-    { at: 0.835, position: [0, 2.2, -95], yaw: 0, pitch: 0, fov: 58 }, // the sea behind it
-    { at: 0.88, position: [0.4, 1.75, -104], yaw: 12, pitch: 14, fov: 62 }, // the moon is a photograph
-    { at: 0.94, position: [0.2, 1.65, -117], yaw: -6, pitch: 2, fov: 58 }, // the lamps on the water
-    { at: 1, position: [0.15, 1.62, -128], yaw: 0, pitch: 1, fov: 54 }, // the photographer, waiting
+    { at: 0.045, position: [0.05, 1.6, -10], yaw: 3, pitch: 5, fov: 60 }, // hair instead of rain
+    { at: 0.09, position: [-0.1, 1.62, -16], yaw: -4, pitch: 12, fov: 62 }, // the first line of prints
+    { at: 0.14, position: [0.05, 1.64, -24], yaw: 2, pitch: 15, fov: 62 }, // under the scratched faces
+    { at: 0.19, position: [0.1, 1.62, -33], yaw: 0, pitch: 4, fov: 58 }, // where the street should end
+    { at: 0.25, position: [0, 1.62, -45], yaw: -3, pitch: 1, fov: 60 }, // the ones who stand
+    { at: 0.31, position: [-0.1, 1.62, -58], yaw: 2, pitch: 0, fov: 54 }, // half of them
+    { at: 0.34, position: [0, 1.62, -64.5], yaw: 0, pitch: 3, fov: 70 }, // through the slit, into the hall
+    { at: 0.4, position: [-3, 1.62, -78], yaw: 16, pitch: 2, fov: 68 }, // beds and a wheelchair
+    { at: 0.45, position: [2, 1.62, -92], yaw: -14, pitch: 16, fov: 70 }, // the head, half sunk
+    { at: 0.49, position: [0, 1.62, -108], yaw: 4, pitch: 2, fov: 62 }, // the screens
+    { at: 0.525, position: [0, 1.62, -123.5], yaw: 0, pitch: 0, fov: 50 }, // the slit in the end wall
+    { at: 0.56, position: [0, 1.62, -132], yaw: 4, pitch: 2, fov: 56 }, // red: the darkroom
+    { at: 0.6, position: [0, 1.62, -141], yaw: -5, pitch: 3, fov: 56 }, // every frame one step closer
+    { at: 0.635, position: [0, 1.62, -150.5], yaw: 0, pitch: 0, fov: 66 }, // into the meat
+    { at: 0.69, position: [0, 1.7, -166], yaw: 3, pitch: 4, fov: 70 }, // the ribs, the eyes
+    { at: 0.74, position: [0, 1.6, -184], yaw: 0, pitch: 0, fov: 62 }, // through the teeth
+    { at: 0.77, position: [0, 1.7, -196], yaw: 0, pitch: 3, fov: 52 }, // the void, the print on its hooks
+    { at: 0.83, position: [0, 2.05, -207], yaw: 0, pitch: 2, fov: 82 }, // the closer you come, the farther it waits
+    { at: 0.88, position: [0, 2.4, -218.2], yaw: 0, pitch: 0.5, fov: 60 }, // rising to the middle of the picture
+    { at: 0.895, position: [0, 2.47, -221.4], yaw: 0, pitch: 0, fov: 56 }, // the image covers everything
+    { at: 0.91, position: [0, 2.2, -225], yaw: 0, pitch: 0, fov: 58 }, // the black sea behind it
+    { at: 0.95, position: [0.4, 1.75, -234], yaw: 8, pitch: 6, fov: 62 }, // the sun stopped halfway
+    { at: 0.98, position: [0.2, 1.65, -247], yaw: -6, pitch: 1, fov: 58 }, // among the ones who wait in the water
+    { at: 1, position: [0.15, 1.62, -258], yaw: 0, pitch: 1, fov: 54 }, // the photographer, waiting
   ] satisfies readonly WalkKey[],
   /** Dream gliding instead of steps: a slow float (m), its period (s) and a little roll (deg). */
   float: { amount: 0.03, period: 6.5, roll: 0.6 },
   /** The giant print at the end of the alley: walk-frame z of its surface (the passage). */
-  printZ: -92,
+  printZ: -222,
   /**
    * Near the passage the gaze is drawn to the print: the viewer's own look fades out within
    * `pull[1]` m of its surface and is gone within `pull[0]` m (it comes back on the other side).
@@ -72,7 +81,7 @@ export const walkConfig = {
     /** The print in the photographer's hand develops the new picture over this span. */
     develop: [0.12, 0.5] as const,
     /** Where the last picture is taken from (walk frame) and what it looks at. */
-    lens: { position: [0.15, 1.6, -139.6] as V3, target: [0.1, 1.55, -100] as V3 },
+    lens: { position: [0.15, 1.6, -269.6] as V3, target: [0.1, 1.55, -230] as V3 },
     /** Back outside: over the photographer's shoulder, then pulling away (position, look target, fov). */
     shots: [
       { at: 0.07, position: [0.3, 1.8, 0.36] as V3, target: 'print' as const, fov: 30 },
@@ -80,5 +89,14 @@ export const walkConfig = {
     ],
     /** Depth of field of the waking shots. */
     aperture: 9,
+    /**
+     * They have followed you out: bodies standing down the real alley once you are awake, facing you
+     * (avatar, clip and its time, x and z of each one).
+     */
+    followers: [
+      { avatar: 'figure_man', clip: 'm_idle_roll_head_01', time: 2.5, veil: false, at: [[-1.25, -9], [1.3, -15.5], [-0.9, -23]] },
+      { avatar: 'figure_woman', clip: 'f_listen_door', time: 1.5, veil: true, at: [[1.15, -7], [-1.35, -13.5], [0.4, -19.5]] },
+      { avatar: 'figure_nurse', clip: 'f_idle_touch_hair_01', time: 0.5, veil: false, at: [[-0.2, -28], [1.2, -25]] },
+    ],
   },
 } as const;

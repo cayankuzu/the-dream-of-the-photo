@@ -3,51 +3,64 @@ import {
   FogExp2,
   Group,
   HalfFloatType,
-  InstancedMesh,
+  type InstancedMesh,
   LinearMipmapLinearFilter,
-  Matrix4,
   Mesh,
   MeshBasicMaterial,
   Object3D,
   PerspectiveCamera,
-  PlaneGeometry,
   PointLight,
   Quaternion,
   Scene,
+  type Sphere,
+  SpotLight,
   Vector3,
   WebGLRenderTarget,
   type Material,
   type Texture,
 } from 'three';
-import { directorConfig, LAYERS, REDUCED_MOTION, renderConfig, shotsConfig } from '../../config/experience.config';
-import { dreamConfig as D, type DreamBuilding } from '../../config/dream.config';
-import { ALLEY, apt, factory, fireEscape, LIGHT_COLORS, lightingConfig } from '../../config/scene.config';
+import { LAYERS, REDUCED_MOTION, renderConfig, shotsConfig } from '../../config/experience.config';
+import { dreamConfig as D } from '../../config/dream.config';
+import { fearConfig, LAYOUT, REGION_BLEND, REGION_MARGIN, REGIONS, warpConfig, type RegionLook, type RegionName, type SpotSpec } from '../../config/nightmare.config';
+import { ALLEY, fireEscape, lightingConfig } from '../../config/scene.config';
 import { inSea, seaConfig } from '../../config/sea.config';
+import type { Assets } from '../assets/Assets';
 import type { Photographer } from '../character/Photographer';
 import { rigClock, setClock, type ClockHand } from '../dream/ClockRig';
+import { AlleyDream } from '../dream/AlleyDream';
+import { Darkroom } from '../dream/Darkroom';
+import { DreamKit } from '../dream/DreamKit';
+import type { DreamFrame, DreamModule } from '../dream/DreamModule';
 import { DreamSea } from '../dream/DreamSea';
-import { FloatingThings } from '../dream/FloatingThings';
-import { FrozenRain } from '../dream/FrozenRain';
+import { FleshTunnel } from '../dream/FleshTunnel';
 import { GiantPrint } from '../dream/GiantPrint';
+import { HallShell } from '../dream/hall/HallShell';
+import { HallTableaux } from '../dream/hall/HallTableaux';
 import { Moments, type MomentPass } from '../dream/Moments';
-import { PhotoLines } from '../dream/PhotoLines';
+import { Street } from '../dream/Street';
+import { TheVoid } from '../dream/TheVoid';
 import type { LookControls, PointOfInterest } from '../interaction/LookControls';
-import { DEG, range, smootherstep, wobble } from '../math';
+import { clamp, DEG, lerp, range, smootherstep, wobble } from '../math';
 import { Photograph } from '../photograph/Photograph';
-import { Grade } from '../render/Grade';
+import { Grade, type GradeParams } from '../render/Grade';
+import { warp } from '../render/Warp';
+import { GlideTrack } from '../timeline/Track';
 import type { Alley } from '../world/Alley';
-import { FacadeBuilder, FLOOR, MODULE, type FacadeSpec } from '../world/FacadeBuilder';
 import type { SkyDome } from '../world/SkyDome';
+
+/** The reflections of a space: what lights it, by name (see RegionLook.env). */
+export type DreamEnvironments = Readonly<Record<RegionLook['env'], Texture>>;
 
 export interface DreamContext {
   scene: Scene;
+  assets: Assets;
   alley: Alley;
   sky: SkyDome;
   photographer: Photographer;
-  impossibleEnv: Texture;
-  /** Equirect skies: daylight over the dream's night street, dusk over the sea. */
-  daySky: Texture;
-  seaSky: Texture;
+  /** PMREMs of the same size: swapping them never recompiles anything. */
+  environments: DreamEnvironments;
+  /** The equirect sky over the dream. */
+  fireSky: Texture;
   /** The live window target (the giant print looks into the sea through it). */
   portal: Texture;
   gradePhoto: Grade;
@@ -70,12 +83,13 @@ const eye = new Vector3();
 const windowAt = new Vector3();
 const UP = new Vector3(0, 1, 0);
 const SEA = new Vector3(...seaConfig.offset);
-const W = 'wall_standard_standard_01';
-/**
- * Lit rooms of the lengthened alley: depth of the glowing back wall behind the facade (m), its size and
- * height above the floor line, the share of windows lit, and the range of their brightness.
- */
-const ROOM = { depth: 0.6, width: 1.6, height: 1.9, sill: 1.55, lit: 0.34, glow: [0.9, 2.5] as const };
+const VIEW_MARGIN = 12;
+/** How far (m) curved space can move something of the alley off its place. */
+const ALLEY_BEND = 12;
+/** What ends this far (m) behind the eye is not drawn while the eye looks ahead. */
+const BEHIND = 5;
+/** Below this light nothing counts as seen. */
+const BLACKOUT = 0.05;
 
 /** True when a world point is outside the camera's view (margin in degrees; negative = well inside). */
 function unseen(point: Vector3, camera: PerspectiveCamera, margin: number): boolean {
@@ -99,40 +113,55 @@ function introCamera(aspect: number): PerspectiveCamera {
   return cam;
 }
 
-/** Deterministic 0..1 hash of three integers (which windows are lit). */
-function hash3(a: number, b: number, c: number): number {
-  const s = Math.sin(a * 127.1 + b * 311.7 + c * 74.7) * 43758.5453;
-  return s - Math.floor(s);
-}
+const REAL_SPOTS: readonly SpotSpec[] = [lightingConfig.key, lightingConfig.security, lightingConfig.crossStreet];
+/** The walk's own spaces, in order (the sea is apart). */
+const WALK_REGIONS = REGIONS.filter((r) => r.name !== 'sea');
+const SEA_REGION = REGIONS.find((r) => r.name === 'sea')!;
+/** No warp near the start of the walk or while pictures develop. */
+const WARP_CHANNELS = ['bendUp', 'bendAside', 'twist', 'wave'] as const;
+const scratchColor = new Color();
+/** Past the wall at the street's end nothing of the alley can be seen anymore (the slit is closed behind you). */
+const ALLEY_SEEN_FROM = LAYOUT.hall.from - 6;
+/** The beat of the heart comes in two: lub, dub. */
+const SECOND_BEAT = { at: 0.28, strength: 0.65 };
 
 /**
- * Everything that makes the picture's world a dream rather than a copy, and the way through it.
- *  - captured (already in the photograph): rain stopped in the air, the alley going on far past its end
- *    under a sky that is already turning to day, a small figure aiming back, the photographer's shadow
- *    staying without them, a giant print at the very end.
- *  - along the walk: photographs of places you have not reached yet, things at the size you remember
- *    them, things that forgot gravity, buildings leaning in, a clock running backwards, and the sea
- *    behind the giant print, where the moon is a photograph.
- *  - behind your back: a window shows the real alley, the chair walks to the middle, the stairs keep
- *    climbing, the camera on the wall turns to you, the stopped clock runs.
+ * The nightmare: where everything is, how each space is lit and how curved it is, and who is told
+ * what. The set pieces (dream/*) own what they show.
  * `setPass` switches shared objects between their real and dreamt state before each render.
  */
 export class DreamDirector {
   readonly grade = new Grade();
   readonly giant: GiantPrint;
   readonly sea: DreamSea;
+  readonly kit: DreamKit;
+  /** A place for what only pictures see (put far below the world, shown only while it is photographed). */
+  readonly stage = new Group();
+  /** 0..1 how afraid the piece is, and its heart: the audio and the screen read these too. */
+  fear = 0;
+  heartbeat = 0;
+  /** A beat fell this frame. */
+  beat = false;
+  /** A scare adds its own fear for a moment (decays by itself). */
+  fearBoost = 0;
+  /** The space of the camera of the last main pass. */
+  region: RegionName = 'alley';
+  /** The main pass needs its shadow map rendered once: the shadow-casting light has moved. */
+  shadowDirty = true;
+  /** Everything in the dream darkens together (0 = blackout), emissive things excepted. */
+  set dim(value: number) {
+    this.kit.lights.dim = value;
+    this.dimmed = value;
+  }
+
   private readonly root = new Group();
-  private readonly extension = new Group();
+  private readonly modules: DreamModule[];
+  private readonly far: DreamModule[];
   private readonly stairs = new Group();
-  private readonly figure: Object3D;
-  private readonly figureHome: Vector3;
-  private readonly figurePoi: PointOfInterest;
   private readonly clockHands: ClockHand[];
   private readonly groundIntensity: number;
   private readonly fog: FogExp2;
   private readonly realFogColor = new Color(lightingConfig.fog.color);
-  private readonly dreamFogColor = new Color(D.fog.color);
-  private readonly seaFogColor = new Color(seaConfig.fog.color);
   /** The opening view, aged: taped to the cabinet, and (mipmapped, for it is seen far away) the moon over the sea. */
   private readonly foundRT = new WebGLRenderTarget(D.found.resolution, D.found.resolution, {
     type: HalfFloatType,
@@ -148,17 +177,28 @@ export class DreamDirector {
   private readonly cctv: Pose | null;
   private readonly bulb: PointLight | undefined;
   private readonly bulbIntensity: number;
-  private readonly rain = new FrozenRain();
-  private readonly floating: FloatingThings;
   private readonly moments = new Moments();
-  private readonly lines: PhotoLines;
+  private readonly spots: readonly SpotLight[];
+  private readonly spotsByRegion = new Map<RegionName, readonly (SpotSpec | null)[]>();
+  private readonly warpTracks: Record<(typeof WARP_CHANNELS)[number], GlideTrack>;
+  private readonly fearTrack: GlideTrack;
+  /** In a blackout nothing is seen: everything that moves when unseen moves then. */
+  private readonly unseenAt = (point: Vector3, margin = VIEW_MARGIN) => this.dimmed < BLACKOUT || unseen(point, this.view, margin);
+  private readonly frame: DreamFrame;
+  private view!: PerspectiveCamera;
+  private keySpot: SpotSpec | null = null;
+  private previousPass: 'real' | 'dream' = 'real';
+  private dimmed = 1;
+  /** Space stays straight while the pictures develop. */
+  private straight = false;
+  private heartPhase = 0;
+  private secondBeat = false;
 
   private insideTime = 0;
   private dreamClock = 0;
   private time = 0;
   private walk = 0;
   private frameCount = 0;
-  private retreat = 0;
   private readonly state = { window: false, chair: false, stairs: false };
 
   constructor(private readonly ctx: DreamContext) {
@@ -166,20 +206,9 @@ export class DreamDirector {
     ctx.scene.add(this.root);
     this.fog = ctx.scene.fog as FogExp2;
     this.groundIntensity = ctx.alley.wetGround.envMapIntensity;
-
-    // the figure at the far end: the photographer again, aiming back at us
-    this.figure = ctx.photographer.makeDouble(D.figure.clipTime);
-    this.figureHome = new Vector3(...D.figure.position);
-    this.figure.position.copy(this.figureHome);
-    this.figure.rotation.y = D.figure.heading * DEG;
-    this.figurePoi = {
-      position: new Vector3(D.figure.position[0], D.figure.poi.height, D.figure.position[2]),
-      radius: D.figure.poi.radius,
-      zoom: D.figure.poi.zoom,
-      active: () => this.retreat < 0.5,
-      memory: 'figure',
-    };
-    ctx.look.pointsOfInterest.push(this.figurePoi);
+    // the rig outlives the alley: it stays in the scene (and in every shader) while the alley is not drawn
+    this.spots = ctx.alley.spots;
+    for (const l of this.spots) ctx.scene.add(l, l.target);
 
     const anchors = ctx.alley.anchors;
     const pose = (name: string): Pose | null => {
@@ -197,30 +226,70 @@ export class DreamDirector {
     this.bulb = ctx.alley.bulbLight;
     this.bulbIntensity = this.bulb?.intensity ?? 0;
 
-    this.buildExtension();
+    this.kit = new DreamKit({ assets: ctx.assets, alley: ctx.alley, photographer: ctx.photographer, look: ctx.look, renderDream: ctx.renderDream });
+    // the alley's small lights, in the dream: from the same pool as everything else
+    for (const l of ctx.alley.pointLights) this.kit.lights.add(l.getWorldPosition(new Vector3()), l.color.getHex(), l.intensity, l.distance);
+
     this.buildStairs();
     this.buildFoundPhotograph();
-    this.giant = new GiantPrint(ctx.portal);
-    ctx.look.pointsOfInterest.push({ position: this.giant.imageCenter, radius: D.giantPrint.poi.radius, zoom: D.giantPrint.poi.zoom, memory: 'giant' });
-    this.floating = new FloatingThings(ctx.alley);
-    const { giantChair, giantClock } = D.floating;
-    ctx.look.pointsOfInterest.push(
-      { position: new Vector3(giantChair.at[0], giantChair.poi.height, giantChair.at[2]), radius: giantChair.poi.radius, zoom: giantChair.poi.zoom, memory: 'chair' },
-      { position: new Vector3(...giantClock.at), radius: giantClock.poi.radius, zoom: giantClock.poi.zoom, memory: 'clock' },
-    );
-    this.lines = new PhotoLines(this.moments.textures);
-    this.sea = new DreamSea({ alley: ctx.alley, photographer: ctx.photographer, moments: this.moments.textures, moonPhoto: this.foundRT.texture });
-    ctx.look.pointsOfInterest.push(
-      { position: new Vector3(...inSea(seaConfig.moon.at)), radius: seaConfig.moon.poi.radius, zoom: seaConfig.moon.poi.zoom, reach: seaConfig.moon.poi.reach, memory: 'moon' },
-      {
-        position: new Vector3(...inSea(seaConfig.figure.position)).setY(D.figure.poi.height),
-        radius: D.figure.poi.radius,
-        zoom: D.figure.poi.zoom,
-        memory: 'photographer',
-      },
-    );
-    this.root.add(this.figure, this.extension, this.stairs, this.giant.root, this.rain.mesh, this.floating.root, this.lines.root, this.sea.root);
-    this.root.traverse((o) => o.layers.set(LAYERS.DREAM));
+    this.giant = new GiantPrint(ctx.portal, this.kit);
+    this.sea = new DreamSea(this.kit, { moments: this.moments.textures, moonPhoto: this.foundRT.texture });
+    this.modules = [
+      new AlleyDream(this.kit, this.moments.textures),
+      new Street(this.kit),
+      new HallShell(this.kit),
+      new HallTableaux(this.kit),
+      new Darkroom(this.kit),
+      new FleshTunnel(this.kit),
+      new TheVoid(this.kit, this.giant),
+      this.sea,
+    ];
+    // compiled one by one, after what the first minutes need
+    this.far = this.modules.filter((m) => !(m instanceof AlleyDream));
+    for (const m of this.modules) {
+      if (m.region && m.spots) this.spotsByRegion.set(m.region, m.spots);
+      this.root.add(m.root);
+    }
+    this.root.add(this.stairs, this.giant.root, this.kit.lights.root, this.stage);
+    this.root.traverse((o) => {
+      o.layers.set(LAYERS.DREAM);
+      // curved space moves things off their bounds: the dream is culled by whole set pieces instead
+      o.frustumCulled = false;
+    });
+    // the alley stays culled by its bounds, widened by what curved space can do to it
+    const widened = new Set<object>();
+    ctx.alley.root.updateMatrixWorld(true);
+    ctx.alley.root.traverse((o) => {
+      const mesh = o as Mesh & { boundingSphere?: Sphere | null; computeBoundingSphere?: () => void };
+      if (!mesh.isMesh || !mesh.frustumCulled) return;
+      const instanced = 'boundingSphere' in mesh && (mesh as unknown as InstancedMesh).isInstancedMesh;
+      if (instanced && !mesh.boundingSphere) mesh.computeBoundingSphere?.();
+      if (!instanced && !mesh.geometry.boundingSphere) mesh.geometry.computeBoundingSphere();
+      const holder = instanced ? mesh : mesh.geometry;
+      if (widened.has(holder)) return;
+      widened.add(holder);
+      const sphere = instanced ? mesh.boundingSphere! : mesh.geometry.boundingSphere!;
+      sphere.radius += ALLEY_BEND / mesh.matrixWorld.getMaxScaleOnAxis();
+    });
+    for (const m of this.far) this.root.remove(m.root);
+
+    const keys = warpConfig.keys;
+    const at = keys.map((k) => k.at);
+    this.warpTracks = Object.fromEntries(
+      WARP_CHANNELS.map((c) => [c, new GlideTrack(at, keys.map((k) => k[c] * (REDUCED_MOTION ? warpConfig.reducedMotion : 1)))]),
+    ) as DreamDirector['warpTracks'];
+    this.fearTrack = new GlideTrack(fearConfig.keys.map((k) => k[0]), fearConfig.keys.map((k) => k[1]));
+    this.frame = {
+      time: 0,
+      dt: 0,
+      paused: false,
+      eye,
+      view: null as unknown as PerspectiveCamera,
+      walk: 0,
+      fear: 0,
+      heartbeat: 0,
+      unseen: this.unseenAt,
+    };
 
     const clock = anchors.get('clock');
     this.clockHands = clock ? rigClock(clock) : [];
@@ -228,78 +297,6 @@ export class DreamDirector {
   }
 
   // ------------------------------------------------------------------ building the dream
-
-  /** The alley goes on where the cross street was: taller, more crooked, lit rooms, and a wall at its end. */
-  private buildExtension(): void {
-    const { alley } = this.ctx;
-    const hw = ALLEY.halfWidth;
-    const e = D.extension;
-    const specs: FacadeSpec[] = [];
-    const rooms: Matrix4[] = [];
-    const roomTint: number[] = [];
-
-    const side = (buildings: readonly DreamBuilding[], facing: 'east' | 'west', x: number, parity: number) => {
-      let z = e.from;
-      const out = facing === 'east' ? -1 : 1; // which way "into the building" is along x
-      buildings.forEach((b, n) => {
-        const isApt = (n + parity) % 2 === 0;
-        const floors = Array.from({ length: b.floors }, (_, level) =>
-          Array.from({ length: b.columns }, (_, i) => (isApt ? aptModule(level, i, n) : factoryModule(level, i, n, b.floors))),
-        );
-        const spec = (isApt ? apt : factory)({ facing, start: [x, z], run: [0, -1], floors, lean: b.lean });
-        specs.push(spec);
-        const lean = FacadeBuilder.leanOf(spec);
-        floors.forEach((row, level) =>
-          row.forEach((module, i) => {
-            if (level === 0 || module === W || hash3(n * 7 + parity, level, i) > ROOM.lit) return;
-            const m = new Matrix4().compose(
-              v1.set(x + out * ROOM.depth, level * FLOOR + ROOM.sill, z - (i + 0.5) * MODULE),
-              new Quaternion().setFromAxisAngle(UP, (-out * Math.PI) / 2),
-              new Vector3(1, 1, 1),
-            );
-            if (lean) m.premultiply(lean);
-            rooms.push(m);
-            roomTint.push(hash3(level, i, n));
-          }),
-        );
-        z -= b.columns * MODULE;
-      });
-    };
-    side(e.left, 'east', -hw, 0);
-    side(e.right, 'west', hw, 1);
-    // the end: a tall blank wall over the giant print, a few lit windows near the top
-    specs.push(
-      apt({
-        facing: 'south',
-        start: [-MODULE, e.endWall.z],
-        run: [1, 0],
-        floors: Array.from({ length: e.endWall.floors }, (_, level) => (level < 5 ? [W, W] : ['wall_window_centered_small_02', level % 2 ? W : 'wall_window_centered_small_02'])),
-      }),
-    );
-    this.extension.add(alley.facades(specs));
-
-    // warm rooms behind a third of the windows: the night street under a daylight sky
-    const glow = new InstancedMesh(new PlaneGeometry(ROOM.width, ROOM.height), new MeshBasicMaterial({ color: 0xffffff }), rooms.length);
-    const warm = new Color(LIGHT_COLORS.window);
-    const tint = new Color();
-    rooms.forEach((m, i) => {
-      glow.setMatrixAt(i, m);
-      glow.setColorAt(i, tint.copy(warm).multiplyScalar(ROOM.glow[0] + roomTint[i] * (ROOM.glow[1] - ROOM.glow[0])));
-    });
-    glow.computeBoundingSphere();
-    this.extension.add(glow);
-
-    // the same wet setts, continuing, and lanterns on alternate walls
-    this.extension.add(alley.groundSlab(hw * 2, e.from - e.to + 2, (e.from + e.to) / 2));
-    const ll = e.lanternLight;
-    e.lanterns.forEach((z, i) => {
-      const s = i % 2 ? 1 : -1;
-      alley.prop('street_lamp_wall', [s * (hw - 0.43), 3.0, z], [0, -s * 90, 0], { anchor: 'center', castShadow: false }, this.extension);
-      const l = new PointLight(LIGHT_COLORS.tungsten, ll.intensity, ll.distance, 2);
-      l.position.set(s * (hw - ll.out), ll.height, z);
-      this.extension.add(l);
-    });
-  }
 
   private buildStairs(): void {
     const { alley } = this.ctx;
@@ -319,28 +316,54 @@ export class DreamDirector {
     print.position.copy(spot);
     print.rotation.set(0, -Math.PI / 2, D.found.tilt * DEG, 'YXZ');
     this.root.add(print);
-    this.ctx.look.pointsOfInterest.push({ position: spot, radius: D.found.radius, zoom: D.found.zoom, memory: 'found' });
+    this.ctx.look.pointsOfInterest.push({ position: spot, radius: D.found.radius, zoom: D.found.zoom, memory: 'found' } satisfies PointOfInterest);
   }
 
   /**
    * Develop everything the dream shows as pictures (once, after the shaders are compiled): the found
    * print and the moon (the opening view), the giant print's still of the sea, the moments.
    */
-  develop(): void {
+  developFirst(): void {
     this.renderReal(this.foundRT, introCamera(1));
-    // the pictures of places further on are taken under the sky you will find there
-    const walk = this.walk;
-    this.walk = 1;
+    for (const m of this.modules) if (!this.far.includes(m)) m.develop?.(this.picture);
+  }
+
+  /**
+   * What lies further on is made ready one set piece at a time: `compile` builds its shaders, then it
+   * takes its pictures, so nothing stops once the piece plays, and the loader moves in the meantime.
+   */
+  async prepareFar(compile: (root: Group) => Promise<void>, onProgress: (share: number) => void): Promise<void> {
+    const breathe = () => new Promise((resolve) => setTimeout(resolve));
+    const steps = this.far.length + 1;
+    for (let i = 0; i < this.far.length; i++) {
+      const m = this.far[i];
+      this.root.add(m.root);
+      await compile(m.root);
+      await breathe();
+      m.develop?.(this.picture);
+      onProgress((i + 1) / steps);
+      await breathe();
+    }
     const still = this.giant.stillCamera();
     // the still and the moments see each other (the giant print in a moment, the prints over the sea in
     // the still): develop the still on both sides of the moments
-    this.ctx.renderDream(this.giant.stillRT, still);
-    this.moments.develop((target: WebGLRenderTarget, camera: PerspectiveCamera, pass: MomentPass) =>
-      pass === 'real' ? this.renderReal(target, camera) : this.ctx.renderDream(target, camera),
+    this.picture(this.giant.stillRT, still);
+    await this.moments.develop(
+      (target: WebGLRenderTarget, camera: PerspectiveCamera, pass: MomentPass) => (pass === 'real' ? this.renderReal(target, camera) : this.picture(target, camera)),
+      breathe,
     );
-    this.ctx.renderDream(this.giant.stillRT, still);
-    this.walk = walk;
+    this.picture(this.giant.stillRT, still);
   }
+
+  /** A picture of the dream, in straight space, under the sky of the end. */
+  private readonly picture = (target: WebGLRenderTarget, camera: PerspectiveCamera): void => {
+    const walk = this.walk;
+    this.straight = true;
+    this.walk = 1;
+    this.ctx.renderDream(target, camera);
+    this.walk = walk;
+    this.straight = false;
+  };
 
   /** Run `work` (e.g. a shader precompile) with every behind-your-back change applied, then restore the state. */
   async whileFullyDreamt<T>(work: () => Promise<T>, camera: PerspectiveCamera): Promise<T> {
@@ -357,8 +380,10 @@ export class DreamDirector {
 
   /** The real moment, rendered into a target (shared objects switched to their real state first). */
   private renderReal(target: WebGLRenderTarget, camera: PerspectiveCamera, reuseShadows = false): void {
+    const pass = this.previousPass;
     this.setPass('real', camera);
     this.ctx.renderReal(target, camera, reuseShadows);
+    if (reuseShadows) this.previousPass = pass;
   }
 
   // ------------------------------------------------------------------ state
@@ -368,10 +393,8 @@ export class DreamDirector {
     this.insideTime = 0;
     this.dreamClock = D.clock.stoppedAt;
     Object.assign(this.state, { window: false, chair: false, stairs: false });
-    this.figure.visible = true;
-    this.figure.scale.setScalar(1);
-    this.figure.position.copy(this.figureHome);
     this.sea.figure.visible = true;
+    for (const m of this.modules) m.reset?.();
   }
 
   /** Is this camera standing in the sea (beyond the giant print)? */
@@ -379,46 +402,143 @@ export class DreamDirector {
     return camera.position.z < seaConfig.boundaryZ;
   }
 
+  /** The look of the air at a walk-frame z, blended around each border. */
+  private readonly air = {
+    fogColor: new Color(),
+    fogDensity: 0,
+    envIntensity: 0,
+    sky: 0,
+    env: 'evening' as RegionLook['env'],
+    region: 'alley' as RegionName,
+    grade: { exposure: 1, saturation: 1, warmth: 0, tint: 0, flare: 0 } as GradeParams,
+  };
+
+  private readAir(z: number, sea: boolean): void {
+    const a = this.air;
+    let from = SEA_REGION;
+    let to = SEA_REGION;
+    let t = 0;
+    if (!sea) {
+      // the last border already passed, and how far around it the camera stands
+      let i = 0;
+      while (i < WALK_REGIONS.length - 1 && z < WALK_REGIONS[i + 1].from - REGION_BLEND) i++;
+      from = WALK_REGIONS[i];
+      to = WALK_REGIONS[Math.min(i + 1, WALK_REGIONS.length - 1)];
+      t = to === from ? 0 : smootherstep(range(to.from + REGION_BLEND, to.from - REGION_BLEND, z));
+    }
+    a.fogColor.setHex(from.fog.color).lerp(scratchColor.setHex(to.fog.color), t);
+    a.fogDensity = lerp(from.fog.density, to.fog.density, t);
+    a.envIntensity = lerp(from.envIntensity, to.envIntensity, t);
+    a.sky = lerp(from.sky, to.sky, t);
+    const near = t < 0.5 ? from : to;
+    a.env = near.env;
+    a.region = near.name;
+    for (const k of ['exposure', 'saturation', 'warmth', 'tint', 'flare'] as const) a.grade[k] = lerp(from.grade[k], to.grade[k], t);
+  }
+
   setPass(kind: 'real' | 'dream', camera: PerspectiveCamera): void {
     const dream = kind === 'dream';
     const sea = dream && DreamDirector.inSea(camera);
-    const { alley, sky } = this.ctx;
-    const day = smootherstep(range(0, D.sky.fullAt, this.walk));
+    const z = sea ? camera.position.z - SEA.z : camera.position.z;
+    const { alley, sky, scene } = this.ctx;
+    const walkLook = smootherstep(range(0, D.sky.fullAt, this.walk));
 
-    alley.wetGround.envMap = dream ? this.ctx.impossibleEnv : null;
-    alley.wetGround.envMapIntensity = dream ? D.puddles.intensity : this.groundIntensity;
+    // space
+    const amount = warp.amount;
+    if (dream && !this.straight) {
+      const t = this.warpTracks;
+      amount.x = t.bendUp.at(this.walk);
+      amount.y = t.bendAside.at(this.walk);
+      amount.z = t.twist.at(this.walk);
+      amount.w = t.wave.at(this.walk);
+    } else {
+      amount.x = amount.y = amount.z = amount.w = 0;
+    }
+
+    // air, sky and reflections
     sky.position.copy(camera.position);
     sky.updateMatrixWorld();
     const s = sky.uniforms;
-    s.tDream.value = sea ? this.ctx.seaSky : this.ctx.daySky;
-    s.uDream.value = !dream ? 0 : sea ? 1 : D.sky.captured + (1 - D.sky.captured) * day;
-    s.uDreamTilt.value = sea ? 0 : D.sky.tilt * DEG * day;
-
-    if (!dream) {
+    if (dream) {
+      this.readAir(z, sea);
+      const a = this.air;
+      this.fog.color.copy(a.fogColor);
+      this.fog.density = a.fogDensity;
+      scene.environment = this.ctx.environments[a.env];
+      scene.environmentIntensity = a.envIntensity * this.dimmed;
+      alley.wetGround.envMap = this.ctx.environments.fire;
+      alley.wetGround.envMapIntensity = D.puddles.intensity * this.dimmed;
+      s.tDream.value = this.ctx.fireSky;
+      s.uDream.value = D.sky.captured + (1 - D.sky.captured) * walkLook;
+      s.uDreamTilt.value = D.sky.tilt * DEG * walkLook;
+      s.uDreamHorizon.value = 1;
+      s.uIntensity.value = lightingConfig.backgroundIntensity * a.sky * this.dimmed;
+    } else {
       this.fog.color.copy(this.realFogColor);
       this.fog.density = lightingConfig.fog.density;
-    } else if (sea) {
-      this.fog.color.copy(this.seaFogColor);
-      this.fog.density = seaConfig.fog.density;
-    } else {
-      this.fog.color.copy(this.dreamFogColor);
-      this.fog.density = D.fog.density + (D.fog.far - D.fog.density) * range(ALLEY.crossStreet.near, D.extension.to, camera.position.z);
+      scene.environment = this.ctx.environments.evening;
+      scene.environmentIntensity = lightingConfig.environmentIntensity;
+      alley.wetGround.envMap = null;
+      alley.wetGround.envMapIntensity = this.groundIntensity;
+      s.uDream.value = 0;
+      s.uDreamHorizon.value = 0;
+      s.uIntensity.value = lightingConfig.backgroundIntensity;
     }
 
+    // light
+    const specs = dream ? (this.spotsByRegion.get(this.air.region) ?? REAL_SPOTS) : REAL_SPOTS;
+    this.spots.forEach((light, i) => {
+      const spec = specs[i];
+      if (!spec) {
+        light.intensity = 0;
+        return;
+      }
+      light.position.set(...spec.position);
+      light.target.position.set(...spec.target);
+      light.color.setHex(spec.color);
+      light.angle = spec.angle * DEG;
+      light.penumbra = spec.penumbra;
+      light.intensity = spec.intensity * (dream ? this.dimmed : 1);
+    });
+    if (dream) this.kit.lights.assign(camera.position);
+    if (!dream) this.previousPass = 'real';
+
+    // what exists from here; while the eye looks ahead nothing behind it can be seen, whatever the way
+    forward.set(0, 0, -1).applyQuaternion(camera.quaternion);
+    const tanV = Math.tan((camera.fov * DEG) / 2);
+    const corner = Math.atan(Math.hypot(tanV, tanV * camera.aspect));
+    const seesBehind = Math.acos(clamp(-forward.z, -1, 1)) + corner > Math.PI / 2;
     alley.farEnd.visible = !dream;
-    this.extension.visible = dream;
-    this.stairs.visible = dream && this.state.stairs;
+    alley.root.visible = !dream || (!sea && z > ALLEY_SEEN_FROM && (seesBehind || z > ALLEY.front - BEHIND));
+    for (const m of this.modules) {
+      const inWorld = dream && Boolean(m.inSea) === sea;
+      m.root.visible = inWorld && z < m.span[0] + REGION_MARGIN && z > m.span[1] - REGION_MARGIN && (seesBehind || z > m.span[1] - BEHIND);
+      if (m.root.visible) m.prepare?.(camera);
+    }
+    this.stairs.visible = dream && this.state.stairs && !sea && z > ALLEY_SEEN_FROM;
+    this.giant.root.visible = dream && !sea && z < LAYOUT.void.from + REGION_MARGIN;
+
     if (this.windowGlow && this.windowRoomMaterial) this.windowGlow.material = dream && this.state.window ? this.windowMaterial : this.windowRoomMaterial;
     if (this.chair) this.placeChair(dream && this.state.chair);
     if (this.cctv) this.turnCctv(dream ? smootherstep(range(D.beats.cctv, D.beats.cctv + D.cctvTurn, this.insideTime)) : 0, camera.position);
     if (this.bulb) this.bulb.intensity = this.bulbIntensity * (dream ? 1 - D.alive.bulbFlicker * Math.max(0, wobble(this.time * 2.3, 11)) : 1);
-    if (dream) this.rain.update(camera.position, this.time);
 
     // real time stopped at one instant (its second hand only twitches); the dream's clock runs on
     if (dream) setClock(this.clockHands, this.dreamClock);
     else {
       const tw = D.clock.twitch;
       setClock(this.clockHands, D.clock.stoppedAt + (Math.sin(this.time * tw.rate) > tw.threshold ? tw.seconds : 0));
+    }
+  }
+
+  /** The render the viewer sees: on entering a space (or coming from the real moment) its shadows are drawn once. */
+  mainPass(camera: PerspectiveCamera): void {
+    this.setPass('dream', camera);
+    const key = this.spotsByRegion.get(this.air.region)?.[0] ?? REAL_SPOTS[0];
+    if (key !== this.keySpot || this.previousPass === 'real') {
+      this.keySpot = key;
+      this.previousPass = 'dream';
+      this.shadowDirty = true;
     }
   }
 
@@ -453,32 +573,42 @@ export class DreamDirector {
    * @param inside 0..1 how far inside the picture the viewer is
    * @param exploring the viewer is free inside (look enabled)
    * @param walk 0..1 progress of the walk (WORLD phase)
+   * @param progress 0..1 of the whole piece (the prologue has its own small fear)
    */
-  update(time: number, dt: number, view: PerspectiveCamera, inside: number, exploring: boolean, walk: number): void {
+  update(time: number, dt: number, view: PerspectiveCamera, inside: number, exploring: boolean, walk: number, paused: boolean): void {
     this.time = time;
     this.walk = walk;
     this.frameCount++;
+    this.view = view;
     if (inside > 0.5) this.insideTime += dt;
     this.dreamClock += dt * D.clock.rate;
     this.alive(time);
+    this.updateHeart(walk, dt, paused);
 
     // the walk frame: in the sea the eye is drawn at the sea's offset
+    const sea = DreamDirector.inSea(view);
     eye.copy(view.position);
-    if (DreamDirector.inSea(view)) eye.sub(SEA);
+    if (sea) eye.sub(SEA);
     this.ctx.sky.uniforms.uDreamRotation.value = D.sky.rotation + time * D.sky.turnRate;
 
-    // the far figure grows smaller as you approach it, then backs into the giant print
-    const f = D.figure;
-    const dist = eye.distanceTo(this.figureHome);
-    this.figure.scale.setScalar(Math.min(1, Math.max(f.minScale, (dist - f.shrinkFrom) / f.shrinkSpan + f.minScale)));
-    this.retreat = smootherstep(range(f.retreat.from, f.retreat.to, dist));
-    this.figure.position.z = this.figureHome.z + (f.retreat.toZ - this.figureHome.z) * this.retreat;
-    this.figure.visible = this.retreat < 1;
-
+    const f = this.frame;
+    f.time = time;
+    f.dt = dt;
+    f.paused = paused;
+    f.view = view;
+    f.walk = walk;
+    f.fear = this.fear;
+    f.heartbeat = this.heartbeat;
     this.giant.update(time, eye);
-    this.floating.update(time);
-    this.lines.update(time);
-    this.sea.update(time, dt);
+    if (inside > 0) {
+      for (const m of this.modules) {
+        if (Boolean(m.inSea) !== sea || eye.z > m.span[0] + REGION_MARGIN || eye.z < m.span[1] - REGION_MARGIN) continue;
+        m.update(f);
+      }
+    }
+
+    this.readAir(eye.z, sea);
+    this.region = this.air.region;
 
     if (exploring) {
       const m = D.beats.margin;
@@ -490,17 +620,34 @@ export class DreamDirector {
       if (!s.chair && this.chair && t > D.beats.chair && unseen(new Vector3(...D.chair.position), view, m) && unseen(this.chair.position, view, m)) s.chair = true;
       if (!s.stairs && t > D.beats.stairs && unseen(new Vector3(fireEscape.x, D.stairs.probeHeight, fireEscape.platformZ), view, m)) s.stairs = true;
       // the window that looks back into the real moment
-      if (s.window && win && this.frameCount % D.window.everyNthFrame === 0 && !unseen(win, view, D.window.renderMargin)) {
+      if (s.window && win && !sea && eye.z > ALLEY.front && this.frameCount % D.window.everyNthFrame === 0 && !unseen(win, view, D.window.renderMargin)) {
         // a few dozen pixels far away: the last shadow map is good enough
         this.renderReal(this.windowRT, this.windowCamera, true);
       }
     }
 
-    // light temperature drifts inside
-    const dd = directorConfig.dreamDrift;
-    const g = directorConfig.dreamGrade;
-    const w = Math.sin((time / dd.period) * Math.PI * 2);
-    this.grade.copy(Grade.from({ ...g, warmth: g.warmth + w * dd.warmth, tint: g.tint + Math.cos((time / dd.period) * 3.1) * dd.tint }));
+    this.grade.copy(Grade.from(this.air.grade));
+  }
+
+  /** Fear rises along the walk and with every scare; the heart follows it. */
+  private updateHeart(walk: number, dt: number, paused: boolean): void {
+    if (paused) return;
+    this.fearBoost = Math.max(0, this.fearBoost - dt * 0.35);
+    const base = walk > 0 ? this.fearTrack.at(walk) : fearConfig.prologue;
+    this.fear = clamp(base + this.fearBoost, 0, 1);
+    const h = fearConfig.heart;
+    this.heartPhase += dt * lerp(h.calm, h.panic, this.fear);
+    this.heartbeat *= Math.exp(-h.decay * dt);
+    this.beat = false;
+    if (this.heartPhase >= 1) {
+      this.heartPhase -= 1;
+      this.heartbeat = 1;
+      this.beat = true;
+      this.secondBeat = true;
+    } else if (this.secondBeat && this.heartPhase >= SECOND_BEAT.at) {
+      this.heartbeat = Math.max(this.heartbeat, SECOND_BEAT.strength);
+      this.secondBeat = false;
+    }
   }
 
   /**
@@ -525,18 +672,4 @@ export class DreamDirector {
   }
 }
 
-/** Apartment rows of the lengthened alley: doors on the ground, windows above, varied per building. */
-function aptModule(level: number, i: number, building: number): string {
-  const v = level === 1 ? '01' : '02';
-  if (level === 0) return i % 4 === (building % 3) ? 'wall_door_centered_small_01' : i % 3 === 2 ? 'wall_window_offset_small_01' : W;
-  const pattern = ['large', 'small', 'double', 'small'];
-  return (i + building) % 5 === 4 ? W : `wall_window_centered_${pattern[(i + level + building) % pattern.length]}_${v}`;
-}
-
-/** Factory rows: a garage-free ground floor, tall windows, medium ones under the roof. */
-function factoryModule(level: number, i: number, building: number, floors: number): string {
-  const v = level === 1 ? '01' : '02';
-  if (level === 0) return i % 5 === (building % 2) + 1 ? 'wall_window_centered_small_01' : i % 4 === 3 ? 'wall_door_centered_large_01' : W;
-  if (level === floors - 1) return i % 3 === 1 ? W : `wall_window_centered_medium_${v}`;
-  return `wall_window_tall_${(i + building) % 3 ? 'small' : 'large'}_${v}`;
-}
+export { inSea };

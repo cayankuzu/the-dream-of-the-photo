@@ -3,13 +3,21 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#0b0c0e" />
+    <meta name="theme-color" content="#000000" />
+    <meta name="color-scheme" content="dark" />
     <title>The Dream of the Photo</title>
-    <meta name="description" content="Step into a photograph and walk through its dream. An interactive cinematic piece." />
+    <meta name="description" content="The dream of a photograph turns hair white, the dream of a photograph, every evening, half. A three-minute nightmare inside an instant photograph." />
     <meta property="og:title" content="The Dream of the Photo" />
-    <meta property="og:description" content="Every photograph is a door that opens only once." />
-    <link rel="preload" href="/fonts/cormorant-garamond-400.woff2" as="font" type="font/woff2" crossorigin />
-    <link rel="preload" href="/fonts/ibm-plex-mono-400.woff2" as="font" type="font/woff2" crossorigin />
+    <meta property="og:description" content="The dream of a photograph turns hair white, the dream of a photograph, every evening, half." />
+    <link rel="preload" href="/fonts/anton-400.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/protest-revolution-400.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/courier-prime-400.woff2" as="font" type="font/woff2" crossorigin />
+    <style>
+      html {
+        background: #000;
+        color: #e6e1d6;
+      }
+    </style>
   </head>
   <body>
     <canvas id="stage" aria-label="The Dream of the Photo — interactive scene"></canvas>
@@ -17,64 +25,83 @@
     <div class="overlay">
       <!-- the title screen: loads, then waits for the first step -->
       <section class="start" data-ui="start" aria-labelledby="start-title">
-        <div class="start__inner">
-          <p class="start__kicker" data-i18n="kicker">an interactive dream</p>
-          <h1 class="start__title" id="start-title">The Dream of the Photo</h1>
-          <p class="start__subtitle" data-i18n="subtitle"></p>
-          <div class="start__load" data-ui="load">
-            <div class="meter"><span data-ui="loader-bar"></span></div>
-            <p class="start__status"><span data-i18n="loading">Developing</span> <span data-ui="loader-label">0%</span></p>
+        <header class="start__top">
+          <p class="start__kicker" data-i18n="kicker">a three-minute nightmare</p>
+          <div class="seg" role="group" data-ui="lang" data-i18n-label="language">
+            <button type="button" data-lang="tr" lang="tr">TR</button>
+            <button type="button" data-lang="en" lang="en">EN</button>
           </div>
-          <button class="btn btn--primary start__go" type="button" data-ui="start-button" disabled>
-            <span data-i18n="start">Begin</span>
-            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5 3l6 5-6 5" /></svg>
-          </button>
-          <div class="start__options">
-            <div class="seg" role="group" data-ui="lang" data-i18n-label="language">
-              <button type="button" data-lang="tr" lang="tr">TR</button>
-              <button type="button" data-lang="en" lang="en">EN</button>
+        </header>
+        <div class="start__titlebox">
+          <h1 class="title" id="start-title" lang="en" aria-label="The Dream of the Photo">
+            <span class="title__first" aria-hidden="true">THE DREAM</span>
+            <span class="title__rest" aria-hidden="true"><span class="title__of">OF THE</span> <span class="title__photo" data-text="PHOTO">PHOTO</span></span>
+          </h1>
+        </div>
+        <p class="motto start__motto" data-ui="motto"></p>
+        <div class="start__foot">
+          <p class="start__warning" data-i18n="warning"></p>
+          <ul class="start__notes">
+            <li data-ui="moves-note" data-i18n="moves"></li>
+            <li data-i18n="headphones"></li>
+          </ul>
+          <div class="start__go">
+            <div class="loader" data-ui="load" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" data-i18n-label="loading">
+              <p class="loader__label"><span data-i18n="loading">Developing</span> <span data-ui="loader-label">0%</span></p>
+              <div class="loader__track"><span class="loader__fill" data-ui="loader-bar"></span></div>
             </div>
-            <p class="start__note">
-              <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 10V8a5 5 0 0110 0v2M3 10h2v4H3zM11 10h2v4h-2z" /></svg>
-              <span data-i18n="headphones">Best with headphones</span>
-            </p>
+            <button class="btn start__begin" type="button" data-ui="start-button" disabled><span data-i18n="start">Begin</span></button>
           </div>
         </div>
       </section>
 
       <!-- the HUD while playing -->
       <div class="hud" data-ui="hud">
-        <div class="chapter" data-ui="chapter">
-          <span class="chapter__index"><span data-i18n="chapter">Chapter</span> <span data-ui="chapter-number">I</span></span>
-          <span class="chapter__name" data-ui="chapter-name" aria-live="polite"></span>
+        <!-- what leaves when nothing is touched: the screen belongs to the picture -->
+        <div class="hud__edge" data-ui="hud-edge">
+          <div class="hud__top">
+            <div class="chip chapter">
+              <span class="chapter__number" data-ui="chapter-number">I</span>
+              <span data-ui="chapter-name" aria-live="polite"></span>
+            </div>
+            <div class="hud__corner">
+              <div class="chip memories" data-ui="memories">
+                <span data-ui="memories-count" aria-live="polite">0/0</span>
+                <span class="memories__label" data-i18n="memories">Memories</span>
+              </div>
+              <button class="chip" type="button" data-ui="sound" aria-pressed="false" aria-labelledby="hud-sound-name">
+                <span id="hud-sound-name" data-i18n="sound">Sound</span>
+                <span data-ui="sound-state">Off</span>
+              </button>
+              <div class="seg seg--hud" role="group" data-ui="lang" data-i18n-label="language">
+                <button type="button" data-lang="tr" lang="tr">TR</button>
+                <button type="button" data-lang="en" lang="en">EN</button>
+              </div>
+              <button class="chip" type="button" data-ui="menu-button" data-i18n="menu" data-i18n-label="menuLabel">Menu</button>
+            </div>
+          </div>
+          <div class="journey" aria-hidden="true">
+            <div class="journey__track">
+              <div class="journey__fill" data-ui="journey-fill"></div>
+              <div class="journey__ticks" data-ui="journey-ticks"></div>
+            </div>
+            <span class="chip journey__percent" data-ui="journey-percent">0%</span>
+          </div>
         </div>
 
-        <div class="hud__corner">
-          <div class="memories" data-ui="memories">
-            <svg viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="2" width="10" height="12" rx="0.8" /><rect x="4.6" y="3.6" width="6.8" height="6.8" /></svg>
-            <span class="memories__count" data-ui="memories-count" aria-live="polite">0/8</span>
-            <span class="memories__label" data-i18n="memories">Memories</span>
-          </div>
-          <div class="seg seg--small" role="group" data-ui="lang" data-i18n-label="language">
-            <button type="button" data-lang="tr" lang="tr">TR</button>
-            <button type="button" data-lang="en" lang="en">EN</button>
-          </div>
-          <button class="icon-btn" type="button" data-ui="sound" aria-pressed="false" data-i18n-label="soundLabel">
-            <svg class="icon-btn__on" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 6h3l4-3v10L5 10H2zM11 5.5a3.5 3.5 0 010 5M12.8 3.6a6 6 0 010 8.8" /></svg>
-            <svg class="icon-btn__off" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 6h3l4-3v10L5 10H2zM11 6l4 4M15 6l-4 4" /></svg>
-          </button>
-          <button class="icon-btn" type="button" data-ui="menu-button" data-i18n-label="menuLabel">
-            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 4h12M2 8h12M2 12h12" /></svg>
-          </button>
+        <!-- a chapter begins: stamped on the picture, then gone -->
+        <div class="stamp" data-ui="stamp" aria-hidden="true">
+          <span class="stamp__number" data-ui="stamp-number"></span>
+          <span class="stamp__name" data-ui="stamp-name"></span>
         </div>
 
-        <!-- the gaze: a ring fills while a memory holds it -->
+        <!-- the gaze: a square closes while a memory holds it -->
         <div class="reticle" data-ui="reticle" aria-hidden="true">
           <svg viewBox="0 0 40 40">
-            <circle class="reticle__track" cx="20" cy="20" r="15" />
-            <circle class="reticle__fill" data-ui="reticle-fill" cx="20" cy="20" r="15" />
+            <rect class="reticle__shade" x="5" y="5" width="30" height="30" />
+            <rect class="reticle__track" x="5" y="5" width="30" height="30" />
+            <rect class="reticle__fill" data-ui="reticle-fill" x="5" y="5" width="30" height="30" pathLength="100" />
           </svg>
-          <i class="reticle__dot"></i>
         </div>
 
         <div class="toast" data-ui="toast" role="status" aria-hidden="true">
@@ -83,75 +110,83 @@
         </div>
 
         <div class="tutorial" data-ui="tutorial">
-          <span class="key tutorial__key" data-ui="tutorial-key"></span>
-          <span data-ui="tutorial-text"></span>
+          <p class="tutorial__box">
+            <span class="key" data-ui="tutorial-key"></span>
+            <span data-ui="tutorial-text"></span>
+          </p>
         </div>
+      </div>
 
-        <div class="journey" data-ui="journey" aria-hidden="true">
-          <div class="journey__track">
-            <div class="journey__fill" data-ui="journey-fill"></div>
-            <div class="journey__ticks" data-ui="journey-ticks"></div>
-          </div>
-          <span class="journey__percent" data-ui="journey-percent">0%</span>
+      <!-- the dream's voice: typed on screen, spoken whole to a screen reader -->
+      <p class="narration" data-ui="narration" aria-hidden="true"></p>
+      <p class="sr-only" data-ui="narration-voice" aria-live="polite"></p>
+
+      <!-- the last words, over the picture -->
+      <p class="motto finale" data-ui="finale" aria-live="polite"></p>
+
+      <!-- the end: black -->
+      <section class="end" data-ui="end" aria-labelledby="end-title">
+        <div class="end__panel">
+          <h2 class="end__title" id="end-title" lang="en">The Dream of the Photo</h2>
+          <p class="end__memories"><span class="end__count" data-ui="end-count">0 / 0</span> <span data-i18n="endMemories">memories found</span></p>
+          <button class="btn end__replay" type="button" data-ui="replay"><span data-i18n="replay">Dream it again</span></button>
         </div>
-
-        <ul class="keys" data-ui="keys" aria-hidden="true"></ul>
-      </div>
-
-      <p class="narration" data-ui="narration" aria-live="polite"></p>
-
-      <div class="scroll-cue" data-ui="scroll-cue" aria-hidden="true">
-        <span data-i18n="scroll">Scroll</span>
-        <i></i>
-      </div>
-
-      <!-- the end -->
-      <div class="end" data-ui="end">
-        <p class="end__memories"><span data-ui="end-count">0/8</span> <span data-i18n="endMemories">memories found</span></p>
-        <button class="btn" type="button" data-ui="replay"><span data-i18n="replay">Dream again</span></button>
-      </div>
+      </section>
 
       <!-- the pause menu -->
       <section class="menu" data-ui="menu" aria-labelledby="menu-title" hidden>
         <div class="menu__panel">
-          <h2 class="menu__title" id="menu-title" data-i18n="paused">Paused</h2>
-          <div class="menu__actions">
-            <button class="btn btn--primary" type="button" data-ui="resume"><span data-i18n="resume">Resume</span></button>
-            <button class="btn" type="button" data-ui="restart"><span data-i18n="restart">Start over</span></button>
+          <div class="menu__main">
+            <h2 class="menu__title" id="menu-title" data-i18n="paused">Paused</h2>
+            <div class="menu__actions">
+              <button class="btn btn--solid" type="button" data-ui="resume"><span data-i18n="resume">Resume</span></button>
+              <button class="btn" type="button" data-ui="restart"><span data-i18n="restart">Start over</span></button>
+            </div>
+            <dl class="menu__settings">
+              <div>
+                <dt data-i18n="language">Language</dt>
+                <dd>
+                  <div class="seg" role="group" data-ui="lang" data-i18n-label="language">
+                    <button type="button" data-lang="tr" lang="tr">Türkçe</button>
+                    <button type="button" data-lang="en" lang="en">English</button>
+                  </div>
+                </dd>
+              </div>
+              <div>
+                <dt id="menu-sound-name" data-i18n="sound">Sound</dt>
+                <dd>
+                  <button class="toggle" type="button" data-ui="menu-sound" aria-pressed="false" aria-labelledby="menu-sound-name">
+                    <span data-ui="menu-sound-label">Off</span>
+                  </button>
+                </dd>
+              </div>
+              <div data-ui="fullscreen-row">
+                <dt id="menu-fullscreen-name" data-i18n="fullscreen">Full screen</dt>
+                <dd>
+                  <button class="toggle" type="button" data-ui="fullscreen" aria-pressed="false" aria-labelledby="menu-fullscreen-name">
+                    <span data-ui="fullscreen-label">Off</span>
+                  </button>
+                </dd>
+              </div>
+              <div>
+                <dt id="menu-moves-name" data-i18n="moves">Moves by itself</dt>
+                <dd>
+                  <button class="toggle" type="button" data-ui="moves" aria-pressed="true" aria-labelledby="menu-moves-name">
+                    <span data-ui="moves-label">On</span>
+                  </button>
+                </dd>
+              </div>
+            </dl>
           </div>
-          <dl class="menu__settings">
-            <div>
-              <dt data-i18n="language">Language</dt>
-              <dd>
-                <div class="seg" role="group" data-ui="lang" data-i18n-label="language">
-                  <button type="button" data-lang="tr" lang="tr">Türkçe</button>
-                  <button type="button" data-lang="en" lang="en">English</button>
-                </div>
-              </dd>
-            </div>
-            <div>
-              <dt id="menu-sound-name" data-i18n="sound">Sound</dt>
-              <dd>
-                <button class="btn btn--small" type="button" data-ui="menu-sound" aria-pressed="false" aria-labelledby="menu-sound-name">
-                  <span data-ui="menu-sound-label">Off</span>
-                </button>
-              </dd>
-            </div>
-            <div data-ui="fullscreen-row">
-              <dt id="menu-fullscreen-name" data-i18n="fullscreen">Full screen</dt>
-              <dd>
-                <button class="btn btn--small" type="button" data-ui="fullscreen" aria-pressed="false" aria-labelledby="menu-fullscreen-name">
-                  <span data-ui="fullscreen-label">Off</span>
-                </button>
-              </dd>
-            </div>
-          </dl>
-          <h3 class="menu__subtitle" data-i18n="controls">Controls</h3>
-          <ul class="keys keys--menu" data-ui="menu-keys"></ul>
-          <p class="menu__credits">
-            <span data-i18n="credits"></span>
-            <a href="https://github.com/cayankuzu/the-dream-of-the-photo" target="_blank" rel="noopener" data-i18n="source">Source code</a>
-          </p>
+          <div class="menu__side">
+            <h3 class="menu__subtitle" data-i18n="controls">Controls</h3>
+            <ul class="keys" data-ui="menu-keys"></ul>
+            <p class="menu__credits">
+              <span data-i18n="credits"></span>
+              <a href="https://github.com/cayankuzu/the-dream-of-the-photo" target="_blank" rel="noopener" data-i18n="source">Source code</a>
+              <a href="/THIRD_PARTY_NOTICES.md" target="_blank" rel="noopener" data-i18n="notices">Licences</a>
+            </p>
+          </div>
         </div>
       </section>
     </div>

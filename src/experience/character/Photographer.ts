@@ -5,6 +5,7 @@ import {
   Euler,
   Group,
   LoopRepeat,
+  MathUtils,
   Matrix4,
   Mesh,
   MeshBasicMaterial,
@@ -14,12 +15,15 @@ import {
   Vector3,
   type AnimationClip,
   type SkinnedMesh,
+  type Texture,
+  type WebGLProgramParametersWithUniforms,
 } from 'three';
 import type { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { LAYERS, photographerConfig as P, photoConfig } from '../../config/experience.config';
 import { cameraObjectConfig } from '../../config/scene.config';
 import { InstantCamera } from '../camera-object/InstantCamera';
+import { headMap } from '../dream/FigureKit';
 import type { Photograph } from '../photograph/Photograph';
 import { DEG, range, smootherstep, wobble } from '../math';
 import { cueToProgress, phaseEnd, phaseProgress, phaseStart, SHUTTER_PROGRESS } from '../timeline/Timeline';
@@ -63,6 +67,15 @@ const PRINT_GRIP = {
 };
 
 const AXIS_Z = new Vector3(0, 0, 1);
+const AXIS_Y = new Vector3(0, 1, 0);
+/** Where hair lies on a head map (see FACE in dream/FigureKit.ts): outside the face, on the far side from the neck. */
+const WHITENING_GLSL = (card: boolean) => /* glsl */ `
+  #ifdef USE_MAP
+    float whiteHair = ${card ? '1.0' : 'step(0.5, vMapUv.y) * smoothstep(1.0, 1.25, length((vMapUv - vec2(0.5, 0.685)) / vec2(0.165, 0.205)))'};
+    float hairLight = dot(diffuseColor.rgb, vec3(0.3, 0.59, 0.11));
+    diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.86, 0.84, 0.78) * clamp(0.46 + hairLight * 2.6, 0.3, 1.15), uWhite * whiteHair);
+  #endif
+`;
 const v1 = new Vector3();
 const v2 = new Vector3();
 const v3 = new Vector3();
@@ -117,6 +130,14 @@ export class Photographer {
   private readonly ghostModel: Object3D;
   private readonly ghostCamera: Object3D;
 
+  /** The one being watched: where the head turns on waking (set once by the piece). */
+  viewer: Vector3 | null = null;
+  private readonly white = { value: 0 };
+  private readonly whitening = new NumberTrack(P.whitening);
+  private headMaterial: MeshStandardMaterial | null = null;
+  private realFace: Texture | null = null;
+  private scratchedFace: Texture | null = null;
+
   /** Print pose in world space this frame (read by the director and the transition). */
   readonly printPosition = new Vector3();
   private readonly printQuaternion = new Quaternion();
@@ -136,6 +157,21 @@ export class Photographer {
       mesh.frustumCulled = false;
       const mat = mesh.material as MeshStandardMaterial;
       mat.envMapIntensity = P.envMapIntensity;
+      const isHead = /_head$/.test(mat.name);
+      if (isHead || /_opacity$/.test(mat.name)) {
+        mat.onBeforeCompile = (shader: WebGLProgramParametersWithUniforms) => {
+          shader.uniforms.uWhite = this.white;
+          shader.fragmentShader = shader.fragmentShader
+            .replace('#include <common>', '#include <common>\nuniform float uWhite;')
+            .replace('#include <map_fragment>', `#include <map_fragment>\n${WHITENING_GLSL(!isHead)}`);
+        };
+        mat.customProgramCacheKey = () => (isHead ? 'hair-on-head' : 'hair-card');
+      }
+      if (isHead && mat.map) {
+        this.headMaterial = mat;
+        this.realFace = mat.map;
+        this.scratchedFace = headMap(mat.map, 'scratched', true, 1);
+      }
     });
 
     this.mixer = new AnimationMixer(this.model);
@@ -223,7 +259,9 @@ export class Photographer {
 
     // order matters: the clavicles hang from the neck, so the gaze is set before anything is held
     // (it follows the print's previous position, which is smooth from frame to frame)
+    this.white.value = this.whitening.at(p);
     this.updateHead(p);
+    this.updateStare(p);
     this.updateCamera(p);
     this.updatePrint(p, time);
   }
@@ -364,6 +402,41 @@ export class Photographer {
       q2.slerp(new Quaternion(), 1 - w * share);
       setWorldQuaternion(bone, q2.multiply(q1));
     }
+  }
+
+  /** Waking: the head comes all the way round on its neck, and it has no face anymore. */
+  private updateStare(p: number): void {
+    const s = P.stare;
+    const turn = range(s.from, s.to, phaseProgress(p, 'EXPLORATION'));
+    if (this.headMaterial) this.headMaterial.map = turn > 0 ? this.scratchedFace : this.realFace;
+    if (turn <= 0 || !this.viewer) return;
+    const steps = turn * s.catches;
+    const whole = Math.floor(steps);
+    const amount = (whole + smootherstep(steps - whole)) / s.catches;
+    for (const [bone, share] of [
+      [this.bones.neck, s.neckShare],
+      [this.bones.head, 1],
+    ] as const) {
+      const pos = bone.getWorldPosition(v1);
+      const target = v2.subVectors(this.viewer, pos).normalize();
+      // Biped head/neck look along their local +Y
+      const forward = v3.set(0, 1, 0).applyQuaternion(bone.getWorldQuaternion(q1)).normalize();
+      let yaw = Math.atan2(target.x, target.z) - Math.atan2(forward.x, forward.z);
+      yaw = MathUtils.euclideanModulo(yaw, Math.PI * 2) - Math.PI * 2; // always the same way round
+      q2.setFromAxisAngle(AXIS_Y, yaw * amount * share);
+      forward.applyQuaternion(q2);
+      setWorldQuaternion(bone, q2.multiply(q1));
+      if (share === 1) {
+        // and tips up to meet your eye
+        const tip = new Quaternion().setFromUnitVectors(forward, target).slerp(new Quaternion(), 1 - amount * s.pitch);
+        setWorldQuaternion(bone, tip.multiply(bone.getWorldQuaternion(q1)));
+      }
+    }
+  }
+
+  /** The scratched face, ready before it is needed. */
+  get faceToPrepare(): Texture | null {
+    return this.scratchedFace;
   }
 
   // ------------------------------------------------------------------ doubles

@@ -54,12 +54,17 @@ export class Moments {
   }
 
   /**
-   * Render every view once (called after shaders are compiled). Dream views beyond the giant
+   * Render every view (called after shaders are compiled, while the piece already plays). Dream views beyond the giant
    * print (walk-frame z < walkConfig.printZ) are offset into the sea by seaConfig.offset.
    * `render` switches the world to the pass and draws the scene into the target.
    */
-  develop(render: (target: WebGLRenderTarget, camera: PerspectiveCamera, pass: MomentPass) => void): void {
+  async develop(render: (target: WebGLRenderTarget, camera: PerspectiveCamera, pass: MomentPass) => void, breathe: () => Promise<unknown>): Promise<void> {
     // twice: a view that sees other pictures (the prints drifting over the sea) must find them developed
-    for (let round = 0; round < 2; round++) for (const m of this.moments) render(m.target, m.camera, m.pass);
+    for (let round = 0; round < 2; round++) {
+      for (const m of this.moments) {
+        render(m.target, m.camera, m.pass);
+        await breathe();
+      }
+    }
   }
 }

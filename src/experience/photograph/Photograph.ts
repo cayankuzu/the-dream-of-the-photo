@@ -16,6 +16,7 @@ import {
 import { photoConfig } from '../../config/experience.config';
 import { GRADE_GLSL, HASH_GLSL, LUMA_GLSL, SHEEN_GLSL } from '../render/glsl';
 import type { Grade } from '../render/Grade';
+import { WARP_GLSL, warpUniforms } from '../render/Warp';
 
 const { print, image } = photoConfig;
 
@@ -34,12 +35,13 @@ float curlOffset(float x) {
 
 const IMAGE_VERT = /* glsl */ `
 ${CURL_GLSL}
+${WARP_GLSL}
 varying vec2 vUv;
 void main() {
   vUv = uv;
   vec3 p = position;
   p.z += curlOffset(p.x);
-  gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
+  gl_Position = projectionMatrix * dreamWarp(modelViewMatrix * vec4(p, 1.0));
 }
 `;
 
@@ -134,7 +136,7 @@ function paperCanvas(aged: boolean, caption: string | null): CanvasTexture {
   }
   if (caption) {
     ctx.fillStyle = aged ? 'rgba(38, 42, 70, 0.82)' : 'rgba(30, 30, 40, 0.8)';
-    ctx.font = `${Math.round(w * 0.075)}px "Homemade Apple", "Segoe Script", cursive`;
+    ctx.font = `${Math.round(w * 0.075)}px "Just Me Again Down Here", "Segoe Script", cursive`;
     ctx.textAlign = 'center';
     ctx.save();
     ctx.translate(w * 0.5, h * 0.9);
@@ -221,6 +223,7 @@ export class Photograph extends Group {
         uSheenOffset: { value: 0 },
         uTime: { value: 0 },
         uCurl: this.curl,
+        ...warpUniforms,
       },
     });
     const imageGeo = new PlaneGeometry(image.size, image.size, 12, 12);

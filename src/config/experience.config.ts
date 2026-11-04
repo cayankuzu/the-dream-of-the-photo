@@ -24,28 +24,43 @@ export type Phase = (typeof PHASES)[number];
 /** A moment on the timeline as [phase, fraction of that phase]. */
 export type Cue = readonly [Phase, number];
 
+/** Seconds of the whole piece when nobody touches anything. */
+const RUN_SECONDS = 180;
+/** Second at which something happens, as a timeline position. */
+const at = (seconds: number) => seconds / RUN_SECONDS;
+
 export const timelineConfig = {
-  /** Start of every phase. A phase lasts until the next one starts; EXPLORATION ends at 1. */
+  /**
+   * Start of every phase (written in seconds of the three-minute run, so progress is proportional to
+   * time). A phase lasts until the next one starts; EXPLORATION ends at 1.
+   */
   phaseStart: {
     INTRO: 0,
-    CAMERA_RAISE: 0.02,
-    AIM: 0.06,
-    FOCUS: 0.09,
-    CAPTURE: 0.115,
-    PHOTO_EJECT: 0.135,
-    PHOTO_REVEAL: 0.165,
-    PHOTO_APPROACH: 0.195,
-    PHOTO_DEPTH: 0.225,
-    PHOTO_ENTRY: 0.255,
-    /** The walk through the dream (see walk.config.ts): most of the piece. */
-    WORLD: 0.28,
+    CAMERA_RAISE: at(4),
+    AIM: at(9),
+    FOCUS: at(12),
+    CAPTURE: at(15),
+    PHOTO_EJECT: at(17),
+    PHOTO_REVEAL: at(21),
+    PHOTO_APPROACH: at(25.5),
+    PHOTO_DEPTH: at(28.5),
+    PHOTO_ENTRY: at(31),
+    /** The walk through the nightmare (see walk.config.ts): most of the piece. */
+    WORLD: at(34),
     /** The last photograph, and waking up. */
-    EXPLORATION: 0.93,
+    EXPLORATION: at(169),
   } satisfies Record<Phase, number>,
+  /**
+   * The dream does not wait: once begun, the timeline moves on by itself (progress / s), so that the
+   * whole piece takes three minutes untouched. Scrolling forward hurries it; scrolling back holds it
+   * for `autoHold` seconds. The menu can switch this off.
+   */
+  autoRate: 1 / RUN_SECONDS,
+  autoHold: 3,
   /** Where inside CAPTURE the shutter fires (fraction of the phase). */
   shutterAt: 0.45,
   /** Wheel pixels needed to travel the whole timeline. */
-  scrollLength: 13500,
+  scrollLength: 12000,
   /** Clamp of a single wheel event (px) so one flick can never jump a state. */
   maxWheelStep: 120,
   touchMultiplier: 2.4,
@@ -56,10 +71,10 @@ export const timelineConfig = {
   maxSpeed: 0.19,
   /** Local slow-motion around important beats: cue, half-width (progress), speed multiplier. */
   tempo: [
-    { at: ['CAPTURE', 0.3] as Cue, width: 0.005, scale: 0.42 }, // the shutter (centered just before it fires)
-    { at: ['PHOTO_DEPTH', 0.5] as Cue, width: 0.012, scale: 0.65 }, // paper surface -> depth
-    { at: ['PHOTO_ENTRY', 1 / 6] as Cue, width: 0.008, scale: 0.7 }, // passing through the paper
-    { at: ['WORLD', 0.81] as Cue, width: 0.006, scale: 0.6 }, // through the giant print
+    { at: ['CAPTURE', 0.3] as Cue, width: 0.003, scale: 0.42 }, // the shutter (centered just before it fires)
+    { at: ['PHOTO_DEPTH', 0.5] as Cue, width: 0.007, scale: 0.65 }, // paper surface -> depth
+    { at: ['PHOTO_ENTRY', 1 / 6] as Cue, width: 0.005, scale: 0.7 }, // passing through the paper
+    { at: ['WORLD', 0.893] as Cue, width: 0.004, scale: 0.6 }, // through the giant print
   ],
   /** Micro hit-stop when the shutter fires. */
   shutterHoldSeconds: 0.14,
@@ -71,13 +86,13 @@ export const renderConfig = {
   maxPixels: 2.4e6,
   /** Above this pixel ratio the render targets use fewer MSAA samples. */
   denseRatio: 1.4,
-  denseSamples: 2,
+  denseSamples: 1,
   maxFps: 60,
   /** Tall phones: the widened vertical field of view stops here (deg). */
   maxPortraitFov: 76,
   fadeInSeconds: 2.4,
   minPixelRatio: 0.65,
-  msaaSamples: 4,
+  msaaSamples: 2,
   near: 0.05,
   /** Near plane while the camera is centimeters from the photograph. */
   photoNear: 0.004,
@@ -159,6 +174,8 @@ export const lookConfig = {
   recenter: 0.9,
   /** Timeline speed (progress / s) that counts as full walking speed. */
   walkSpeed: 0.02,
+  /** Faster than the dream's own pace by this factor counts as hurrying. */
+  hurrying: 1.6,
   /** Arrow-key turning speed (deg / s). */
   keySpeed: 70,
   /**
@@ -197,9 +214,9 @@ export const photographerConfig = {
   /** Pitch of the designed framing (deg): level, a hair below the horizon. */
   aimPitch: -2.2,
   /** Fraction of the timeline after CAPTURE over which the lens lets go of the designed framing. */
-  aimRelease: 0.01,
+  aimRelease: 0.006,
   /** Shutter button travel around the shutter beat (timeline progress before / release window after). */
-  button: { lead: 0.003, release: [0.002, 0.006] as const },
+  button: { lead: 0.002, release: [0.001, 0.0035] as const },
   envMapIntensity: 0.8,
   /** Where the left elbow points while reaching (m below and to the side of the shoulder). */
   elbowPole: { down: 0.6, out: 0.35 },
@@ -222,6 +239,19 @@ export const photographerConfig = {
   breathing: 0.7,
   /** Gap between the right eye and the viewfinder (m). */
   eyepieceGap: 0.016,
+  /** The hair goes white: how much at each beat (each dream of the photograph takes more of it). */
+  whitening: [
+    [['CAPTURE', 1], 0],
+    [['PHOTO_REVEAL', 1], 0.28],
+    [['PHOTO_APPROACH', 1], 0.42],
+    [['EXPLORATION', 0.06], 0.42],
+    [['EXPLORATION', 0.07], 1],
+  ] as readonly (readonly [Cue, number])[],
+  /**
+   * Waking: the head turns all the way round on its neck to look at you, in catches rather than smoothly
+   * (EXPLORATION fractions, number of catches, share of the turn the neck takes, share of the look's pitch).
+   */
+  stare: { from: 0.42, to: 0.68, catches: 4, neckShare: 0.35, pitch: 0.8 },
   /** Mocap time at which the camera grip is calibrated (camera at the eye). */
   calibrateAt: 2.9,
   /** Print hand-off inside PHOTO_REVEAL (fractions of the phase). */
@@ -285,11 +315,11 @@ export const directorConfig = {
     paper: ['PHOTO_REVEAL', 0.2] as Cue,
   },
   /** The ambience comes back between these timeline offsets after the shutter. */
-  duckRelease: [0.005, 0.025] as const,
+  duckRelease: [0.003, 0.014] as const,
   /** Uniform lens softness while it hunts for focus during AIM and FOCUS. */
   lensHunt: 0.35,
   /** No adaptive resolution change within this distance (progress) of the shutter. */
-  adaptQuiet: 0.005,
+  adaptQuiet: 0.003,
   /** Grades (see Grade.ts): the cold real alley and the dream. */
   outerGrade: { exposure: 1.0, saturation: 0.8, warmth: -0.05, tint: 0.0, flare: 0.0015 },
   dreamGrade: { exposure: 1.06, saturation: 0.9, warmth: 0.035, tint: 0.012, flare: 0.004 },

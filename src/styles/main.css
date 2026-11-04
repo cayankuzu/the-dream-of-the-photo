@@ -1,82 +1,128 @@
-/* Self-hosted (latin, and latin-ext for Turkish). Licenses: public/fonts/*.txt */
+/*
+ * Self-hosted: latin, and latin-ext for Turkish (Ş ş Ğ ğ İ live there; ı Ç Ö Ü in latin). Latin is declared
+ * last, so it wins where the two ranges overlap. Licenses: public/fonts/*.txt
+ */
 @font-face {
-  font-family: 'Cormorant Garamond';
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-  src: url('/fonts/cormorant-garamond-400.woff2') format('woff2');
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-}
-
-@font-face {
-  font-family: 'Cormorant Garamond';
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-  src: url('/fonts/cormorant-garamond-400-latin-ext.woff2') format('woff2');
-  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
-}
-
-@font-face {
-  font-family: 'Cormorant Garamond';
-  font-style: italic;
-  font-weight: 400;
-  font-display: swap;
-  src: url('/fonts/cormorant-garamond-400-italic.woff2') format('woff2');
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-}
-
-@font-face {
-  font-family: 'Cormorant Garamond';
-  font-style: italic;
-  font-weight: 400;
-  font-display: swap;
-  src: url('/fonts/cormorant-garamond-400-italic-latin-ext.woff2') format('woff2');
-  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
-}
-
-@font-face {
-  font-family: 'IBM Plex Mono';
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-  src: url('/fonts/ibm-plex-mono-400.woff2') format('woff2');
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-}
-
-@font-face {
-  font-family: 'IBM Plex Mono';
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-  src: url('/fonts/ibm-plex-mono-400-latin-ext.woff2') format('woff2');
-  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
-}
-
-@font-face {
-  font-family: 'Homemade Apple';
+  font-family: 'Anton';
   font-style: normal;
   font-weight: 400;
   font-display: block;
-  src: url('/fonts/homemade-apple-400.woff2') format('woff2');
+  src: url('/fonts/anton-400-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: 'Anton';
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url('/fonts/anton-400.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Protest Revolution';
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url('/fonts/protest-revolution-400-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: 'Protest Revolution';
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url('/fonts/protest-revolution-400.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Special Elite';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/special-elite-400-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: 'Special Elite';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/special-elite-400.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Courier Prime';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/courier-prime-400-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: 'Courier Prime';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/courier-prime-400.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* drawn on canvases by the set pieces only: they load it themselves */
+@font-face {
+  font-family: 'Just Me Again Down Here';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/just-me-again-down-here-400-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: 'Just Me Again Down Here';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/just-me-again-down-here-400.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
 :root {
   --ink: #e6e1d6;
-  --ink-dim: rgba(230, 225, 214, 0.62);
-  --ink-faint: rgba(230, 225, 214, 0.5);
-  --line: rgba(230, 225, 214, 0.2);
-  --accent: #e9c48f;
-  --accent-soft: rgba(233, 196, 143, 0.34);
-  --panel: rgba(11, 12, 16, 0.62);
-  --panel-strong: rgba(11, 12, 16, 0.78);
-  --bg: #0b0c0e;
-  --serif: 'Cormorant Garamond', 'Iowan Old Style', Georgia, serif;
-  --mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
-  --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
-  --edge-x: max(1.6rem, env(safe-area-inset-left), env(safe-area-inset-right));
-  --edge-top: max(1.4rem, env(safe-area-inset-top));
-  --edge-bottom: max(1.4rem, env(safe-area-inset-bottom));
+  /* the dimmest small text on black: 8:1 */
+  --ink-dim: rgba(230, 225, 214, 0.72);
+  --line: rgba(230, 225, 214, 0.36);
+  /* never small text on black (2.6:1); bone on it is 6:1 */
+  --blood: #a30f12;
+  --display: 'Anton', Impact, 'Arial Narrow', sans-serif;
+  --brush: 'Protest Revolution', 'Brush Script MT', cursive;
+  --type: 'Special Elite', 'Courier New', monospace;
+  --mono: 'Courier Prime', 'Courier New', ui-monospace, Menlo, Consolas, monospace;
+  /* the height that is really there on a phone, with its browser bars out */
+  --vh: 1vh;
+  --edge-x: max(clamp(1rem, 2.4vw, 1.75rem), env(safe-area-inset-left), env(safe-area-inset-right));
+  --edge-top: max(clamp(0.7rem, 2vh, 1.4rem), env(safe-area-inset-top));
+  --edge-bottom: max(clamp(0.7rem, 2vh, 1.4rem), env(safe-area-inset-bottom));
+  /* the height of the HUD's top row */
+  --hud-row: 1.6rem;
+  /* a second ink printed out of register */
+  --ghost: 0.02em 0.013em 0 var(--blood);
+  /* a hard, thin line around letters that lie on the picture */
+  --outline: 1px 0 0 #000, -1px 0 0 #000, 0 1px 0 #000, 0 -1px 0 #000, 1px 1px 0 #000, -1px 1px 0 #000, 1px -1px 0 #000, -1px -1px 0 #000;
+  /* a photocopier's toner: pinholes gathered in clouds, where the ink did not take (for masks) */
+  --toner: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='640' height='640'%3E%3Cfilter id='t' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' seed='4' stitchTiles='stitch' result='f'/%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.018' numOctaves='3' seed='9' stitchTiles='stitch' result='c'/%3E%3CfeComposite in='f' in2='c' operator='arithmetic' k1='0' k2='.7' k3='.6' k4='-.15'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 -22 15.2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23t)'/%3E%3C/svg%3E");
+}
+
+@supports (height: 1svh) {
+  :root {
+    --vh: 1svh;
+  }
 }
 
 *,
@@ -90,10 +136,14 @@ body {
   margin: 0;
   height: 100%;
   overflow: hidden;
-  background: var(--bg);
+  background: #000;
   color: var(--ink);
   overscroll-behavior: none;
   -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  font-synthesis: none;
 }
 
 #stage {
@@ -110,24 +160,25 @@ body.is-exploring #stage {
   cursor: grab;
 }
 
-body.is-exploring #stage.is-grabbing {
-  cursor: grabbing;
+/* nothing touched: the pointer leaves the picture with the HUD */
+body.hud-asleep #stage {
+  cursor: none;
 }
 
-.overlay svg {
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
+body.is-exploring #stage.is-grabbing {
+  cursor: grabbing;
 }
 
 .overlay {
   position: fixed;
   inset: 0;
-  pointer-events: none;
   z-index: 2;
+  overflow: hidden;
+  pointer-events: none;
   font-family: var(--mono);
+  font-variant-ligatures: none;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .overlay button,
@@ -135,205 +186,192 @@ body.is-exploring #stage.is-grabbing {
   pointer-events: auto;
 }
 
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 /* ------------------------------------------------------------------ controls */
 
+/* a hard rectangle: it inverts under the pointer */
 .btn {
-  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.7rem;
-  min-height: 2.75rem;
-  padding: 0 1.5rem;
-  background: rgba(11, 12, 16, 0.35);
-  border: 1px solid var(--line);
+  min-height: 3rem;
+  padding: 0.25rem 1.1rem;
+  background: #000;
+  border: 2px solid var(--ink);
   color: var(--ink);
-  font: inherit;
-  font-size: 0.68rem;
-  letter-spacing: 0.3em;
+  font-family: var(--display);
+  font-size: 1.35rem;
+  font-weight: 400;
+  line-height: 1.2;
+  letter-spacing: 0.03em;
   text-transform: uppercase;
   cursor: pointer;
-  transition: border-color 0.3s var(--ease), color 0.3s var(--ease), background 0.3s var(--ease), box-shadow 0.4s var(--ease), opacity 0.6s var(--ease);
 }
 
-/* corner brackets, like a target being acquired */
-.btn::before,
-.btn::after {
-  content: '';
-  position: absolute;
-  width: 0.5rem;
-  height: 0.5rem;
-  border: 1px solid var(--accent);
-  opacity: 0;
-  transition: opacity 0.3s var(--ease), transform 0.3s var(--ease);
+.btn--solid {
+  background: var(--ink);
+  color: #000;
 }
 
-.btn::before {
-  left: -4px;
-  top: -4px;
-  border-right: 0;
-  border-bottom: 0;
-  transform: translate(3px, 3px);
+@media (hover: hover) {
+  .btn:hover {
+    background: var(--ink);
+    color: #000;
+  }
+
+  .btn--solid:hover {
+    background: #000;
+    color: var(--ink);
+  }
 }
 
-.btn::after {
-  right: -4px;
-  bottom: -4px;
-  border-left: 0;
-  border-top: 0;
-  transform: translate(-3px, -3px);
+.btn:active {
+  transform: translate(1px, 1px);
 }
 
-.btn:hover,
-.btn:focus-visible {
-  border-color: var(--accent-soft);
-  color: #fff;
-  background: rgba(233, 196, 143, 0.08);
-  outline: none;
-}
-
-.btn:hover::before,
-.btn:hover::after,
-.btn:focus-visible::before,
-.btn:focus-visible::after {
-  opacity: 1;
-  transform: none;
-}
-
-.btn--primary {
-  border-color: var(--accent-soft);
-  color: var(--accent);
-}
-
-.btn--primary:hover,
-.btn--primary:focus-visible {
-  box-shadow: 0 0 2.2rem rgba(233, 196, 143, 0.18);
-}
-
-.btn--small {
-  min-height: 2.1rem;
+/* a switch: its state is written on it, and filled while it is on */
+.toggle {
   min-width: 5.5rem;
-  padding: 0 1rem;
-  font-size: 0.6rem;
-}
-
-.btn svg {
-  width: 0.8rem;
-  height: 0.8rem;
-}
-
-.btn:disabled {
-  opacity: 0;
-  cursor: default;
-}
-
-.icon-btn {
-  display: grid;
-  place-items: center;
-  width: 2.3rem;
-  height: 2.3rem;
-  padding: 0;
-  background: var(--panel);
-  border: 1px solid var(--line);
-  color: var(--ink-dim);
+  min-height: 2.2rem;
+  padding: 0 0.8rem;
+  background: #000;
+  border: 1px solid var(--ink);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.78rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
   cursor: pointer;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  transition: color 0.3s var(--ease), border-color 0.3s var(--ease);
 }
 
-.icon-btn svg {
-  width: 1rem;
-  height: 1rem;
+.toggle[aria-pressed='true'] {
+  background: var(--ink);
+  color: #000;
 }
 
-.icon-btn:hover,
-.icon-btn:focus-visible {
-  color: var(--accent);
-  border-color: var(--accent-soft);
-  outline: none;
-}
-
-.icon-btn__on,
-.icon-btn[aria-pressed='true'] .icon-btn__off {
-  display: none;
-}
-
-.icon-btn[aria-pressed='true'] .icon-btn__on {
-  display: block;
+@media (hover: hover) {
+  .toggle:hover {
+    outline: 1px solid var(--ink);
+    outline-offset: 2px;
+  }
 }
 
 /* segmented control (language) */
 .seg {
   display: inline-flex;
-  border: 1px solid var(--line);
-  background: var(--panel);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  flex: none;
+  background: #000;
+  border: 1px solid var(--ink);
 }
 
 .seg button {
-  min-width: 2.6rem;
-  min-height: 2.1rem;
-  padding: 0 0.8rem;
+  min-width: 2.5rem;
+  min-height: 2rem;
+  padding: 0 0.55rem;
   background: none;
   border: 0;
-  color: var(--ink-faint);
+  color: var(--ink);
   font: inherit;
-  font-size: 0.62rem;
-  letter-spacing: 0.22em;
+  font-size: 0.78rem;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   cursor: pointer;
-  transition: color 0.3s var(--ease), background 0.3s var(--ease);
 }
 
 .seg button + button {
-  border-left: 1px solid var(--line);
-}
-
-.seg button:hover,
-.seg button:focus-visible {
-  color: var(--ink);
-  outline: none;
+  border-left: 1px solid var(--ink);
 }
 
 .seg button[aria-pressed='true'] {
-  color: var(--accent);
-  background: rgba(233, 196, 143, 0.1);
+  background: var(--ink);
+  color: #000;
 }
 
-/* keyboard focus is always visible, whatever else the control shows */
-.seg button:focus-visible,
-.icon-btn:focus-visible,
-.btn:focus-visible,
-.menu__credits a:focus-visible {
-  outline: 1px solid var(--accent);
-  outline-offset: -4px;
+@media (hover: hover) {
+  .seg button:not([aria-pressed='true']):hover {
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
 }
 
-.btn:focus-visible {
-  outline-offset: 3px;
-}
-
-.seg--small button {
-  min-width: 2.3rem;
-  min-height: 2.3rem;
-  padding: 0 0.55rem;
+/* keyboard focus is always visible, over the picture too: bone with black around it */
+.overlay button:focus-visible,
+.overlay a:focus-visible {
+  position: relative;
+  z-index: 1;
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 6px #000;
 }
 
 .key {
   display: inline-grid;
   place-items: center;
-  min-width: 1.7rem;
-  height: 1.55rem;
-  padding: 0 0.45rem;
-  border: 1px solid var(--ink-faint);
-  border-bottom-width: 2px;
-  border-radius: 3px;
-  background: rgba(255, 255, 255, 0.04);
+  min-width: 1.75rem;
+  height: 1.6rem;
+  padding: 0 0.4rem;
+  background: #000;
+  border: 1px solid var(--ink);
   color: var(--ink);
-  font-size: 0.56rem;
+  font-size: 0.72rem;
   letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.key:empty {
+  display: none;
+}
+
+/* a small label stuck on the picture, like the markings on the edge of a film */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+  min-height: var(--hud-row);
+  padding: 0 0.45rem;
+  background: #000;
+  border: 0;
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  line-height: 1.2;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+button.chip {
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+  button.chip:hover {
+    background: var(--ink);
+    color: #000;
+  }
+}
+
+/* the motto: one block per line, each breaking by itself on a narrow screen */
+.motto {
+  font-family: var(--brush);
+  font-weight: 400;
+  line-height: 1.08;
+  color: var(--ink);
+}
+
+.motto span {
+  display: block;
+  text-wrap: balance;
 }
 
 /* ------------------------------------------------------------------ title screen */
@@ -341,137 +379,259 @@ body.is-exploring #stage.is-grabbing {
 .start {
   position: absolute;
   inset: 0;
-  display: grid;
-  place-items: center;
-  padding: 2rem 1.5rem;
-  background: radial-gradient(ellipse at center, rgba(11, 12, 14, 0.3) 0%, rgba(11, 12, 14, 0.88) 72%);
-  transition: opacity 1.4s var(--ease), visibility 0s linear 1.4s;
-}
-
-.start__inner {
   display: flex;
   flex-direction: column;
+  gap: clamp(0.3rem, calc(var(--vh) * 1.3), 0.95rem);
+  padding: var(--edge-top) var(--edge-x) var(--edge-bottom);
+  /* the alley goes on behind, barely there */
+  background: rgba(0, 0, 0, 0.87);
+}
+
+body.has-begun .start {
+  visibility: hidden;
+}
+
+body.has-begun .title__photo::after {
+  animation: none;
+}
+
+.start__top {
+  flex: none;
+  display: flex;
   align-items: center;
-  width: min(92vw, 42rem);
-  text-align: center;
-  transition: transform 2.4s var(--ease);
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: clamp(0.15rem, calc(var(--vh) * 0.7), 0.45rem);
+  border-bottom: 1px solid var(--ink);
 }
 
 .start__kicker {
-  margin: 0 0 1.4rem;
-  padding-left: 0.5em;
-  font-size: 0.62rem;
-  letter-spacing: 0.5em;
-  text-transform: uppercase;
-  color: var(--accent);
-}
-
-.start__title {
   margin: 0;
-  padding-left: 0.22em;
-  font-family: var(--serif);
-  font-weight: 400;
-  font-size: clamp(1.7rem, 4vw + 0.4rem, 3.4rem);
-  line-height: 1.12;
-  letter-spacing: 0.22em;
+  font-size: clamp(0.7rem, 2.6vw, 0.86rem);
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  text-wrap: balance;
-  text-shadow: 0 0 2.4rem rgba(0, 0, 0, 0.7);
 }
 
-.start__subtitle {
-  margin: 1.2rem 0 2.8rem;
-  font-family: var(--serif);
-  font-style: italic;
-  font-size: clamp(1rem, 0.7vw + 0.8rem, 1.3rem);
+/* takes what the other rows leave: the title fills it, whatever the screen and the language */
+.start__titlebox {
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  align-items: flex-end;
+  container: titlebox / size;
+}
+
+/*
+ * The lockup: every line set to the same width `--w`. The numbers are the font's own, read from its outlines:
+ * ink width of each line in em (so size = width / that), left bearing (pulled out, so the ink is flush),
+ * and the height of all the lines as a share of the width (0.9 line height).
+ *   THE DREAM 4.1055, .0098 / OF THE 2.376, .0312 / PHOTO 2.27, .0381 / OF THE PHOTO 4.937, .0312
+ */
+.title {
+  --w: min(100cqw, 100cqh / 0.9945);
+  margin: 0;
+  font-family: var(--display);
+  font-weight: 400;
+  line-height: 0.9;
+  white-space: nowrap;
+  color: var(--ink);
+  /* the toner keeps its size against the letters; it needs room for the second ink and for the slip */
+  --tile: max(14rem, calc(var(--w) * 0.46));
+  -webkit-mask-image: var(--toner);
+  mask-image: var(--toner);
+  -webkit-mask-size: var(--tile) var(--tile);
+  mask-size: var(--tile) var(--tile);
+  padding-right: calc(var(--w) * 0.03);
+  margin-right: calc(var(--w) * -0.03);
+}
+
+.title__first,
+.title__of,
+.title__photo {
+  display: block;
+}
+
+.title__first {
+  margin-left: -0.0098em;
+  font-size: calc(var(--w) / 4.1055);
+  text-shadow: var(--ghost);
+}
+
+.title__rest {
+  display: block;
+}
+
+.title__of {
+  margin-left: -0.0312em;
+  font-size: calc(var(--w) / 2.376);
+  text-shadow: var(--ghost);
+}
+
+/* the last word slipped on the glass, halfway through the copy */
+.title__photo {
+  position: relative;
+  margin-left: -0.0381em;
+  font-size: calc(var(--w) / 2.27);
+  color: transparent;
+}
+
+.title__photo::before,
+.title__photo::after {
+  content: attr(data-text);
+  position: absolute;
+  left: 0;
+  top: 0;
+  color: var(--ink);
+  text-shadow: var(--ghost);
+}
+
+.title__photo::before {
+  clip-path: inset(-10% -5% 50% -5%);
+}
+
+.title__photo::after {
+  clip-path: inset(50% -5% -10% -5%);
+  transform: translateX(0.03em);
+  animation: slip 13s steps(1) infinite;
+}
+
+/* once in a while it slips again, and comes back: one blow, not a flicker */
+@keyframes slip {
+  0% {
+    transform: translateX(0.03em);
+  }
+  61% {
+    transform: translateX(0.068em);
+  }
+  62.5% {
+    transform: translateX(0.012em);
+  }
+  63.2% {
+    transform: translateX(0.03em);
+  }
+}
+
+/* room for two lines: they are wider than three would be */
+@container titlebox (min-aspect-ratio: 8/5) {
+  .title {
+    --w: min(100cqw, 100cqh / 0.4015);
+  }
+
+  .title__rest {
+    margin-left: -0.0312em;
+    font-size: calc(var(--w) / 4.937);
+  }
+
+  .title__of,
+  .title__photo {
+    display: inline-block;
+    margin-left: 0;
+    font-size: inherit;
+  }
+}
+
+@supports not (container-type: size) {
+  .start__titlebox {
+    flex: 0 1 auto;
+  }
+
+  .title {
+    --w: min(100vw - 2 * var(--edge-x), calc(var(--vh) * 44));
+  }
+}
+
+/* on two lines; `--fit` is the longest of them in em, so it never breaks where there is room */
+.start__motto {
+  --fit: 20.6;
+  flex: none;
+  margin: 0;
+  font-size: min(calc((100vw - 2 * var(--edge-x)) / var(--fit)), calc(var(--vh) * 7.2));
+}
+
+html[lang='tr'] .start__motto {
+  --fit: 16.4;
+}
+
+.start__foot {
+  flex: none;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(12rem, 17rem);
+  align-items: center;
+  gap: 0.5rem 1.5rem;
+  padding-top: clamp(0.3rem, calc(var(--vh) * 1.2), 0.8rem);
+  border-top: 1px solid var(--ink);
+}
+
+.start__warning {
+  margin: 0;
+  padding-left: 0.7rem;
+  border-left: 0.35rem solid var(--blood);
+  font-size: clamp(0.82rem, 0.5vw + 0.68rem, 1.05rem);
+  line-height: 1.3;
+}
+
+.start__notes {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.72rem;
+  line-height: 1.5;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   color: var(--ink-dim);
 }
 
-.start__load {
-  width: min(18rem, 70vw);
-  transition: opacity 0.8s var(--ease);
+.start__go {
+  display: grid;
 }
 
-.meter {
-  height: 1px;
-  background: var(--line);
-  overflow: hidden;
+.start__go > * {
+  grid-area: 1 / 1;
 }
 
-.meter span {
+.start__begin {
+  width: 100%;
+  min-height: 3.25rem;
+  font-size: 1.7rem;
+}
+
+body:not(.is-ready) .start__begin {
+  visibility: hidden;
+}
+
+/* the loader: a hard bar and a number, in the place of the button that replaces it */
+.loader {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.3rem;
+}
+
+body.is-ready .loader {
+  visibility: hidden;
+}
+
+.loader__label {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 0;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.loader__track {
+  height: 0.75rem;
+  border: 1px solid var(--ink);
+}
+
+.loader__fill {
   display: block;
   height: 100%;
-  background: var(--accent);
-  transform-origin: left center;
+  background: var(--ink);
   transform: scaleX(0);
-  transition: transform 0.4s var(--ease);
-}
-
-.start__status {
-  margin: 0.8rem 0 0;
-  font-size: 0.6rem;
-  letter-spacing: 0.32em;
-  text-transform: uppercase;
-  color: var(--ink-faint);
-}
-
-.start__go {
-  min-width: 12rem;
-  margin-top: -2rem;
-}
-
-body.is-ready .start__load {
-  opacity: 0;
-}
-
-.start__options {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: 1.2rem 1.6rem;
-  margin-top: 2.6rem;
-}
-
-.start__note {
-  display: flex;
-  align-items: center;
-  gap: 0.55rem;
-  margin: 0;
-  font-size: 0.58rem;
-  letter-spacing: 0.24em;
-  text-transform: uppercase;
-  color: var(--ink-faint);
-}
-
-.start__note svg {
-  width: 0.95rem;
-  height: 0.95rem;
-}
-
-/* once begun the title screen dissolves; it comes back, title only, at the very end */
-body.has-begun .start {
-  opacity: 0;
-  visibility: hidden;
-}
-
-body.has-begun .start button {
-  pointer-events: none;
-}
-
-body.is-ending .start {
-  opacity: 1;
-  visibility: visible;
-  background: none;
-  transition: opacity 3s var(--ease) 0.6s, visibility 0s;
-}
-
-body.is-ending .start__inner > :not(.start__title) {
-  visibility: hidden;
-}
-
-body.is-ending .start__inner {
-  transform: translateY(-24vh);
+  transform-origin: 0 50%;
 }
 
 /* ------------------------------------------------------------------ HUD */
@@ -479,463 +639,435 @@ body.is-ending .start__inner {
 .hud {
   position: absolute;
   inset: 0;
-  opacity: 0;
   visibility: hidden;
-  transition: opacity 1.2s var(--ease), visibility 0s linear 1.2s;
 }
 
 body.has-begun .hud {
-  opacity: 1;
   visibility: visible;
-  transition: opacity 1.6s var(--ease) 0.6s, visibility 0s;
 }
 
-.hud > * {
-  transition: opacity 1s var(--ease), transform 1s var(--ease);
+body.is-ending .hud,
+body.is-ending .hud * {
+  visibility: hidden;
 }
 
-body.is-ending .hud > :not(.hud__corner) {
+body.hud-asleep .hud__edge {
   opacity: 0;
+  transition: opacity 0.4s steps(4);
 }
 
-/* chapter, top left */
-.chapter {
+/* asleep, a touch only wakes it: nothing under the finger is pressed by accident */
+body.hud-asleep .hud__edge button {
+  pointer-events: none;
+}
+
+/* top: the chapter to the left, the rest to the right; on a narrow screen the rest goes above it */
+.hud__top {
   position: absolute;
   left: var(--edge-x);
-  top: var(--edge-top);
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  max-width: min(60vw, 28rem);
-  padding-left: 0.9rem;
-  border-left: 1px solid var(--accent-soft);
-}
-
-.chapter__index {
-  font-size: 0.58rem;
-  letter-spacing: 0.4em;
-  text-transform: uppercase;
-  color: var(--accent);
-  text-shadow: 0 0 0.8rem rgba(0, 0, 0, 0.85), 0 0 0.25rem rgba(0, 0, 0, 0.7);
-}
-
-.chapter__name {
-  font-family: var(--serif);
-  font-style: italic;
-  font-size: 1.15rem;
-  line-height: 1.2;
-  color: var(--ink);
-  text-shadow: 0 0 1.2rem rgba(0, 0, 0, 0.75);
-  transition: font-size 1.2s var(--ease);
-}
-
-/* a new chapter announces itself, then settles into the corner */
-.chapter.is-new .chapter__name {
-  font-size: clamp(1.5rem, 1.6vw + 1rem, 2.4rem);
-}
-
-.chapter.is-new {
-  animation: chapter-in 1.4s var(--ease) both;
-}
-
-@keyframes chapter-in {
-  from {
-    opacity: 0;
-    transform: translateX(-0.8rem);
-    clip-path: inset(0 100% 0 0);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-    clip-path: inset(0 0 0 0);
-  }
-}
-
-/* top right: memories, language, sound, menu */
-.hud__corner {
-  position: absolute;
   right: var(--edge-x);
   top: var(--edge-top);
   display: flex;
-  align-items: center;
-  gap: 0.5rem;
+  flex-wrap: wrap-reverse;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 0.25rem 0.5rem;
 }
 
-.memories {
+.hud__corner {
   display: flex;
+  align-items: stretch;
+  gap: 0.25rem;
+  margin-left: auto;
+}
+
+.chapter {
+  padding-left: 0;
+}
+
+.chapter__number {
+  align-self: stretch;
+  display: inline-flex;
   align-items: center;
-  gap: 0.55rem;
-  height: 2.3rem;
-  padding: 0 0.85rem;
-  border: 1px solid var(--line);
-  background: var(--panel);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  font-size: 0.62rem;
-  letter-spacing: 0.24em;
-  text-transform: uppercase;
-  color: var(--ink-dim);
+  padding: 0 0.45em;
+  background: var(--blood);
 }
 
-.memories svg {
-  width: 0.95rem;
-  height: 0.95rem;
-  color: var(--accent);
+.seg--hud {
+  border: 0;
 }
 
-.memories__count {
-  color: var(--ink);
-  letter-spacing: 0.12em;
+.seg--hud button {
+  min-width: 1.9rem;
+  min-height: var(--hud-row);
+  padding: 0 0.35rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
 }
 
+.seg--hud button + button {
+  border-left: 0;
+}
+
+/* a memory found: the count turns over once */
 .memories.is-pulsing {
-  animation: pulse 1.6s var(--ease);
+  animation: turn-over 0.6s steps(1);
 }
 
-@keyframes pulse {
-  from {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 0 rgba(233, 196, 143, 0.55);
+@keyframes turn-over {
+  0% {
+    background: var(--ink);
+    color: #000;
   }
-  to {
-    box-shadow: 0 0 0 1.2rem rgba(233, 196, 143, 0);
+  100% {
+    background: #000;
+    color: var(--ink);
   }
 }
 
-/* the gaze */
-.reticle {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 2.5rem;
-  height: 2.5rem;
-  margin: -1.25rem 0 0 -1.25rem;
-  opacity: 0;
-  transition: opacity 0.6s var(--ease), transform 0.5s var(--ease);
-}
-
-body.is-exploring .reticle {
-  opacity: 0.85;
-}
-
-.reticle__dot {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 3px;
-  height: 3px;
-  margin: -1.5px 0 0 -1.5px;
-  border-radius: 50%;
-  background: var(--ink);
-  box-shadow: 0 0 6px rgba(0, 0, 0, 0.8);
-}
-
-.reticle svg {
-  width: 100%;
-  height: 100%;
-  transform: rotate(-90deg);
-  stroke-width: 1.5;
-}
-
-.reticle__track,
-.reticle__fill {
-  opacity: 0;
-  transition: opacity 0.4s var(--ease);
-}
-
-.reticle__track {
-  stroke: var(--ink-faint);
-}
-
-.reticle__fill {
-  stroke: var(--accent);
-  stroke-dasharray: 94.25;
-  stroke-dashoffset: 94.25;
-  filter: drop-shadow(0 0 4px rgba(233, 196, 143, 0.7));
-}
-
-.reticle.is-focusing {
-  transform: scale(1.12);
-}
-
-.reticle.is-focusing .reticle__track,
-.reticle.is-focusing .reticle__fill {
-  opacity: 1;
-}
-
-.reticle.is-known .reticle__fill {
-  stroke: var(--ink-dim);
-  filter: none;
-}
-
-/* a memory found */
-.toast {
-  position: absolute;
-  left: 50%;
-  top: calc(var(--edge-top) + 4.2rem);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.4rem;
-  width: max-content;
-  max-width: 88vw;
-  padding: 0.9rem 1.8rem 1rem;
-  border: 1px solid var(--accent-soft);
-  background: var(--panel-strong);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  text-align: center;
-  opacity: 0;
-  transform: translate(-50%, -0.6rem);
-}
-
-.toast.is-visible {
-  opacity: 1;
-  transform: translate(-50%, 0);
-}
-
-.toast__kicker {
-  padding-left: 0.42em;
-  font-size: 0.56rem;
-  letter-spacing: 0.42em;
-  text-transform: uppercase;
-  color: var(--accent);
-}
-
-.toast__name {
-  font-family: var(--serif);
-  font-style: italic;
-  font-size: 1.2rem;
-  color: var(--ink);
-}
-
-/* tutorial prompts */
-.tutorial {
-  position: absolute;
-  left: 50%;
-  bottom: calc(var(--edge-bottom) + 3.4rem);
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.55rem 1rem;
-  border: 1px solid var(--line);
-  background: var(--panel);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  font-size: 0.6rem;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: var(--ink-dim);
-  white-space: nowrap;
-  opacity: 0;
-  transform: translate(-50%, 0.5rem);
-}
-
-.tutorial.is-visible {
-  opacity: 1;
-  transform: translate(-50%, 0);
-}
-
-.tutorial .key:empty {
-  display: none;
-}
-
-/* the journey, bottom center */
+/* the journey: a hard line along the bottom edge, its chapters marked */
 .journey {
   position: absolute;
-  left: 50%;
+  left: var(--edge-x);
+  right: var(--edge-x);
   bottom: var(--edge-bottom);
   display: flex;
-  align-items: center;
-  gap: 0.9rem;
-  width: min(30rem, 56vw);
-  transform: translateX(-50%);
+  align-items: flex-end;
+  gap: 0.5rem;
 }
 
 .journey__track {
   position: relative;
   flex: 1;
   height: 2px;
+  margin-bottom: 0.1rem;
   background: var(--line);
+  box-shadow: 0 0 0 1px #000;
 }
 
 .journey__fill {
   position: absolute;
-  left: 0;
-  top: 0;
-  height: 100%;
-  width: 0;
-  background: linear-gradient(90deg, rgba(233, 196, 143, 0.25), var(--accent));
-}
-
-/* where you are */
-.journey__fill::after {
-  content: '';
-  position: absolute;
-  right: -3px;
-  top: -2px;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--accent);
-  box-shadow: 0 0 10px var(--accent);
+  inset: 0;
+  background: var(--ink);
+  transform: scaleX(0);
+  transform-origin: 0 50%;
 }
 
 .journey__ticks i {
   position: absolute;
-  top: -3px;
+  bottom: 0;
   width: 1px;
-  height: 8px;
-  background: var(--ink-faint);
+  height: 0.45rem;
+  background: var(--line);
+  box-shadow: 1px 0 0 #000;
 }
 
 .journey__ticks i.is-passed {
-  background: var(--accent-soft);
+  background: var(--ink);
 }
 
 .journey__percent {
-  min-width: 2.6rem;
-  font-size: 0.56rem;
-  letter-spacing: 0.2em;
-  text-align: right;
-  color: var(--ink-dim);
-  text-shadow: 0 0 0.6rem rgba(0, 0, 0, 0.85);
+  min-width: 2.9rem;
+  min-height: 1.3rem;
+  justify-content: flex-end;
 }
 
-/* controls, bottom left */
-.keys {
+/* a chapter begins: big, pasted on, gone in moments */
+.stamp {
   position: absolute;
   left: var(--edge-x);
-  bottom: var(--edge-bottom);
+  top: calc(var(--edge-top) + var(--hud-row) + 0.6rem);
   display: flex;
-  flex-direction: column;
-  gap: 0.45rem;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  font-size: 0.56rem;
-  letter-spacing: 0.22em;
+  align-items: stretch;
+  max-width: calc(100vw - 2 * var(--edge-x));
+  font-family: var(--display);
+  font-size: clamp(2.4rem, min(16vmin, 13vw), 11rem);
+  line-height: 1.16;
   text-transform: uppercase;
-  color: var(--ink-dim);
-  text-shadow: 0 0 0.6rem rgba(0, 0, 0, 0.8);
+  transform: rotate(-1.4deg);
+  transform-origin: 0 0;
+  visibility: hidden;
+  -webkit-mask-image: var(--toner);
+  mask-image: var(--toner);
+  -webkit-mask-size: 3.2em 3.2em;
+  mask-size: 3.2em 3.2em;
 }
 
-.keys li {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
+/* room for the breve of Ğ above and the tail of Ş below */
+html[lang='tr'] .stamp {
+  line-height: 1.46;
 }
 
-.keys li > span:last-child {
-  margin-left: 0.35rem;
+.stamp.is-on {
+  visibility: visible;
+  animation: stamp-hit 0.13s steps(1) both;
 }
 
-/* the dream's voice, as subtitles */
-.narration {
+.stamp__number {
+  flex: none;
+  padding: 0 0.16em;
+  background: var(--blood);
+  color: var(--ink);
+}
+
+.stamp__name {
+  min-width: 0;
+  padding: 0 0.18em;
+  background: #000;
+  color: var(--ink);
+  text-shadow: var(--ghost);
+  text-wrap: balance;
+}
+
+@keyframes stamp-hit {
+  0% {
+    transform: rotate(-1.4deg) scale(1.07);
+  }
+  45% {
+    transform: rotate(-1.4deg) translate(2px, -1px) scale(1.015);
+  }
+  100% {
+    transform: rotate(-1.4deg);
+  }
+}
+
+/* for anything else that lands all at once */
+@keyframes land {
+  0% {
+    transform: scale(1.05);
+  }
+  45% {
+    transform: translate(1px, -1px) scale(1.012);
+  }
+  100% {
+    transform: none;
+  }
+}
+
+/* the gaze: appears only when something holds it, and closes */
+.reticle {
   position: absolute;
   left: 50%;
-  bottom: calc(var(--edge-bottom) + 6.2rem);
-  width: min(88vw, 42rem);
-  margin: 0;
-  opacity: 0;
-  transform: translate(-50%, 0.5rem);
-  font-family: var(--serif);
-  font-style: italic;
-  font-weight: 400;
-  font-size: clamp(1.15rem, 1.25vw + 0.75rem, 1.9rem);
-  line-height: 1.35;
-  letter-spacing: 0.01em;
-  text-align: center;
-  text-wrap: balance;
-  color: var(--ink);
-  /* legible over the brightest sky: a soft dark bed under the letters */
-  text-shadow: 0 0 1.8rem rgba(8, 9, 12, 0.95), 0 0 0.6rem rgba(8, 9, 12, 0.8), 0 0 0.2rem rgba(8, 9, 12, 0.7);
-  will-change: opacity, transform, filter;
-}
-
-body:not(.has-begun) .narration {
+  top: 50%;
+  width: 3.25rem;
+  height: 3.25rem;
+  margin: -1.625rem 0 0 -1.625rem;
   visibility: hidden;
 }
 
-.scroll-cue {
+.reticle.is-focusing {
+  visibility: visible;
+}
+
+.reticle svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  fill: none;
+  shape-rendering: crispEdges;
+}
+
+.reticle__shade {
+  stroke: #000;
+  stroke-width: 3.4;
+}
+
+.reticle__track {
+  stroke: var(--ink);
+  stroke-width: 1.5;
+  stroke-opacity: 0.42;
+}
+
+.reticle__fill {
+  stroke: var(--ink);
+  stroke-width: 1.5;
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+}
+
+.reticle.is-known .reticle__fill {
+  stroke-opacity: 0.55;
+}
+
+/* a memory found */
+.toast {
   position: absolute;
-  left: 50%;
-  bottom: calc(var(--edge-bottom) + 3rem);
+  left: var(--edge-x);
+  right: var(--edge-x);
+  top: calc(var(--edge-top) + var(--hud-row) + 0.6rem);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.8rem;
-  padding-left: 0.4em;
-  transform: translateX(-50%);
-  font-size: 0.6rem;
-  letter-spacing: 0.4em;
-  text-transform: uppercase;
-  color: var(--ink-dim);
+  text-align: center;
   opacity: 0;
-  transition: opacity 1.2s var(--ease);
 }
 
-.scroll-cue.is-visible {
+.toast.is-visible {
   opacity: 1;
+  animation: land 0.13s steps(1) both;
 }
 
-.scroll-cue i {
-  display: block;
-  width: 1px;
-  height: 2.2rem;
-  background: linear-gradient(var(--accent), transparent);
-  animation: drip 2.8s var(--ease) infinite;
-  transform-origin: top center;
+.toast__kicker {
+  padding: 0.14rem 0.5rem;
+  background: var(--blood);
+  color: var(--ink);
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
 }
 
-@keyframes drip {
-  0% {
-    transform: scaleY(0);
-    opacity: 0;
-  }
-  35% {
-    opacity: 1;
-  }
-  100% {
-    transform: scaleY(1) translateY(0.6rem);
-    opacity: 0;
-  }
+.toast__name {
+  padding: 0.2rem 0.65rem 0.1rem;
+  background: #000;
+  color: var(--ink);
+  font-family: var(--type);
+  font-size: clamp(1.25rem, 0.6vw + 0.95rem, 1.5rem);
+  line-height: 1.25;
+}
+
+/* a word of help: plain, once */
+.tutorial {
+  position: absolute;
+  left: var(--edge-x);
+  right: var(--edge-x);
+  bottom: calc(var(--edge-bottom) + 1.7rem);
+  display: flex;
+  justify-content: center;
+  visibility: hidden;
+}
+
+.tutorial.is-visible {
+  visibility: visible;
+}
+
+.tutorial__box {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0.3rem 0.6rem;
+  background: #000;
+  font-size: 0.8rem;
+  line-height: 1.3;
+}
+
+/* the dream's voice: typed on nothing, low in the picture */
+.narration {
+  position: absolute;
+  left: var(--edge-x);
+  right: var(--edge-x);
+  bottom: calc(var(--edge-bottom) + 4.6rem);
+  max-width: 48rem;
+  margin: 0 auto;
+  color: var(--ink);
+  font-family: var(--type);
+  font-size: clamp(1.25rem, 1.1vw + 0.8rem, 2rem);
+  line-height: 1.3;
+  text-align: center;
+  text-wrap: balance;
+  text-shadow: var(--outline);
+  visibility: hidden;
+}
+
+.narration.is-speaking {
+  visibility: visible;
+}
+
+/* the letters still to come hold their place, so the line never rewraps while it is typed */
+.narration__rest {
+  visibility: hidden;
 }
 
 /* ------------------------------------------------------------------ the end */
 
-.end {
+/* the motto, painted over the last picture: four lines (`--fit` is the longest of them in em) */
+.finale {
+  --fit: 12;
   position: absolute;
-  left: 50%;
-  top: 36%;
+  inset: 0;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 1.4rem;
-  opacity: 0;
+  justify-content: center;
+  margin: 0;
+  padding: var(--edge-top) var(--edge-x) var(--edge-bottom);
+  font-size: min(calc((100vw - 2 * var(--edge-x)) / var(--fit)), calc(var(--vh) * 20));
+  line-height: 1.04;
+  text-shadow: 0.02em 0.02em 0 #000, 0.045em 0.032em 0 var(--blood);
+  transform-origin: 0 50%;
   visibility: hidden;
-  transform: translate(-50%, 0.6rem);
-  transition: opacity 1.6s var(--ease), transform 1.6s var(--ease), visibility 0s linear 1.6s;
 }
 
-body.is-ending .end {
-  opacity: 1;
+html[lang='tr'] .finale {
+  --fit: 8.8;
+}
+
+body.is-ending .finale {
   visibility: visible;
-  transform: translate(-50%, 0);
-  transition: opacity 2.4s var(--ease) 1.4s, transform 2.4s var(--ease) 1.4s, visibility 0s;
+  animation: land 0.14s steps(1) both;
+}
+
+/* it goes with the picture, in the slam to black */
+body.is-black .finale {
+  visibility: hidden;
+}
+
+/* black, and what is left */
+.end {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: var(--edge-top) var(--edge-x) var(--edge-bottom);
+  background: #000;
+  visibility: hidden;
+}
+
+body.is-over .end {
+  visibility: visible;
+}
+
+.end__panel {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.7rem, calc(var(--vh) * 2.6), 1.5rem);
+  width: min(100%, 30rem);
+}
+
+.end__title {
+  margin: 0;
+  padding-bottom: 0.5rem;
+  border-bottom: 0.3rem solid var(--blood);
+  font-family: var(--display);
+  font-size: 1.5rem;
+  font-weight: 400;
+  line-height: 1.15;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
 }
 
 .end__memories {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 0.8rem;
   margin: 0;
-  font-size: 0.62rem;
-  letter-spacing: 0.32em;
+  font-size: 0.9rem;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--ink-dim);
-  text-shadow: 0 0 1rem rgba(0, 0, 0, 0.85);
 }
 
-.end__memories span:first-child {
-  color: var(--accent);
+.end__count {
+  font-family: var(--display);
+  font-size: clamp(2.6rem, calc(var(--vh) * 11), 4.5rem);
+  line-height: 1.1;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+.end__replay {
+  min-height: 3.75rem;
+  font-size: 1.9rem;
 }
 
 /* ------------------------------------------------------------------ pause menu */
@@ -945,58 +1077,64 @@ body.is-ending .end {
   inset: 0;
   display: grid;
   place-items: center;
-  padding: 1.5rem;
-  background: rgba(8, 9, 12, 0.62);
-  backdrop-filter: blur(14px) saturate(0.7);
-  -webkit-backdrop-filter: blur(14px) saturate(0.7);
+  padding: var(--edge-top) var(--edge-x) var(--edge-bottom);
+  background: rgba(0, 0, 0, 0.66);
   pointer-events: auto;
-  animation: fade-in 0.5s var(--ease) both;
 }
 
 .menu[hidden] {
   display: none;
 }
 
-@keyframes fade-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
 .menu__panel {
-  width: min(92vw, 30rem);
+  display: grid;
+  gap: clamp(0.7rem, calc(var(--vh) * 2), 1.3rem) 2rem;
+  width: min(100%, 34rem);
   max-height: 100%;
   overflow: auto;
-  padding: 2.2rem 2.2rem 1.8rem;
-  border: 1px solid var(--line);
-  background: rgba(14, 15, 19, 0.72);
+  overscroll-behavior: contain;
+  padding: clamp(0.8rem, calc(var(--vh) * 2.8), 1.75rem) clamp(0.9rem, 3vw, 1.75rem);
+  background: #000;
+  border: 1px solid var(--ink);
+  /* the second ink, out of register */
+  box-shadow: 0.4rem 0.4rem 0 var(--blood);
+}
+
+.menu__main,
+.menu__side {
+  display: grid;
+  gap: clamp(0.6rem, calc(var(--vh) * 1.8), 1.1rem);
+  align-content: start;
+  min-width: 0;
 }
 
 .menu__title {
-  margin: 0 0 1.6rem;
-  font-family: var(--serif);
+  margin: 0;
+  font-family: var(--display);
+  font-size: clamp(2.2rem, calc(var(--vh) * 7), 3.5rem);
   font-weight: 400;
-  font-size: 1.9rem;
-  letter-spacing: 0.24em;
+  line-height: 1.12;
   text-transform: uppercase;
+  text-shadow: var(--ghost);
 }
 
 .menu__actions {
   display: grid;
-  gap: 0.6rem;
-  margin-bottom: 1.8rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+
+.menu__actions .btn {
+  padding-inline: 0.4rem;
 }
 
 .menu__settings {
   display: grid;
-  gap: 0.75rem;
-  margin: 0 0 1.8rem;
-  padding: 1.2rem 0;
-  border-top: 1px solid var(--line);
-  border-bottom: 1px solid var(--line);
+  gap: 0.45rem;
+  margin: 0;
+  padding: clamp(0.5rem, calc(var(--vh) * 1.5), 0.9rem) 0;
+  border-top: 1px solid var(--ink);
+  border-bottom: 1px solid var(--ink);
 }
 
 .menu__settings > div {
@@ -1006,144 +1144,235 @@ body.is-ending .end {
   gap: 1rem;
 }
 
+.menu__settings > div[hidden] {
+  display: none;
+}
+
 .menu__settings dt {
-  font-size: 0.62rem;
-  letter-spacing: 0.3em;
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--ink-dim);
 }
 
 .menu__settings dd {
   margin: 0;
 }
 
-.menu__settings > div[hidden] {
-  display: none;
-}
-
 .menu__subtitle {
-  margin: 0 0 0.9rem;
+  margin: 0;
+  font-size: 0.78rem;
   font-weight: 400;
-  font-size: 0.62rem;
-  letter-spacing: 0.3em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--accent);
-}
-
-.keys--menu {
-  position: static;
   color: var(--ink-dim);
 }
 
+.keys {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.keys li {
+  display: grid;
+  grid-template-columns: 9.5rem minmax(0, 1fr);
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.keys__caps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
 .menu__credits {
-  margin: 1.6rem 0 0;
-  font-family: var(--serif);
-  font-style: italic;
-  font-size: 0.92rem;
-  line-height: 1.5;
-  color: var(--ink-faint);
+  margin: 0;
+  font-size: 0.72rem;
+  line-height: 1.4;
+  color: var(--ink-dim);
+  -webkit-user-select: text;
+  user-select: text;
 }
 
 .menu__credits a {
   margin-left: 0.3rem;
-  color: var(--accent);
+  color: var(--ink);
+  text-underline-offset: 0.2em;
 }
 
-/* ------------------------------------------------------------------ small screens */
+/* ------------------------------------------------------------------ fingers, narrow and short screens */
 
-@media (max-width: 40rem) {
+@media (pointer: coarse) {
   :root {
-    --edge-x: max(1rem, env(safe-area-inset-left), env(safe-area-inset-right));
-    --edge-top: max(1rem, env(safe-area-inset-top));
-    --edge-bottom: max(1.1rem, env(safe-area-inset-bottom));
+    --hud-row: 2.75rem;
   }
 
-  /* left of the corner cluster, wrapping rather than running under it */
-  .chapter {
-    max-width: calc(100vw - 2 * var(--edge-x) - 10.5rem);
+  button.chip,
+  .seg--hud button {
+    min-width: 2.75rem;
+    justify-content: center;
   }
 
-  .chapter__name {
-    font-size: 0.98rem;
-  }
-
-  .chapter.is-new .chapter__name {
-    font-size: 1.35rem;
-  }
-
-  .memories__label,
-  .hud__corner .seg {
-    display: none;
-  }
-
-  .keys:not(.keys--menu) {
-    display: none;
-  }
-
-  .journey {
-    width: min(76vw, 22rem);
-  }
-
-  /* above the tutorial prompt, which wraps to two lines here */
-  .narration {
-    bottom: calc(var(--edge-bottom) + 7.8rem);
-    font-size: 1.1rem;
-  }
-
-  .tutorial {
-    width: max-content;
-    max-width: 88vw;
-    white-space: normal;
-    text-align: center;
+  .seg button,
+  .toggle {
+    min-height: 2.75rem;
   }
 }
 
-/* phones held sideways: little height, so only what matters stays at the bottom */
-@media (max-height: 30rem) {
-  .keys:not(.keys--menu) {
+/* phones held upright: the motto gets four lines, broken where it breathes */
+@media (max-width: 40rem) and (max-aspect-ratio: 1/1) {
+  .start__motto {
+    --fit: 12;
+    font-size: min(calc((100vw - 2 * var(--edge-x)) / var(--fit)), calc(var(--vh) * 4.4));
+  }
+
+  html[lang='tr'] .start__motto {
+    --fit: 8.8;
+  }
+
+  .start__foot {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: stretch;
+  }
+
+  .start__notes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 1rem;
+    font-size: 0.68rem;
+  }
+}
+
+/* the corner is short of room: the label of the count goes, the voice stays clear of a longer hint */
+@media (max-width: 34rem) {
+  .memories__label {
     display: none;
   }
 
-  .tutorial {
-    bottom: calc(var(--edge-bottom) + 1.9rem);
+  .narration {
+    bottom: calc(var(--edge-bottom) + 5.9rem);
+  }
+
+  .keys li {
+    grid-template-columns: 8.75rem minmax(0, 1fr);
+  }
+}
+
+/* wide but low: the menu in two columns */
+@media (max-height: 42rem) and (min-width: 40rem) {
+  .menu__panel {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: min(100%, 52rem);
+  }
+}
+
+/* low screens, whichever way the phone is held */
+@media (max-height: 30rem) {
+  .btn {
+    min-height: 2.5rem;
+  }
+
+  .start__begin {
+    min-height: 2.75rem;
+    font-size: 1.4rem;
+  }
+
+  .start__warning {
+    font-size: 0.78rem;
+    line-height: 1.2;
+  }
+
+  .start__notes {
+    font-size: 0.66rem;
+    line-height: 1.35;
+  }
+
+  .end__replay {
+    min-height: 3rem;
+    font-size: 1.5rem;
+  }
+
+  .menu__title {
+    font-size: 1.9rem;
+  }
+
+  .menu__credits {
+    font-size: 0.66rem;
+  }
+
+  .key {
+    height: 1.4rem;
+  }
+}
+
+/* phones held sideways */
+@media (max-height: 30rem) and (min-aspect-ratio: 1/1) {
+  .start__foot {
+    grid-template-columns: minmax(0, 1fr) auto minmax(9rem, 13rem);
+    gap: 0.4rem 0.9rem;
   }
 
   .narration {
-    bottom: calc(var(--edge-bottom) + 4.9rem);
-    font-size: 1.05rem;
+    bottom: calc(var(--edge-bottom) + 3.4rem);
+    max-width: 40rem;
+    font-size: 1.25rem;
   }
 
-  .toast {
-    top: calc(var(--edge-top) + 3rem);
-    padding: 0.6rem 1.4rem 0.7rem;
+  .tutorial {
+    bottom: calc(var(--edge-bottom) + 1.5rem);
+  }
+}
+
+@media (pointer: coarse) and (max-height: 30rem) {
+  :root {
+    --hud-row: 2.2rem;
   }
 
-  .menu__panel {
-    padding: 1.4rem 1.6rem;
+  .seg button,
+  .toggle {
+    min-height: 2rem;
+  }
+}
+
+/* very low: only what cannot go */
+@media (max-height: 22rem) {
+  .start__kicker,
+  .start__notes {
+    display: none;
+  }
+
+  .start__top {
+    justify-content: flex-end;
+  }
+
+  .start__foot {
+    grid-template-columns: minmax(0, 1fr) minmax(9rem, 13rem);
   }
 }
 
 /* ------------------------------------------------------------------ failure, no script */
 
-.noscript {
-  position: fixed;
-  inset: 0;
-  display: grid;
-  place-content: center;
-  font-family: var(--serif);
-}
-
+.noscript,
 .fallback {
   position: fixed;
   inset: 0;
   z-index: 3;
   display: grid;
   place-content: center;
+  margin: 0;
   padding: 2rem;
+  background: #000;
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 1rem;
+  line-height: 1.4;
   text-align: center;
-  font-family: var(--serif);
-  font-style: italic;
-  color: var(--ink-dim);
 }
 
 body.has-failed .overlay {
@@ -1151,10 +1380,11 @@ body.has-failed .overlay {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .scroll-cue i,
+  .title__photo::after,
   .memories.is-pulsing,
-  .chapter.is-new,
-  .menu {
-    animation: none !important;
+  .stamp.is-on,
+  .toast.is-visible,
+  body.is-ending .finale {
+    animation: none;
   }
 }

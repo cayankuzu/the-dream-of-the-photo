@@ -1,5 +1,5 @@
 /** The dream inside the photograph: what differs from the real alley, and how it unfolds along the walk. */
-import { ALLEY, lightingConfig } from './scene.config';
+import { lightingConfig } from './scene.config';
 import { walkConfig } from './walk.config';
 
 const at = (h: number, m: number, s: number) => h * 3600 + m * 60 + s;
@@ -7,40 +7,7 @@ const ROOM = lightingConfig.windows.find((w) => w.name === 'roomWindow')!;
 
 type V3 = readonly [number, number, number];
 
-/** A building of the dream's lengthened alley: width in 3 m columns, floors, lean (deg, + leans over the alley). */
-export interface DreamBuilding {
-  columns: number;
-  floors: number;
-  lean: number;
-}
-
-/** A thing that has forgotten gravity (model key, center position, rotation in deg, scale, kit nodes). */
-export interface FloatingThing {
-  key: string;
-  at: V3;
-  rotation: V3;
-  scale?: number;
-  nodes?: readonly string[];
-}
-
 export const dreamConfig = {
-  /**
-   * A small figure at the far end, aiming a camera back up the alley (already in the photograph).
-   * It grows smaller as you come closer, then backs away into the giant print and is gone through it.
-   */
-  figure: {
-    clipTime: 2.9,
-    position: [0.35, 0, -84] as V3,
-    /** deg; 0 faces +Z, i.e. back toward the viewer. */
-    heading: 0,
-    /** Distance (m) under which it starts to shrink instead of growing, and over how many meters. */
-    shrinkFrom: 26,
-    shrinkSpan: 8,
-    minScale: 0.6,
-    /** Viewer distances (m) over which it backs away to `toZ` (behind the print's surface). */
-    retreat: { from: 21, to: 13, toZ: -93.5 },
-    poi: { height: 1.5, radius: 3, zoom: 0.4 },
-  },
   clock: {
     /** The real alley's clock has stopped at this instant; inside the picture it runs on from there. */
     stoppedAt: at(10, 9, 41),
@@ -63,8 +30,6 @@ export const dreamConfig = {
     /** deg */
     tilt: 9,
   },
-  /** The dream's air: brighter than the night, so distance fades to light instead of to black. */
-  fog: { color: 0x66708e, density: 0.016, /** density at the end of the alley */ far: 0.021 },
   /**
    * Changes that happen only while you are not looking (seconds spent inside before each may happen).
    * `margin` (deg) widens the field of view used to decide "not looking".
@@ -76,46 +41,61 @@ export const dreamConfig = {
     stairs: 16,
     cctv: 2,
   },
-  /** The alley goes on where the cross street was: buildings taller and more crooked the farther it goes. */
-  extension: {
-    from: ALLEY.crossStreet.near,
-    to: -96,
-    left: [
-      { columns: 4, floors: 5, lean: 1.2 },
-      { columns: 4, floors: 6, lean: -1.8 },
-      { columns: 3, floors: 7, lean: 2.6 },
-      { columns: 4, floors: 6, lean: -1.4 },
-      { columns: 5, floors: 8, lean: 2.2 },
-    ] satisfies DreamBuilding[],
-    right: [
-      { columns: 4, floors: 4, lean: -1 },
-      { columns: 3, floors: 5, lean: 2.4 },
-      { columns: 5, floors: 6, lean: -2 },
-      { columns: 4, floors: 8, lean: 3 },
-      { columns: 4, floors: 7, lean: 1.2 },
-    ] satisfies DreamBuilding[],
-    /** The wall closing the alley behind the giant print. */
-    endWall: { z: -96, floors: 9 },
-    lanternLight: { intensity: 5, distance: 9, height: 2.7, out: 0.9 },
-    /** Wall lanterns (z, alternating sides) lighting the way. */
-    lanterns: [-42, -51, -60, -69, -78, -86],
-  },
-  /** The giant print hanging at the end of the alley: a picture of the sea you will walk into. */
+  /** The giant print hanging over the void: a picture of the sea you will walk into. */
   giantPrint: {
     z: walkConfig.printZ,
     /** Times the size of the real print; its image center then sits at the walk's eye height there. */
     scale: 36,
     center: [0, 2.2] as const,
-    /** It hangs from a wire with two pins (heights m). */
-    wire: { height: 6.4, sag: 0.3 },
     /** A slow sway (deg, s) that settles as you come close (m). */
     sway: { amount: 0.5, period: 9, stillWithin: 14 },
     /** Farther than `live[0]` m it shows a still of the sea; nearer than `live[1]` m a live window into it. */
     live: [46, 36] as const,
     /** The still: resolution, and how far in front of the print it is taken from (m, on its axis). */
     still: { resolution: 1024, distance: 41 },
-    light: { intensity: 16, distance: 18, height: 5, ahead: 4 },
+    /**
+     * What the picture throws on whatever faces it (candela, reach m): the light stands `behind` m behind the
+     * paper, on the image's axis, so that it falls on the things in front and never on the print itself.
+     */
+    light: { color: 0xe8cdb4, intensity: 110, distance: 50, behind: 4 },
     poi: { radius: 3, zoom: 0.5 },
+    /** The chains and hooks are not drawn from farther up the walk than this (z, m): the meat hides them. */
+    hardwareFrom: -160,
+    /** It hangs by two butcher's hooks driven through the white border above the image. */
+    hooks: {
+      /** Distance of each hook from the middle (m) and its height (m: the scan is 1 m tall). */
+      x: 1.05,
+      height: 1.3,
+      /** How far the bottom of the curve lies under the paper's top edge (m): less than the border (0.234 m), or it would cross the image. */
+      bite: 0.196,
+      /** Turn of the curve away from the paper's plane (deg): the point comes through toward you, and from the front it still reads as a hook. */
+      turn: 55,
+      /** Where the chain takes it, the top bar of its loop: height, and offset across the curve's plane (shares of its height). */
+      bar: [0.981, -0.045] as const,
+      /** Radius of its steel (m). */
+      steel: 0.025,
+      /** Rust repeats every this many of the scan's UV units (about 0.8 m), and how much it still shines. */
+      tile: 0.42,
+      metalness: 0.3,
+      /** What one hook's reflection may cost (triangles). */
+      reflected: 500,
+    },
+    /** Real links, straight up into the dark: the height they reach (m), each link's outer length and width and its wire's radius (m). */
+    chain: {
+      top: 40,
+      length: 0.42,
+      width: 0.24,
+      wire: 0.03,
+      /** Links of each chain, from the hook up, that the light reaches: only these get the finer geometry. */
+      lit: 28,
+      /** Rust repeats every this many meters of wire. */
+      tile: 1.1,
+      /** No two links lie alike: shift (m), turn and lean (deg), and how much the rust's brightness varies. */
+      jitter: { shift: 0.004, turn: 5, lean: 1.2, tone: [0.7, 1.15] as const },
+      seed: 11,
+    },
+    /** Where each hook went through the paper: the torn hole and the rust it wept (size across, m, and its texture width, px). */
+    wound: { width: 0.62, resolution: 256, runs: 46, hole: 0.036, lift: 0.006 },
   },
   /** The fire escape keeps climbing past the roof into the sky. */
   stairs: { from: 9, to: 54, step: 3, probeHeight: 20 },
@@ -142,6 +122,7 @@ export const dreamConfig = {
   /**
    * Rain stopped by the shutter: every drop hangs where it was. Behind the viewer time runs again
    * (drops farther than `fall.from` m behind start falling, fully after `fall.blend` m more, at `fall.speed` m/s).
+   * Then, once the walk has begun, every drop lengthens into a strand of white hair (`hair`).
    */
   rain: {
     count: 9000,
@@ -155,26 +136,137 @@ export const dreamConfig = {
     /** Drops within `radius` m of the eye drift aside by up to `push` m (no one walks through a drop). */
     part: { radius: 1.1, push: 0.6 },
     fall: { from: 1.2, blend: 4, speed: 5.5 },
+
+    hair: {
+      /** Stretch of the walk (fractions) over which the rain becomes hair; a strand takes `growShare` of it. */
+      grow: [0.01, 0.07] as const,
+      growShare: 0.36,
+      /** Strands begin near the way ahead and it spreads: share of the morph it takes between these distances down the alley (m). */
+      growWave: 0.42,
+      growNear: [5, 40] as const,
+      /** Ribbon segments (triangles = count * segments * 2), crowded toward the free end by this power. */
+      segments: 8,
+      tipBias: 1.6,
+      /** Hair that was never rain, over this stretch of the alley (z), to make the first of it a forest. */
+      thick: { count: 3000, segments: 5, z: [-2.5, -15.5] as const },
+      /** Bone white, what it shows of itself with no lamp near (linear), and how much it covers. */
+      color: 0xece6d6,
+      brightness: 0.34,
+      opacity: 0.9,
+      /** Width of a strand (m): most are thin. */
+      width: [0.006, 0.024] as const,
+      /** It hangs from above this height (m; the roofs are at 9 to 15), and is this long (m). */
+      rootAbove: 12.5,
+      length: [3, 14] as const,
+      shape: {
+        /** Share of its length over which the tip widens, the root's share of its width, and how dark the root is. */
+        tipTaper: 0.16,
+        rootThin: 0.55,
+        rootDark: 0.38,
+        /** Shares of its length that fade out at the tip and at the root. */
+        tipFade: 0.05,
+        rootFade: 0.22,
+        /** How finely a near strand shows the hairs it is made of (rad across its width). */
+        fibres: 15,
+        /** Nearer than this to the lens it dissolves (m), and the hair ends softly at this z: gone, then whole. */
+        nearFade: [0.15, 0.9] as const,
+        end: [-41, -33.5] as const,
+      },
+      locks: {
+        /** How many; a strand within `reach` m joins the nearest, unless it is one of the `loose` share. */
+        count: 720,
+        reach: 0.55,
+        loose: 0.16,
+        /** Share of a strand's length, from its end, over which it gathers to its lock's point; above that it hangs straight. */
+        gather: 0.34,
+        /** Strands of a lock end up to this much above its point (m), within this radius of it (m). */
+        tipSpread: 2.2,
+        tipRadius: 0.045,
+        /** Where they hang thick and thin: rate of that along z and across x (rad / m). */
+        clumps: [1.13, 2.1] as const,
+      },
+      /**
+       * What it leaves free of itself: a vault over the way, from its crown to the walls (heights in m). Over the forest it
+       * hangs low; from `liftFrom` to `liftTo` (z: starts, done) it rises above the faces on the washing lines.
+       */
+      vault: {
+        forest: [2.7, 0.2] as const,
+        forestShape: 1.7,
+        faces: [4.5, 0.9] as const,
+        facesShape: 2.6,
+        liftFrom: [-12, -15.5] as const,
+        liftTo: [-32, -36] as const,
+        /** A lock ends up to this far above the vault (m); the power keeps most of them near it. */
+        spread: 4.2,
+        spreadPower: 2.2,
+        /** This share of the locks within `within` m of the middle hang low over the way (m). */
+        low: { share: 0.06, height: [0.9, 2.2] as const, within: 0.75 },
+      },
+      /** A loose wave of its own (m), its rate along the strand and that of the curl at its end (rad / m). */
+      wave: { amount: [0.04, 0.17] as const, rate: 0.62, curl: 3.1 },
+      wind: {
+        /** A free end sways this far per meter of strand; `reduced` is the share of that for visitors who ask for less motion. */
+        amount: 0.045,
+        reduced: 0.2,
+        /** The wave: rad / s, rad / m along the alley and across it, how much it lags down a strand and between locks (rad). */
+        speed: 0.55,
+        along: 0.33,
+        across: 0.5,
+        lag: 1.3,
+        lock: 0.9,
+        /** Share of the sway across the alley, a second wave's share, and how much of the sway near the walls is taken away. */
+        side: 0.35,
+        second: 0.4,
+        walls: 0.7,
+      },
+      /** Within `radius` m of the eye it bends `push` m aside; `flat` shortens height in that distance, `tail` what is behind you. */
+      part: { radius: 1.6, push: 1.1, flat: 0.5, tail: 0.55 },
+      /**
+       * Behind you it comes down: from `from` m behind, fully after `blend` m more, in `1 / rate` s from root to
+       * ground. What reaches the ground lies on it, at this height (m), this share of its length. Between these
+       * distances behind you (m) it is gone.
+       */
+      fall: { rate: 1 / 24, from: 3, blend: 8, floor: 0.012, lie: 0.3, gone: [10, 13] as const },
+      /** Albedo of a thread, strength and sharpness of its sheen, its share that adds, the closest a lamp counts as (m), and how much of a lamp's color it takes. */
+      light: { diffuse: 0.26, sheen: 0.6, shine: 36, additive: 0.08, lampNear: 1, tinge: 0.4 },
+    },
   },
 
-  /** Washing lines across the alley, pegged with photographs of places further along the walk. */
+  /** Washing lines across the alley, pegged with scratched faces, and gas masks like laundry. */
   lines: {
     /** z at the left wall, height there, z at the right wall, height there, sag (m). */
     spans: [
-      [-14.5, 4.6, -15.3, 4.9, 0.5],
-      [-18.6, 5.5, -18.0, 5.1, 0.55],
-      [-22.6, 4.4, -23.4, 4.8, 0.45],
-      [-26.9, 5.9, -26.2, 5.5, 0.55],
-      [-30.6, 4.7, -31.3, 5.0, 0.5],
+      [-15.9, 4.9, -16.3, 5.2, 0.5],
+      [-18.7, 4.5, -18.2, 4.2, 0.45],
+      [-21.2, 5.5, -21.8, 5.2, 0.5],
+      [-23.9, 4.7, -24.5, 5.0, 0.5],
+      [-26.8, 4.2, -26.3, 4.0, 0.35],
+      [-29.3, 5.4, -29.9, 5.1, 0.5],
+      [-32.1, 4.6, -31.7, 4.9, 0.45],
     ] as const,
-    /** Prints per line, size (times a real print) and spacing (m along the line). */
-    perLine: [5, 4, 6, 4, 5] as const,
-    scale: 4.5,
+    /** Things pegged on each line; the fifth is the densest, low over the way. */
+    perLine: [5, 5, 5, 5, 6, 5, 5] as const,
+    /** Which line, which place on it, holds a gas mask instead of a print. */
+    masks: [
+      [0, 3],
+      [1, 0],
+      [2, 4],
+      [3, 1],
+      [5, 2],
+    ] as const,
+    /** The densest line (its faces are a memory), and which of its places holds the one face not yet scratched. */
+    densest: 4,
+    unscratched: 2,
+    /** Size of a print (times a real print) and of a mask (times a real one). */
+    scale: 7,
+    maskScale: 1.25,
     /** Pegged by their top edge: sway (rad) and period (s). */
-    sway: { amount: 0.09, period: 5.5 },
+    sway: { amount: 0.08, period: 6.5 },
+    /** The memory on the densest line: angular radius (deg) and how far a long look narrows the view. */
+    poi: { radius: 16, zoom: 0.62 },
   },
 
-  /** The pictures on the lines and drifting over the sea: views rendered once, before the piece starts. */
+  /** The pictures drifting over the sea: views rendered once, before the piece starts. */
   moments: {
     resolution: 256,
     /**
@@ -185,42 +277,12 @@ export const dreamConfig = {
       { pass: 'real', position: [0.35, 1.7, -2.4] as V3, target: [0, 1.62, 0] as V3, fov: 40 },
       { pass: 'real', position: [0.2, 9.5, -1.2] as V3, target: [0, 0, -0.6] as V3, fov: 50 },
       { pass: 'real', position: [0.5, 1.5, -14] as V3, target: [0, 1.4, 0] as V3, fov: 22 },
-      { pass: 'dream', position: [0, 1.7, -60] as V3, target: [0, 2.4, -92] as V3, fov: 46 },
-      { pass: 'dream', position: [0.2, 1.4, -37] as V3, target: [0, 3.2, -44] as V3, fov: 64 },
-      { pass: 'dream', position: [-0.4, 1.9, -50] as V3, target: [0.4, 3.4, -57] as V3, fov: 58 },
-      { pass: 'dream', position: [0.4, 1.75, -104] as V3, target: [-20, 40, -200] as V3, fov: 56 },
-      { pass: 'dream', position: [0.2, 1.65, -112] as V3, target: [0.15, 1.5, -140] as V3, fov: 44 },
+      { pass: 'dream', position: [0, 1.7, -40] as V3, target: [0, 3, -62] as V3, fov: 58 },
+      { pass: 'dream', position: [-2, 1.7, -68] as V3, target: [4, 5, -110] as V3, fov: 70 },
+      { pass: 'dream', position: [0, 1.62, -128] as V3, target: [0, 1.5, -146] as V3, fov: 60 },
+      { pass: 'dream', position: [0, 1.7, -154] as V3, target: [0, 1.7, -180] as V3, fov: 66 },
+      { pass: 'dream', position: [0.2, 1.65, -240] as V3, target: [0.15, 2, -300] as V3, fov: 56 },
     ],
   },
 
-  /** Things that have forgotten gravity, between the giant chair and the giant print. */
-  floating: {
-    things: [
-      { key: 'wooden_crate', at: [-0.9, 2.6, -48], rotation: [12, 30, 8] },
-      { key: 'plastic_crate', at: [0.85, 4.1, -50.5], rotation: [-20, 10, 35] },
-      { key: 'manhole', at: [0.1, 7.2, -52], rotation: [80, 0, 12] },
-      { key: 'cardboard_box', at: [0.55, 2.95, -53], rotation: [30, 60, -10] },
-      {
-        key: 'trash_can',
-        at: [-1.05, 5.2, -55],
-        rotation: [80, 0, 20],
-        nodes: ['metal_trash_can', 'metal_trash_can_lid', 'metal_trash_can_handle_left', 'metal_trash_can_handle_right'],
-      },
-      { key: 'monobloc_chair', at: [1.0, 3.3, -57.5], rotation: [0, 40, 160] },
-      { key: 'potted_plant', at: [-0.55, 6.6, -60], rotation: [180, 20, 0] },
-      { key: 'trashbag', at: [0.95, 1.5, -61.5], rotation: [0, 70, 25] },
-      { key: 'wall_clock', at: [-0.5, 3.7, -63], rotation: [10, 25, 0], scale: 1.6 },
-      { key: 'planter_pot', at: [0.6, 5.6, -65], rotation: [-35, 0, 140] },
-      { key: 'cardboard_box', at: [-0.9, 2.3, -67], rotation: [-15, 10, 70], scale: 1.3 },
-      { key: 'plastic_crate', at: [0.25, 8.4, -69], rotation: [60, 30, 0] },
-    ] satisfies FloatingThing[],
-    /** Each drifts up and down by `bob` m over its own period (s) and turns at its own rate (deg / s). */
-    bob: 0.18,
-    period: [7, 13] as const,
-    spin: [2, 7] as const,
-    /** The chair as large as a child remembers it, standing over the alley (overall width, m). */
-    giantChair: { at: [0, 0, -44] as V3, heading: 180, width: 3.5, poi: { height: 2.6, radius: 8, zoom: 0.8 } },
-    /** A clock the size of a window over the giant print, its hands running backwards (× real time). */
-    giantClock: { at: [0, 9.6, -95.85] as V3, diameter: 2.4, rate: -14, poi: { radius: 3.5, zoom: 0.5 } },
-  },
 } as const;

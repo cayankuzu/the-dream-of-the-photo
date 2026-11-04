@@ -1,8 +1,8 @@
 /**
- * Dev-only helper for converting the Rocketbox photographer (FBX + TGA, MIT licensed)
- * into a glTF binary inside a real browser (three.js FBXLoader -> GLTFExporter).
+ * Dev-only helper for converting the Rocketbox characters listed in avatars.json (FBX + TGA, MIT
+ * licensed) into glTF binaries inside a real browser (three.js FBXLoader -> GLTFExporter).
  *
- *   node scripts/character/server.mjs   then open http://localhost:4318/convert.html
+ *   node scripts/character/server.mjs   then open http://localhost:4318/convert.html[?only=key,key]
  *
  * Serves the converter page, three.js from node_modules and the cached Rocketbox sources;
  * the page PUTs the exported GLB back, which is stored in .asset-cache/character/.
@@ -19,19 +19,19 @@ const OUT = path.join(ROOT, '.asset-cache/character');
 const SOURCES = path.join(ROOT, '.asset-cache/rocketbox');
 const RAW = 'https://raw.githubusercontent.com/microsoft/Microsoft-Rocketbox/master/Assets';
 
-const AVATAR = 'Male_Adult_07';
-const TEXTURES = ['body_color', 'body_normal', 'body_specular', 'head_color', 'head_normal', 'head_specular', 'opacity_color'];
-const ANIMATIONS = ['m_idle_breathe_01', 'm_take_picture'];
+const CONFIG = JSON.parse(fs.readFileSync(path.join(ROOT, 'scripts/character/avatars.json'), 'utf8'));
+const FOLDERS = { static: 'all_animations_max_motextr_static', xy: 'all_animations_max_motextr_xy', xyz: 'all_animations_max_motextr_xyz' };
 
-const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.fbx': 'application/octet-stream', '.tga': 'application/octet-stream' };
+const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.json': 'application/json', '.fbx': 'application/octet-stream', '.tga': 'application/octet-stream' };
 
 async function fetchSources() {
-  const files = [
-    [`${RAW}/Avatars/Adults/${AVATAR}/Export/${AVATAR}.fbx`, `${AVATAR}.fbx`],
-    ...TEXTURES.map((t) => [`${RAW}/Avatars/Adults/${AVATAR}/Textures/m013_${t}.tga`, `m013_${t}.tga`]),
-    ...ANIMATIONS.map((a) => [`${RAW}/Animations/all_animations_max_motextr_static/${a}.max.fbx`, `${a}.max.fbx`]),
-    ['https://raw.githubusercontent.com/microsoft/Microsoft-Rocketbox/master/LICENSE.md', 'LICENSE.md'],
-  ];
+  const files = [['https://raw.githubusercontent.com/microsoft/Microsoft-Rocketbox/master/LICENSE.md', 'LICENSE.md']];
+  for (const a of CONFIG.avatars) {
+    const base = `${RAW}/Avatars/${a.group}/${a.name}`;
+    files.push([`${base}/Export/${a.name}.fbx`, `${a.name}.fbx`]);
+    for (const m of a.maps ?? CONFIG.maps) files.push([`${base}/Textures/${a.prefix}_${m}.tga`, `${a.prefix}_${m}.tga`]);
+    for (const c of a.clips) files.push([`${RAW}/Animations/${FOLDERS[c.folder]}/${c.name}.max.fbx`, `${c.name}.max.fbx`]);
+  }
   fs.mkdirSync(SOURCES, { recursive: true });
   for (const [url, name] of files) {
     const file = path.join(SOURCES, name);
@@ -75,6 +75,7 @@ http
     };
     let file = null;
     if (url === '/convert.html') file = path.join(ROOT, 'scripts/character/convert.html');
+    else if (url === '/avatars.json') file = path.join(ROOT, 'scripts/character/avatars.json');
     else if (url.startsWith('/three/')) file = safe(path.join(ROOT, 'node_modules/three'), url.slice('/three/'.length));
     else if (url.startsWith('/src/')) file = safe(SOURCES, url.slice('/src/'.length));
     if (!file) {

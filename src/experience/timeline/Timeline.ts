@@ -57,12 +57,17 @@ const tempo = timelineConfig.tempo.map((t) => ({ ...t, at: cueToProgress(t.at) }
 export class Timeline {
   target = 0;
   progress = 0;
+  /** The dream moves on by itself (see timelineConfig.autoRate). */
+  auto = false;
   private hold = 0;
+  private autoHold = 0;
   private readonly marks = new Map<number, Listener[]>();
 
   /** Add raw scroll "pixels" (positive = forward). */
   push(pixels: number): void {
     this.target = clamp(this.target + pixels / timelineConfig.scrollLength, 0, 1);
+    // going back is allowed, for a moment: the dream waits before it pulls you on again
+    if (pixels < 0) this.autoHold = timelineConfig.autoHold;
   }
 
   /** Jump immediately (debug / deep links). */
@@ -87,6 +92,8 @@ export class Timeline {
       this.hold -= dt;
       return;
     }
+    this.autoHold = Math.max(0, this.autoHold - dt);
+    if (this.auto && this.autoHold === 0) this.target = Math.min(1, this.target + timelineConfig.autoRate * dt);
     const before = this.progress;
     const diff = this.target - this.progress;
     let step = diff * (1 - Math.exp(-timelineConfig.damping * dt));

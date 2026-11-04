@@ -1,23 +1,26 @@
 # The Dream of the Photo
 
-*Every photograph is a door that opens only once.*
+> Bir fotoğrafın rüyası saç beyazlatır,
+> Bir fotoğrafın rüyası her akşam yarım.
+>
+> *The dream of a photograph turns hair white,*
+> *The dream of a photograph, every evening, half.*
 
-A photographer stands in a wet back alley at dusk, raises an instant camera and takes one picture. Scrolling
-moves you through that single moment: the camera rising to the eye, the lens hunting for focus, the shutter,
-the print sliding out and developing in the photographer's hand. Then you keep going, into the photograph,
-and scrolling becomes walking through its dream:
+A nightmare in real time. A photographer in a wet back alley at dusk takes one picture. You go into the print, and
+the dream carries you, whether you want it or not (it moves by itself; scrolling only hurries it or holds it back for a moment; dragging looks around):
 
-- the rain stopped by the shutter hangs in the air; only behind you does it remember how to fall;
-- washing lines across the alley are pegged with photographs of places a few steps further on;
-- where the street should end it goes on, its buildings taller and more crooked, lit rooms under a sky that
-  has turned to day over the night street (the puddles knew it first);
-- a chair as large as a child remembers it stands over the way; further on, things have forgotten gravity;
-- at the end hangs a print far too large, a picture of the sea; to leave a picture you walk deeper into it;
-- behind it lies a mirror-still sea at dusk, lamps and doors standing in the water, a photograph for a moon,
-  and the photographer, waiting with the camera raised. The last picture is of you, arriving.
+- the rain stopped by the shutter lengthens into white hair hanging from above the roofs;
+- washing lines of scratched-out faces and gas masks; a street that should have ended, of people who are only half;
+- a colossal concrete hall: a ward of beds, empty dresses on hooks, a waterfall of hair, a dinner of halves under a chandelier, a giant head that turns when you are not looking, screens that show your back;
+- a darkroom in safelight red, where every print shows what stands behind you, one step closer;
+- a gullet of meat, with a heart, and teeth that close behind you;
+- a black void and a print on butcher's hooks; an oil sea under a half sun that never sets, a crowd up to the waist, a rubber duck the size of a house;
+- and you wake.
+
+Space itself curves through the piece (`src/experience/render/Warp.ts`). Things change only when you are not looking. The title screen carries a content warning: disturbing images, sudden sounds, flickering light.
 
 It plays like a game: a title screen, chapters announced as you reach them, a journey bar, a gaze reticle,
-eight hidden **memories** that reveal themselves to a long enough look (found ones are remembered between
+hidden **memories** that reveal themselves to a long enough look (found ones are remembered between
 visits), a pause menu (Esc or M) and an ending. Every word, the narration included, is in Turkish and English;
 switch at any time from the title screen, the HUD or the menu (the browser's language is the default, the
 choice is remembered, and `?lang=en` / `?lang=tr` force one).

@@ -2,6 +2,8 @@ import {
   DataTexture,
   Euler,
   EquirectangularReflectionMapping,
+  Group,
+  type Texture,
   FogExp2,
   HalfFloatType,
   LinearFilter,
@@ -37,13 +39,15 @@ import type { Debug } from './debug/Debug';
 import { CameraDirector, type ShotState } from './director/CameraDirector';
 import { DreamDirector } from './director/DreamDirector';
 import { DreamWalk } from './director/DreamWalk';
+import { Scares } from './director/Scares';
 import { LookControls } from './interaction/LookControls';
 import { Memories } from './Memories';
 import { ScrollInput } from './interaction/ScrollInput';
 import { clamp, DEG, range, smootherstep } from './math';
 import { Photograph } from './photograph/Photograph';
 import { Grade } from './render/Grade';
-import { Pipeline, type CompositeState } from './render/Pipeline';
+import './render/Warp';
+import { Pipeline, restingFx, type CompositeState } from './render/Pipeline';
 import { cueToProgress, phaseEnd, phaseProgress, phaseStart, SHUTTER_PROGRESS, spanProgress, Timeline } from './timeline/Timeline';
 import { PhotoPortal } from './transition/PhotoPortal';
 import { Alley } from './world/Alley';
@@ -60,11 +64,27 @@ const MODELS = [
   'pull_chain_socket', 'lightbulb', 'hanging_lamp', 'trash_can', 'trashbag', 'cardboard_box', 'wooden_crate',
   'plastic_crate', 'monobloc_chair', 'cafe_set', 'aircon', 'gutter_kit', 'cable_kit', 'utility_box', 'power_box',
   'manhole', 'fire_escape', 'wall_clock', 'potted_plant', 'weeds', 'planter_pot', 'security_camera',
+  // the people of the nightmare
+  'figure_man', 'figure_nurse', 'figure_woman', 'figure_child',
+  // what they left lying around
+  'wheelchair', 'bed_frame', 'gas_mask', 'barber_chair', 'rocking_chair', 'television_a', 'television_b', 'ornate_mirror', 'horse_head', 'bull_head', 'rat', 'fluorescent', 'caged_light', 'grandfather_clock', 'payphone', 'covered_car', 'chalkboard', 'crutches', 'rubber_duck', 'gnome',
+  'projector', 'portrait_frame', 'ghost_ship', 'roots', 'hatchet', 'dining_table', 'dining_chair',
+  'school_chair', 'school_desk', 'chandelier',
+  // scans from museums and other free sources (see scripts/build-scans.mjs): 1 m tall, `scale` is the height in m
+  'giant_head', 'angel', 'hercules_head', 'singing_bust', 'satyr_head', 'dogu', 'heart', 'mri_head', 'skull', 'mannequin',
+  'meat_hook', 'forearm', 'winged_monster', 'shark_jaw', 'empty_dress', 'corset_mannequin', 'antique_camera', 'hanging_cage',
+  'guillotine', 'iron_chair', 'dentist_chair', 'raven', 'teeth_upper', 'teeth_lower',
 ] as const;
-const MATERIALS = ['setts_wet', 'concrete_worn', 'asphalt', 'plaster_damaged'] as const;
+const MATERIALS = [
+  'setts_wet', 'concrete_worn', 'asphalt', 'plaster_damaged',
+  'conc_board', 'conc_pour_lifts', 'conc_stained', 'conc_cracked', 'asphalt_wet_black', 'rust_streaked',
+  'tile_hospital_broken', 'tile_floor_dark', 'paint_peeling', 'flesh_fibre', 'flesh_smeared', 'flesh_pitted',
+] as const;
 
 const SEA = new Vector3(...seaConfig.offset);
 const END = walkConfig.ending;
+/** Of the loader's bar: the files; the rest is the building and the shaders. */
+const FILES_SHARE = 0.6;
 const WALK_START = phaseStart('WORLD');
 const LOOK_IN = cueToProgress(['WORLD', lookConfig.blendIn]);
 const GRADE_IN = cueToProgress(['WORLD', walkConfig.gradeSpan]);
@@ -95,6 +115,7 @@ export class Experience {
   private readonly portal = new PhotoPortal();
   private readonly walk = new DreamWalk();
   private readonly look: LookControls;
+  private readonly followers = new Group();
   private readonly memories = new Memories();
   private readonly scroll: ScrollInput;
   private readonly assets = new Assets(import.meta.env.BASE_URL);
@@ -109,6 +130,7 @@ export class Experience {
   private print!: Photograph;
   private director!: CameraDirector;
   private dream!: DreamDirector;
+  private scares!: Scares;
   private flash!: PointLight;
   private debug: Debug | null = null;
 
@@ -120,6 +142,8 @@ export class Experience {
 
   private captured = false;
   private paused = false;
+  /** The dream moves on by itself unless the visitor switches that off. */
+  private autoWalk = true;
   private lastTaken = false;
   private shutterTime = -10;
   private time = 0;
@@ -164,6 +188,7 @@ export class Experience {
       flash: 0,
       sheen: 0,
       sheenOffset: 0,
+      fx: restingFx(),
     };
     this.overlay.onSoundToggle = () => void this.audio.toggle().then((on) => this.overlay.setSound(on));
     // the first gesture anywhere switches sound on (pointerup and most keydowns are user activations, also
@@ -182,7 +207,12 @@ export class Experience {
     window.addEventListener('keydown', unlock);
     // Begin (a click or a key) is a gesture too; beginning by scrolling is not, and waits for the next one
     this.overlay.onBegin = (gesture) => {
+      this.timeline.auto = this.autoWalk;
       if (gesture) void this.audio.unlock().then((on) => this.overlay.setSound(on));
+    };
+    this.overlay.onAuto = (on) => {
+      this.autoWalk = on;
+      this.timeline.auto = on;
     };
     this.overlay.onPause = (paused) => {
       this.paused = paused;
@@ -196,13 +226,23 @@ export class Experience {
 
   async start(): Promise<void> {
     this.resize();
-    const progress = window.setInterval(() => this.overlay.setLoadProgress(this.assets.fraction), 100);
+    const progress = window.setInterval(() => this.overlay.setLoadProgress(this.assets.fraction * FILES_SHARE), 100);
     await this.load();
     window.clearInterval(progress);
-    this.overlay.setLoadProgress(1);
+    this.overlay.setLoadProgress(FILES_SHARE);
+    await new Promise((resolve) => setTimeout(resolve));
     this.build();
     await this.precompile();
-    this.dream.develop();
+    const face = this.photographer.faceToPrepare;
+    if (face) this.pipeline.renderer.initTexture(face);
+    this.dream.developFirst();
+    this.scares.develop();
+    this.overlay.setLoadProgress(FILES_SHARE + (1 - FILES_SHARE) * 0.2);
+    await this.dream.prepareFar(
+      (root) => this.pipeline.renderer.compileAsync(root, this.portal.capture, this.scene).then(() => undefined),
+      (share) => this.overlay.setLoadProgress(FILES_SHARE + (1 - FILES_SHARE) * (0.2 + 0.8 * share)),
+    );
+    this.overlay.setLoadProgress(1);
     if (import.meta.env.DEV && DEBUG_MODE) {
       const { Debug } = await import('./debug/Debug');
       this.debug = new Debug(this.pipeline.renderer, this.timeline);
@@ -238,9 +278,10 @@ export class Experience {
       ...MATERIALS.map((k) => a.material(k, k)),
       a.environment('env_evening', 'env_evening.hdr'),
       a.environment('sky_dusk', 'sky_dusk.hdr'),
-      a.environment('sky_dream', 'sky_dream.hdr'),
-      a.environment('sky_impossible', 'sky_impossible.hdr'),
-      document.fonts.load('48px "Homemade Apple"').catch(() => undefined),
+      a.environment('sky_fire', 'sky_fire.hdr'),
+      a.environment('env_bathroom', 'env_bathroom.hdr'),
+      // what the dream writes on its walls and prints, with the letters Turkish needs
+      ...['"Protest Revolution"', '"Just Me Again Down Here"', '"Special Elite"', 'Anton'].map((family) => document.fonts.load(`48px ${family}`, 'ĞğİıŞş Aa').catch(() => undefined)),
     ]);
   }
 
@@ -251,9 +292,12 @@ export class Experience {
     env.mapping = EquirectangularReflectionMapping;
     this.scene.environment = pmrem.fromEquirectangular(env).texture;
     this.scene.environmentIntensity = lightingConfig.environmentIntensity;
-    const impossible = this.assets.environments.get('sky_impossible')!;
-    impossible.mapping = EquirectangularReflectionMapping;
-    const impossibleEnv = pmrem.fromEquirectangular(impossible).texture;
+    const reflections = (k: string): Texture => {
+      const t = this.assets.environments.get(k)!;
+      t.mapping = EquirectangularReflectionMapping;
+      return pmrem.fromEquirectangular(t).texture;
+    };
+    const environments = { evening: this.scene.environment, fire: reflections('sky_fire'), bathroom: reflections('env_bathroom') };
     pmrem.dispose();
 
     const skyTex = (k: string): DataTexture => {
@@ -262,8 +306,8 @@ export class Experience {
       t.generateMipmaps = false;
       return t;
     };
-    const daySky = skyTex('sky_impossible');
-    this.sky = new SkyDome(skyTex('sky_dusk'), daySky, lightingConfig.backgroundIntensity);
+    const fireSky = skyTex('sky_fire');
+    this.sky = new SkyDome(skyTex('sky_dusk'), fireSky, lightingConfig.backgroundIntensity);
     this.sky.uniforms.uRotation.value = lightingConfig.skyRotation;
     this.sky.layers.set(LAYERS.WORLD);
     this.scene.add(this.sky);
@@ -289,12 +333,12 @@ export class Experience {
     this.director = new CameraDirector(this.photographer, this.print, this.portal);
     this.dream = new DreamDirector({
       scene: this.scene,
+      assets: this.assets,
       alley: this.alley,
       sky: this.sky,
       photographer: this.photographer,
-      impossibleEnv,
-      daySky,
-      seaSky: skyTex('sky_dream'),
+      environments,
+      fireSky,
       portal: this.pipeline.portalRT.texture,
       gradePhoto: this.gradePhoto,
       look: this.look,
@@ -307,6 +351,10 @@ export class Experience {
       renderDream: (target, camera) => this.renderDream(target, camera),
     });
 
+    this.scares = new Scares({ timeline: this.timeline, audio: this.audio, dream: this.dream, fx: this.composite.fx });
+    this.photographer.viewer = this.camera.position;
+    this.buildFollowers();
+
     // shutter, mechanics and paper as scroll crosses their beats
     this.timeline.onCross(SHUTTER_PROGRESS, (dir) => (dir > 0 ? this.takePicture() : this.untakePicture()));
     const cues = directorConfig.soundCues;
@@ -316,6 +364,19 @@ export class Experience {
     this.timeline.onCross(cueToProgress(cues.paper), (dir) => dir > 0 && this.audio.paper());
     // the photographer on the water takes the last picture
     this.timeline.onCross(LAST_PICTURE, (dir) => (dir > 0 ? this.takeLastPicture() : this.untakeLastPicture()));
+  }
+
+  /** They have followed you out: down the real alley, only once you are awake. */
+  private buildFollowers(): void {
+    for (const f of END.followers) {
+      const crowd = this.dream.kit.figures.crowd({ avatar: f.avatar, clip: f.clip, time: f.time, face: 'scratched', veil: f.veil }, f.at.length);
+      f.at.forEach(([x, z], i) => crowd.set(i, x, 0, z, 0));
+      crowd.commit();
+      this.followers.add(crowd.root);
+    }
+    this.followers.traverse((o) => o.layers.set(LAYERS.OUTER));
+    this.followers.visible = false;
+    this.scene.add(this.followers);
   }
 
   // ------------------------------------------------------------------ the pictures
@@ -430,7 +491,8 @@ export class Experience {
     this.look.enabled = p >= WALK_START && p < LAST_PICTURE;
     this.scroll.lookEnabled = this.look.enabled;
     const walking = clamp(speed / lookConfig.walkSpeed, 0, 1);
-    this.look.moving = walking > 0.05;
+    // the dream's own pace does not count as hurrying: attention can still narrow the view
+    this.look.moving = speed > timelineConfig.autoRate * lookConfig.hurrying;
     if (p >= WALK_START) this.look.recenter(walking, dt);
     if (!this.paused) this.look.update(dt);
     const world = this.poseInside(p, travel, entry, aspect);
@@ -452,25 +514,30 @@ export class Experience {
     const inside = (v: View) => v === 'world' || v === 'sea';
     if (inside(previous) && (this.view === 'outer' || this.view === 'portal')) this.renderPhotograph();
 
+    this.followers.visible = this.view === 'awake';
     this.updateLights(p);
     this.updatePrintMaterial(p, depth, entry, portalMix);
     this.updateComposite(p, shot, entry);
     const within = inside(this.view) ? smootherstep(range(phaseStart('PHOTO_ENTRY'), phaseEnd('PHOTO_ENTRY'), p)) : 0;
-    this.dream.update(this.time, dt, world, within, this.look.enabled, phaseProgress(p, 'WORLD'));
+    this.dream.update(this.time, dt, world, within, this.look.enabled, phaseProgress(p, 'WORLD'), this.paused);
     this.updateGiantPrint(world);
+    this.scares.update(p, phaseProgress(p, 'WORLD'), this.time, dt, this.paused);
 
     // render
+    const shadows = this.pipeline.renderer.shadowMap;
     if (inside(this.view)) {
-      // the alley's shadows mean nothing in the sea: the window into it and the sea itself reuse the last map
-      const shadows = this.pipeline.renderer.shadowMap;
+      // nothing casts a moving shadow in the dream: a space's shadow map is rendered once, on entering it
       shadows.autoUpdate = false;
       if (this.view === 'world') this.renderSeaWindow(world);
-      shadows.autoUpdate = this.view === 'world';
-      this.dream.setPass('dream', world);
+      this.dream.mainPass(world);
+      if (this.dream.shadowDirty) {
+        shadows.needsUpdate = true;
+        this.dream.shadowDirty = false;
+      }
       this.pipeline.renderTo(this.pipeline.sceneRT, this.scene, world);
-      shadows.autoUpdate = true;
       this.pipeline.present(world, this.composite, this.time);
     } else {
+      shadows.autoUpdate = true;
       if (this.view === 'portal') {
         this.pipeline.portalRT.scissorTest = false;
         this.dream.setPass('dream', world);
@@ -490,6 +557,16 @@ export class Experience {
         inside: within,
         sea: this.view === 'sea' ? 1 : 0,
         chord: awake ? 4 : this.view === 'sea' ? 3 : within > 0.5 ? 2 : p > SHUTTER_PROGRESS ? 1 : 0,
+      },
+      dt,
+    );
+    this.audio.nightmare(
+      {
+        walk: phaseProgress(p, 'WORLD'),
+        fear: this.dream.fear,
+        beat: this.dream.beat,
+        region: this.dream.region,
+        inside: within,
       },
       dt,
     );

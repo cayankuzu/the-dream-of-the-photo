@@ -1,0 +1,641 @@
+{
+  "about": "Recordings of the nightmare in public/audio. Each is cut from the Freesound HQ MP3 preview named here, filtered, peak-normalized and re-encoded with LAME: `spans` are seconds of the original, joined in order with short crossfades; `highpass`/`lowpass` are in Hz; `compress` is a threshold (dB under the peak) and a ratio. Licences were checked on each sound's own page on 2026-11-04. Spans used by the piece, levels and loop seams are data in src/config/audio.config.ts.",
+  "sounds": [
+    {
+      "file": "audio/breath.mp3",
+      "freesound": 345459,
+      "title": "Male_Slow_Breathing_01",
+      "author": "Artmasterrich",
+      "page": "https://freesound.org/people/Artmasterrich/sounds/345459/",
+      "preview": "https://cdn.freesound.org/previews/345/345459_4038846-hq.mp3",
+      "license": "CC0 1.0",
+      "duration": 9.45052,
+      "spans": [
+        [
+          0,
+          9.45
+        ]
+      ],
+      "channels": 1,
+      "kbps": 96,
+      "highpass": 40,
+      "purpose": "Your own breath, dry and centred, right in the head."
+    },
+    {
+      "file": "audio/presence.mp3",
+      "freesound": 722717,
+      "title": "Soft Slow Breaths",
+      "author": "tsjhwt",
+      "page": "https://freesound.org/people/tsjhwt/sounds/722717/",
+      "preview": "https://cdn.freesound.org/previews/722/722717_2006228-hq.mp3",
+      "license": "CC0 1.0",
+      "duration": 68.9824,
+      "spans": [
+        [
+          8.7,
+          30.5
+        ]
+      ],
+      "channels": 1,
+      "kbps": 80,
+      "highpass": 60,
+      "purpose": "A second, slower breath beside you: the ghost exhales in the void and the sea, and at your neck."
+    },
+    {
+      "file": "audio/whispers.mp3",
+      "freesound": 656439,
+      "title": "Ghost Whispers",
+      "author": "IENBA",
+      "page": "https://freesound.org/people/IENBA/sounds/656439/",
+      "preview": "https://cdn.freesound.org/previews/656/656439_9616576-hq.mp3",
+      "license": "CC0 1.0",
+      "duration": 32.0,
+      "spans": [
+        [
+          0,
+          32
+        ]
+      ],
+      "channels": 2,
+      "kbps": 128,
+      "highpass": 200,
+      "purpose": "Voices that swell and leave: far in the hair, closer in the street."
+    },
+    {
+      "file": "audio/wall.mp3",
+      "freesound": 185059,
+      "title": "Deafening Whispers",
+      "author": "unfa",
+      "page": "https://freesound.org/people/unfa/sounds/185059/",
+      "preview": "https://cdn.freesound.org/previews/185/185059_1038806-hq.mp3",
+      "license": "CC0 1.0",
+      "duration": 33.8582,
+      "spans": [
+        [
+          4,
+          24
+        ]
+      ],
+      "channels": 2,
+      "kbps": 128,
+      "highpass": 120,
+      "purpose": "The wall of whispers that grows around the photographer."
+    },
+    {
+      "file": "audio/heart.mp3",
+      "freesound": 273150,
+      "title": "Heart Beating",
+      "author": "michorvath",
+      "page": "https://freesound.org/people/michorvath/sounds/273150/",
+      "preview": "https://cdn.freesound.org/previews/273/273150_3094998-hq.mp3",
+      "license": "CC0 1.0",
+      "duration": 12.1778,
+      "spans": [
+        [
+          0,
+          12.18
+        ]
+      ],
+      "channels": 1,
+      "kbps": 112,
+      "lowpass": 2500,
+      "purpose": "Ten lub-dubs: slices fall exactly on the beat, in the meat."
+    },
+    {
+      "file": "audio/scrape.mp3",
+      "freesound": 104348,
+      "title": "Scraping Plastic-Metal Chair over Concrete in Large Basement.aif",
+      "author": "RutgerMuller",
+      "page": "https://freesound.org/people/RutgerMuller/sounds/104348/",
+      "preview": "https://cdn.freesound.org/previews/104/104348_179538-hq.mp3",
+      "license": "CC0 1.0",
+      "duration": 21.5,
+      "spans": [
+        [
+          0.3,
+          19.5
+        ]
+      ],
+      "channels": 1,
+      "kbps": 112,
+      "highpass": 50,
+      "purpose": "The chair dragged once in the street, ending in its hits; the wheelchair's scrape in the hall."
+    },
+    {
+      "file": "audio/chain.mp3",
+      "freesound": 191513,
+      "title": "Chain Drag Floor.flac",
+      "author": "Hitrison",
+      "page": "https://freesound.org/people/Hitrison/sounds/191513/",
+      "preview": "https://cdn.freesound.org/previews/191/191513_2549002-hq.mp3",
+      "license": "CC0 1.0",
+      "duration": 93.8082,
+      "spans": [
+        [
+          12.4,
+          19.4
+        ],
+        [
+          46.5,
+          52.4
+        ]
+      ],
+      "channels": 1,
+      "kbps": 96,
+      "highpass": 50,
+      "lowpass": 9000,
+      "purpose": "Chain pulled far to the left of the hall. The recording's 14 kHz whine is filtered out."
+    },
+    {
+      "file": "audio/groan.mp3",
+      "freesound": 496836,
+      "title": "Metallic Groan",
+      "author": "hinchinbrook",
+      "page": "https://freesound.org/people/hinchinbrook/sounds/496836/",
+      "preview": "https://cdn.freesound.org/previews/496/496836_9847211-hq.mp3",
+      "license": "CC0 1.0",
+      "duration": 9.36338,
+      "spans": [
+        [
+          0,
+          9.36
+        ]
+      ],
+      "channels": 1,
+      "kbps": 112,
+      "highpass": 40,
+      "purpose": "The metal door: far off after the shutter, twice in the hall, under the last slam."
+    },
+    {
+      "file": "audio/creak.mp3",
+      "freesound": 125310,
+      "title": "wooden-door-creak-slow.aif",
+      "author": "alienistcog",
+      "page": "https://freesound.org/people/alienistcog/sounds/125310/",
+      "preview": "https://cdn.freesound.org/previews/125/125310_296888-hq.mp3",
+      "license": "CC0 1.0",
+      "duration": 151.2,
+      "spans": [
+        [
+          5.2,
+          16.6
+        ]
+      ],
+      "channels": 1,
+      "kbps": 112,
+      "highpass": 80,
+      "purpose": "Slow hinge: the rocking chair's two creaks, and the tick of the wheelchair's wheel."
+    },
+    {
+      "file": "audio/neon.mp3",
+      "freesound": 202612,
+      "title": "FXLM neon lights flicker bathroom.wav",
+      "author": "LudwigMueller",
+      "page": "https://freesound.org/people/LudwigMueller/sounds/202612/",
+      "preview": "https://cdn.freesound.org/previews/202/202612_1442200-hq.mp3",
+      "license": "CC0 1.0",
+      "duration": 30.9687,
+      "spans": [
+        [
+          1,
+          21.6
+        ]
+      ],
+      "channels": 1,
+      "kbps": 96,
+      "purpose": "The failing tube over the street; its flickers are in the recording."
+    },
+    {
+      "file": "audio/child.mp3",
+      "freesound": 232148,
+      "title": "Ring Around the Rosie, Child Vocal",
+      "author": "RaspberryTickle",
+      "page": "https://freesound.org/people/RaspberryTickle/sounds/232148/",
+      "preview": "https://cdn.freesound.org/previews/232/232148_3795287-hq.mp3",
+      "license": "CC0 1.0",
+      "duration": 14.0278,
+      "spans": [
+        [
+          0.3,
+          9.3
+        ]
+      ],
+      "channels": 1,
+      "kbps": 96,
+      "highpass": 120,
+      "purpose": "An adult's child-voice singing a rhyme, very far: it never reaches its end."
+    },
+    {
+      "file": "audio/vocal.mp3",
+      "freesound": 329866,
+      "title": "Creepy Vocal Ambience",
+      "author": "HunteR4708",
+      "page": "https://freesound.org/people/HunteR4708/sounds/329866/",
+      "preview": "https://cdn.freesound.org/previews/329/329866_4772965-hq.mp3",
+      "license": "CC0 1.0",
+      "duration": 72.7247,
+      "spans": [
+        [
+          16,
+          34
+        ]
+      ],
+      "channels": 2,
+      "kbps": 112,
+      "highpass": 60,
+      "purpose": "Processed laughter, low in the hall."
+    },
+    {
+      "file": "audio/drone.mp3",
+      "freesound": 457046,
+      "title": "Horror Pulsating Drone Loop",
+      "author": "gerainsan",
+      "page": "https://freesound.org/people/gerainsan/sounds/457046/",
+      "preview": "https://cdn.freesound.org/previews/457/457046_3577171-hq.mp3",
+      "license": "CC0 1.0",
+      "duration": 13.131,
+      "spans": [
+        [
+          0,
+          13.13
+        ]
+      ],
+      "channels": 2,
+      "kbps": 96,
+      "purpose": "The pulsing drone that rises through the street and climbs in the meat."
+    },
+    {
+      "file": "audio/static.mp3",
+      "freesound": 397311,
+      "title": "sfx-radio-static.flac",
+      "author": "Starscade",
+      "page": "https://freesound.org/people/Starscade/sounds/397311/",
+      "preview": "https://cdn.freesound.org/previews/397/397311_6237178-hq.mp3",
+      "license": "CC0 1.0",
+      "duration": 29.9994,
+      "spans": [
+        [
+          2,
+          14.5
+        ]
+      ],
+      "channels": 1,
+      "kbps": 112,
+      "purpose": "Radio static rising at the screens, and their burst."
+    },
+    {
+      "file": "audio/projector.mp3",
+      "freesound": 411981,
+      "title": "Film Projector - Reel Runs Out",
+      "author": "Stefan021",
+      "page": "https://freesound.org/people/Stefan021/sounds/411981/",
+      "preview": "https://cdn.freesound.org/previews/411/411981_3821443-hq.mp3",
+      "license": "CC0 1.0",
+      "duration": 39.28,
+      "spans": [
+        [
+          8,
+          16.6
+        ],
+        [
+          35.0,
+          39.2
+        ]
+      ],
+      "channels": 1,
+      "kbps": 112,
+      "highpass": 40,
+      "purpose": "The 8 mm projector's 2 Hz rhythm in the darkroom, then its reel running out."
+    },
+    {
+      "file": "audio/teeth.mp3",
+      "freesound": 403613,
+      "title": "Human_Teeth_Biting_Chatter.wav",
+      "author": "LamaMakesMusic",
+      "page": "https://freesound.org/people/LamaMakesMusic/sounds/403613/",
+      "preview": "https://cdn.freesound.org/previews/403/403613_3012788-hq.mp3",
+      "license": "CC0 1.0",
+      "duration": 51.0105,
+      "spans": [
+        [
+          30.0,
+          33.45
+        ],
+        [
+          20.35,
+          22.95
+        ],
+        [
+          23.0,
+          25.95
+        ]
+      ],
+      "channels": 1,
+      "kbps": 112,
+      "highpass": 80,
+      "compress": {
+        "threshold": -30,
+        "ratio": 6
+      },
+      "purpose": "Teeth chattering, rising to the mouth."
+    },
+    {
+      "file": "audio/bones.mp3",
+      "freesound": 574752,
+      "title": "Bone Breaks (celery snaps)",
+      "author": "ericnorcross81",
+      "page": "https://freesound.org/people/ericnorcross81/sounds/574752/",
+      "preview": "https://cdn.freesound.org/previews/574/574752_6970469-hq.mp3",
+      "license": "CC0 1.0",
+      "duration": 8.27494,
+      "spans": [
+        [
+          0,
+          8.27
+        ]
+      ],
+      "channels": 1,
+      "kbps": 112,
+      "highpass": 40,
+      "purpose": "Bone cracks in the meat and in the teeth's slam."
+    },
+    {
+      "file": "audio/tear.mp3",
+      "freesound": 211621,
+      "title": "Tearing Sinews, Breaking Bones",
+      "author": "qubodup",
+      "page": "https://freesound.org/people/qubodup/sounds/211621/",
+      "preview": "https://cdn.freesound.org/previews/211/211621_71257-hq.mp3",
+      "license": "CC0 1.0",
+      "duration": 22.5246,
+      "spans": [
+        [
+          0.38,
+          5.0
+        ],
+        [
+          10.89,
+          16.11
+        ]
+      ],
+      "channels": 1,
+      "kbps": 112,
+      "highpass": 150,
+      "compress": {
+        "threshold": -30,
+        "ratio": 5
+      },
+      "purpose": "Tearing, rarely, in the meat."
+    },
+    {
+      "file": "audio/wet.mp3",
+      "freesound": 435896,
+      "title": "squishy_flesh_thingy_seamless.wav",
+      "author": "1urker",
+      "page": "https://freesound.org/people/1urker/sounds/435896/",
+      "preview": "https://cdn.freesound.org/previews/435/435896_4961063-hq.mp3",
+      "license": "CC0 1.0",
+      "duration": 30.9277,
+      "spans": [
+        [
+          0,
+          13
+        ]
+      ],
+      "channels": 2,
+      "kbps": 128,
+      "highpass": 40,
+      "purpose": "The wet bed of the meat; slowed down, the oil lapping on the sea."
+    },
+    {
+      "file": "audio/flies.mp3",
+      "freesound": 324590,
+      "title": "Blowflies!",
+      "author": "kangaroovindaloo",
+      "page": "https://freesound.org/people/kangaroovindaloo/sounds/324590/",
+      "preview": "https://cdn.freesound.org/previews/324/324590_1728127-hq.mp3",
+      "license": "CC0 1.0",
+      "duration": 66.8942,
+      "spans": [
+        [
+          1.5,
+          13.5
+        ]
+      ],
+      "channels": 2,
+      "kbps": 112,
+      "highpass": 120,
+      "purpose": "Blowflies filling the head in the meat."
+    },
+    {
+      "file": "audio/scream.mp3",
+      "freesound": 367679,
+      "title": "Horror Scream Echo.MP3",
+      "author": "FunWithSound",
+      "page": "https://freesound.org/people/FunWithSound/sounds/367679/",
+      "preview": "https://cdn.freesound.org/previews/367/367679_6456158-hq.mp3",
+      "license": "CC0 1.0",
+      "duration": 15.1651,
+      "spans": [
+        [
+          0.2,
+          6.5
+        ]
+      ],
+      "channels": 1,
+      "kbps": 96,
+      "purpose": "A scream into a piano, its strings ringing on: reversed, the inhaled scream of the face."
+    },
+    {
+      "file": "audio/shriek.mp3",
+      "freesound": 178058,
+      "title": "HorrifyingScreams.wav",
+      "author": "HugoLuman",
+      "page": "https://freesound.org/people/HugoLuman/sounds/178058/",
+      "preview": "https://cdn.freesound.org/previews/178/178058_3304826-hq.mp3",
+      "license": "CC0 1.0",
+      "duration": 5.19354,
+      "spans": [
+        [
+          0.2,
+          5.15
+        ]
+      ],
+      "channels": 1,
+      "kbps": 96,
+      "purpose": "A multi-voice shriek: inside the screens' burst, and heard through flesh."
+    },
+    {
+      "file": "audio/choir.mp3",
+      "freesound": 273804,
+      "title": "Dark Choir Singing",
+      "author": "BrainClaim",
+      "page": "https://freesound.org/people/BrainClaim/sounds/273804/",
+      "preview": "https://cdn.freesound.org/previews/273/273804_4875045-hq.mp3",
+      "license": "CC0 1.0",
+      "duration": 156.502,
+      "spans": [
+        [
+          31,
+          57
+        ]
+      ],
+      "channels": 2,
+      "kbps": 96,
+      "highpass": 30,
+      "lowpass": 2200,
+      "purpose": "The dark choir: low in the darkroom, an enormous ruin an octave down over the sea."
+    },
+    {
+      "file": "audio/hum.mp3",
+      "freesound": 685680,
+      "title": "Humming in F# Minor",
+      "author": "xkeril",
+      "page": "https://freesound.org/people/xkeril/sounds/685680/",
+      "preview": "https://cdn.freesound.org/previews/685/685680_13504080-hq.mp3",
+      "license": "CC0 1.0",
+      "duration": 17.5862,
+      "spans": [
+        [
+          0.1,
+          13
+        ]
+      ],
+      "channels": 2,
+      "kbps": 96,
+      "highpass": 40,
+      "lowpass": 5000,
+      "purpose": "A human hum under the sea's choir."
+    },
+    {
+      "file": "audio/tinnitus.mp3",
+      "freesound": 450620,
+      "title": "Tinnitus sound",
+      "author": "Breviceps",
+      "page": "https://freesound.org/people/Breviceps/sounds/450620/",
+      "preview": "https://cdn.freesound.org/previews/450/450620_9159316-hq.mp3",
+      "license": "CC0 1.0",
+      "duration": 8.60841,
+      "spans": [
+        [
+          0,
+          8.61
+        ]
+      ],
+      "channels": 1,
+      "kbps": 96,
+      "purpose": "The ringing in the ears, and blood, in the void."
+    },
+    {
+      "file": "audio/phone.mp3",
+      "freesound": 15826,
+      "title": "telephonering.wav",
+      "author": "transitking",
+      "page": "https://freesound.org/people/transitking/sounds/15826/",
+      "preview": "https://cdn.freesound.org/previews/15/15826_31028-hq.mp3",
+      "license": "CC0 1.0",
+      "duration": 57.7835,
+      "spans": [
+        [
+          0.35,
+          11.75
+        ]
+      ],
+      "channels": 1,
+      "kbps": 96,
+      "highpass": 200,
+      "purpose": "The telephone: rings on the left of the alley, stopped mid-ring; one ring very far in the void."
+    },
+    {
+      "file": "audio/steps.mp3",
+      "freesound": 167686,
+      "title": "FootSteps in a Concrete Corridor 2",
+      "author": "cris",
+      "page": "https://freesound.org/people/cris/sounds/167686/",
+      "preview": "https://cdn.freesound.org/previews/167/167686_39526-hq.mp3",
+      "license": "CC0 1.0",
+      "duration": 52.8745,
+      "spans": [
+        [
+          4.36,
+          4.98
+        ],
+        [
+          5.63,
+          6.25
+        ],
+        [
+          6.86,
+          7.48
+        ],
+        [
+          9.93,
+          10.55
+        ],
+        [
+          12.34,
+          12.96
+        ],
+        [
+          17.12,
+          17.74
+        ]
+      ],
+      "channels": 1,
+      "kbps": 112,
+      "highpass": 60,
+      "purpose": "Six single steps: the one who follows."
+    },
+    {
+      "file": "audio/cave.mp3",
+      "freesound": 177958,
+      "title": "Water Dripping in Cave.wav",
+      "author": "Sclolex",
+      "page": "https://freesound.org/people/Sclolex/sounds/177958/",
+      "preview": "https://cdn.freesound.org/previews/177/177958_985466-hq.mp3",
+      "license": "CC0 1.0",
+      "duration": 89.8205,
+      "spans": [
+        [
+          24.9,
+          31.4
+        ],
+        [
+          34.6,
+          41.1
+        ],
+        [
+          41.6,
+          47.6
+        ]
+      ],
+      "channels": 2,
+      "kbps": 112,
+      "highpass": 150,
+      "compress": {
+        "threshold": -32,
+        "ratio": 3
+      },
+      "purpose": "Drops with huge tails: the hall, and the one drop in the void."
+    },
+    {
+      "file": "audio/room.mp3",
+      "freesound": 451924,
+      "title": "room tone large room church basement heavy deep ventilation or furnace hum.flac",
+      "author": "kyles",
+      "page": "https://freesound.org/people/kyles/sounds/451924/",
+      "preview": "https://cdn.freesound.org/previews/451/451924_612689-hq.mp3",
+      "license": "CC0 1.0",
+      "duration": 68.7359,
+      "spans": [
+        [
+          10,
+          26
+        ]
+      ],
+      "channels": 2,
+      "kbps": 96,
+      "purpose": "Room tone of the colossal hall."
+    }
+  ]
+}

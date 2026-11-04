@@ -1,12 +1,11 @@
 import {
-  Box3,
   Color,
   HalfFloatType,
   Matrix4,
   Mesh,
   PerspectiveCamera,
   Plane,
-  PlaneGeometry,
+  RingGeometry,
   ShaderMaterial,
   Sphere,
   UniformsLib,
@@ -15,6 +14,7 @@ import {
   Vector3,
   Vector4,
   WebGLRenderTarget,
+  type BufferGeometry,
   type Camera,
   type Line,
   type Object3D,
@@ -23,92 +23,151 @@ import {
   type WebGLRenderer,
 } from 'three';
 import { REDUCED_MOTION } from '../../config/experience.config';
-import { seaConfig } from '../../config/sea.config';
+import { inSea, seaConfig } from '../../config/sea.config';
+import { warp, WARP_GLSL, warpUniforms } from '../render/Warp';
 
 const W = seaConfig.water;
-
-/** Share of the surface's slope carried by each wave train of the swell (longest first). */
-const WAVE_SLOPE = [1.0, 0.72, 0.5, 0.36, 0.26] as const;
+const WAVES = W.swell;
+const BEND = W.swellBend;
+/** Where each wave train starts (rad): anything, as long as they never start together. */
+const WAVE_PHASE = [0, 1.9, 4.1, 2.7, 5.3] as const;
+const WAVE_K = WAVES.map((w) => (Math.PI * 2) / w.length);
+const WAVE_RATE = WAVES.map((w) => (Math.PI * 2) / w.period);
+/** The bend of the swell's ground runs this much finer across than along, and drifts this much slower that way. */
+const BEND_ASPECT = 1.17;
+const BEND_DRIFT = 0.85;
+/** A wave fades out as one pixel grows from the first to the second share of its wave length (no shimmer far away). */
+const WAVE_FADE = [0.18, 0.6] as const;
 /** Sideways spread of a streak (share of its length). */
 const STREAK_WIDTH = 0.12;
-const glslFloats = (values: readonly number[]) => values.map((v) => v.toFixed(4)).join(', ');
+/** The column's folds: how long and how short they are (m), how fast they slide (m/s), and from which pixel size (m) they are gone. */
+const FOLDS = { along: 2.4, across: 0.42, slide: 0.05, fade: [0.25, 1.6] as const };
+/** The film's colors are a share of how bright the oil is there, up to this brightness. */
+const SHEEN_CEILING = 3;
+/** The film's colors turn with the angle of view (bands from straight down to flat), and are gone by these pixel sizes (m). */
+const FILM_BY_ANGLE = 2;
+const FILM_FADE = [1, 7] as const;
+/** The mirrored image fades out over this share of its frame, at the top and bottom edges of the frame. */
+const MIRROR_EDGE = 0.035;
+
+const glslFloat = (v: number) => v.toFixed(5);
+const glslFloats = (values: readonly number[]) => values.map(glslFloat).join(', ');
+const glslVec3 = (c: readonly number[]) => `vec3(${glslFloats(c)})`;
+
+/** The height of the swell (`swellHeight`), its slope (`swellSlope`), for any shader that lies on the oil. Needs `uniform float uTime` filled by MirrorWater. */
+export const SWELL_GLSL = /* glsl */ `
+uniform float uTime;
+const vec2 WAVE_DIR[${WAVES.length}] = vec2[${WAVES.length}](${WAVES.map((w) => `vec2(${glslFloats(w.direction)})`).join(', ')});
+const float WAVE_K[${WAVES.length}] = float[${WAVES.length}](${glslFloats(WAVE_K)});
+const float WAVE_HEIGHT[${WAVES.length}] = float[${WAVES.length}](${glslFloats(WAVES.map((w) => w.height))});
+const float WAVE_RATE[${WAVES.length}] = float[${WAVES.length}](${glslFloats(WAVE_RATE)});
+const float WAVE_PHASE[${WAVES.length}] = float[${WAVES.length}](${glslFloats(WAVE_PHASE.slice(0, WAVES.length))});
+
+// a slow bend of the swell's ground, so the trains never line up into a pattern
+vec2 swellGround(vec2 p) {
+  float t = uTime * ${glslFloat(BEND.rate)};
+  float f = ${glslFloat(BEND.frequency)};
+  return p + ${glslFloat(BEND.reach)} * vec2(sin(p.y * f + t), cos(p.x * f * ${glslFloat(BEND_ASPECT)} - t * ${glslFloat(BEND_DRIFT)}));
+}
+
+float swellHeight(vec2 p) {
+  vec2 g = swellGround(p);
+  float h = 0.0;
+  for (int i = 0; i < ${WAVES.length}; i++) {
+    h += WAVE_HEIGHT[i] * sin(dot(WAVE_DIR[i], g) * WAVE_K[i] + uTime * WAVE_RATE[i] + WAVE_PHASE[i]);
+  }
+  return h;
+}
+
+// footprint: the size (m) of a pixel on the surface; what it cannot resolve is left out
+vec2 swellSlope(vec2 p, float footprint) {
+  vec2 g = swellGround(p);
+  vec2 slope = vec2(0.0);
+  for (int i = 0; i < ${WAVES.length}; i++) {
+    float keep = 1.0 - smoothstep(${glslFloat(WAVE_FADE[0])}, ${glslFloat(WAVE_FADE[1])}, footprint * WAVE_K[i] / 6.2831853);
+    slope += WAVE_DIR[i] * (WAVE_HEIGHT[i] * WAVE_K[i] * keep * cos(dot(WAVE_DIR[i], g) * WAVE_K[i] + uTime * WAVE_RATE[i] + WAVE_PHASE[i]));
+  }
+  return slope;
+}
+`;
+
+/** The same swell for those who ride it: its height (m) at a walk-frame point, at a time (s). */
+export function swellHeight(x: number, z: number, time: number): number {
+  const t = time * BEND.rate;
+  const f = BEND.frequency;
+  const gx = x + BEND.reach * Math.sin(z * f + t);
+  const gz = z + BEND.reach * Math.cos(x * f * BEND_ASPECT - t * BEND_DRIFT);
+  let h = 0;
+  for (let i = 0; i < WAVES.length; i++) {
+    const d = WAVES[i].direction;
+    h += WAVES[i].height * Math.sin((d[0] * gx + d[1] * gz) * WAVE_K[i] + time * WAVE_RATE[i] + WAVE_PHASE[i]);
+  }
+  return h;
+}
 
 const VERT = /* glsl */ `
 #include <common>
 #include <fog_pars_vertex>
+${WARP_GLSL}
+${SWELL_GLSL}
 uniform mat4 uTextureMatrix;
 varying vec4 vReflect;
 varying vec3 vWorld;
 void main() {
-  vec4 world = modelMatrix * vec4(position, 1.0);
-  vWorld = world.xyz;
-  vReflect = uTextureMatrix * world;
-  vec4 mvPosition = viewMatrix * world;
-  gl_Position = projectionMatrix * mvPosition;
+  // the grid lies under the eye, whichever eye, following it in small steps; the surface it samples stays where it is
+  vec2 under = floor(cameraPosition.xz / ${glslFloat(W.grid.snap)} + 0.5) * ${glslFloat(W.grid.snap)};
+  vec3 world = vec3(position.x + under.x, modelMatrix[3].y, position.z + under.y);
+  vReflect = uTextureMatrix * vec4(world, 1.0);
+  float heave = 1.0 - smoothstep(${glslFloat(W.heaveFade[0])}, ${glslFloat(W.heaveFade[1])}, length(position.xz));
+  world.y += swellHeight(world.xz) * heave;
+  vWorld = world;
+  vec4 mvPosition = viewMatrix * vec4(world, 1.0);
+  gl_Position = projectionMatrix * dreamWarp(mvPosition);
   #include <fog_vertex>
 }
 `;
 
+const SUN = inSea(seaConfig.sun.at);
+const C = W.column;
+const F = W.sheen;
+
 const FRAG = /* glsl */ `
 #include <common>
 #include <fog_pars_fragment>
+${SWELL_GLSL}
 uniform sampler2D tReflection;
-uniform vec3 uColor;
-uniform vec2 uReflectance;
-uniform float uTime;
-uniform vec4 uRipple;
-uniform float uStreak;
 varying vec4 vReflect;
 varying vec3 vWorld;
 
 // taps of the reflection along a streak
-#define TAPS 7
-// wave trains of the swell: direction, wavenumber (x the swell's scale), share of the slope, phase
-const vec2 WAVE_DIR[5] = vec2[5](vec2(0.8, 0.6), vec2(-0.47, 0.88), vec2(0.97, -0.24), vec2(-0.78, -0.62), vec2(0.13, 0.99));
-const float WAVE_K[5] = float[5](1.0, 1.73, 2.91, 4.37, 6.29);
-const float WAVE_SLOPE[5] = float[5](${glslFloats(WAVE_SLOPE)});
-const float WAVE_PHASE[5] = float[5](0.0, 1.9, 4.1, 2.7, 5.3);
-// a slow warp of the swell's domain, so the trains never line up into a pattern: frequency (x scale),
-// reach (m), and its drift rates along y and x (x the swell's speed) and its x stretch
-const float WARP_FREQ = 0.21;
-const float WARP_REACH = 2.4;
-const vec3 WARP_DRIFT = vec3(0.13, 0.11, 1.17);
-// a wave fades out as one pixel grows from the first to the second share of its wavelength (no shimmer far away)
-const vec2 WAVE_FADE = vec2(0.12, 0.45);
-const float STREAK_WIDTH = ${STREAK_WIDTH.toFixed(4)};
+#define TAPS 5
 // how tightly a streak's taps gather to its middle (gaussian falloff), and its length looking straight
 // down (share of its length at grazing angles)
 const float STREAK_FALLOFF = 2.5;
 const float STREAK_DOWN = 0.3;
 
-vec2 swell(vec2 p, float footprint) {
-  float t = uTime * uRipple.z * PI2;
-  float wf = uRipple.x * WARP_FREQ;
-  p += WARP_REACH * vec2(sin(p.y * wf + t * WARP_DRIFT.x), cos(p.x * wf * WARP_DRIFT.z - t * WARP_DRIFT.y));
-  vec2 slope = vec2(0.0);
-  for (int i = 0; i < 5; i++) {
-    float k = uRipple.x * WAVE_K[i];
-    float keep = 1.0 - smoothstep(WAVE_FADE.x, WAVE_FADE.y, footprint * k / PI2);
-    // deep water: the shorter the wave, the faster it turns over (frequency ~ sqrt of the wavenumber)
-    float phase = dot(WAVE_DIR[i], p) * k + t * sqrt(WAVE_K[i]) + WAVE_PHASE[i];
-    slope += WAVE_DIR[i] * (WAVE_SLOPE[i] * keep * cos(phase));
-  }
-  return slope;
+float cell(vec2 p) {
+  vec3 q = fract(vec3(p.xyx) * 0.1031);
+  q += dot(q, q.yzx + 33.33);
+  return fract((q.x + q.y) * q.z);
 }
 
-// interleaved gradient noise: dithers the taps of a streak
-float ign(vec2 p) {
-  return fract(52.9829189 * fract(dot(p, vec2(0.06711056, 0.00583715))));
+float vnoise(vec2 p) {
+  vec2 i = floor(p);
+  vec2 f = fract(p);
+  f = f * f * (3.0 - 2.0 * f);
+  return mix(mix(cell(i), cell(i + vec2(1.0, 0.0)), f.x), mix(cell(i + vec2(0.0, 1.0)), cell(i + vec2(1.0, 1.0)), f.x), f.y);
 }
 
 vec3 reflection(vec2 uv, float len) {
-  float j = ign(gl_FragCoord.xy);
+  // dithered, so the taps of a long streak read as grain and not as copies
+  float j = cell(gl_FragCoord.xy);
   vec3 sum = vec3(0.0);
   float total = 0.0;
   for (int i = 0; i < TAPS; i++) {
     float s = (float(i) + j) / float(TAPS) * 2.0 - 1.0;
     float w = exp(-s * s * STREAK_FALLOFF);
-    vec2 o = vec2(s * (j - 0.5) * STREAK_WIDTH, s) * len;
+    vec2 o = vec2(s * (j - 0.5) * ${glslFloat(STREAK_WIDTH)}, s) * len;
     sum += texture2D(tReflection, clamp(uv + o, 0.0, 1.0)).rgb * w;
     total += w;
   }
@@ -118,30 +177,51 @@ vec3 reflection(vec2 uv, float len) {
 void main() {
   vec3 V = normalize(cameraPosition - vWorld);
   float footprint = length(fwidth(vWorld.xz));
-  vec2 slope = swell(vWorld.xz, footprint);
-  vec3 N = normalize(vec3(-slope.x * uRipple.w, 1.0, -slope.y * uRipple.w));
-  float cosV = clamp(dot(N, V), 0.0, 1.0);
-  float fresnel = uReflectance.x + (uReflectance.y - uReflectance.x) * pow(1.0 - cosV, 5.0);
+  vec2 slope = swellSlope(vWorld.xz, footprint);
+  vec3 tilt = vec3(-slope.x, 0.0, -slope.y);
+  vec3 N = normalize(vec3(tilt.x, 1.0, tilt.z));
+  float cosV = saturate(dot(N, V));
+  float fresnel = ${glslFloat(W.reflectance[0])} + ${glslFloat(W.reflectance[1] - W.reflectance[0])} * pow(1.0 - cosV, ${glslFloat(W.fresnelPower)});
 
-  // the swell moves the mirror image: across the view by its sideways slope, up and down by its slope
-  // toward the eye (along the view's depth when looking out, along its height when looking down)
-  vec3 s = mat3(viewMatrix) * vec3(slope.x, 0.0, slope.y);
-  vec2 uv = vReflect.xy / vReflect.w + vec2(s.x, s.y - s.z) * uRipple.y;
-  // lights stretch into streaks, longer the more grazing the view
-  vec3 mirrored = reflection(uv, uStreak * mix(1.0, STREAK_DOWN, cosV));
+  // the tilted mirror turns the eye's ray away from where the level one sends it, by this; as seen in the frame
+  // of the mirror's camera (its x runs the other way). Along the surface a sideways tilt does almost nothing.
+  vec3 turned = 2.0 * (dot(V, tilt) * vec3(0.0, 1.0, 0.0) + saturate(V.y) * tilt);
+  vec3 seen = mat3(viewMatrix) * vec3(turned.x, -turned.y, turned.z);
+  vec2 uv = vReflect.xy / vReflect.w + vec2(-seen.x, seen.y) * vec2(${glslFloats(W.deflection)});
+  float unresolved = 1.0 + min(footprint * ${glslFloat(W.streakGrowth[0])}, ${glslFloat(W.streakGrowth[1])});
+  vec3 mirrored = reflection(uv, ${glslFloat(W.streak)} * mix(1.0, STREAK_DOWN, cosV) * unresolved);
+  // (past the top or bottom of its frame the mirror has nothing to say)
+  mirrored *= smoothstep(0.0, ${glslFloat(MIRROR_EDGE)}, uv.y) * smoothstep(0.0, ${glslFloat(MIRROR_EDGE)}, 1.0 - uv.y);
 
-  // the reflection was fogged over its whole path when it was rendered; only the water's own body
-  // still lies behind the haze between it and the eye
-  vec3 body = uColor;
-  #ifdef USE_FOG
-    #ifdef FOG_EXP2
-      float fogFactor = 1.0 - exp(-fogDensity * fogDensity * vFogDepth * vFogDepth);
-    #else
-      float fogFactor = smoothstep(fogNear, fogFar, vFogDepth);
-    #endif
-    body = mix(body, fogColor, fogFactor);
+  // the sun's hot heart, drawn down the oil to the eye: a column, wherever a fold can send the ray up to it
+  vec3 R = reflect(-V, N);
+  vec2 away = normalize(R.xz + vec2(1e-5));
+  vec2 toSun = normalize(${glslVec3(SUN)}.xz - vWorld.xz);
+  float across = (away.x * toSun.y - away.y * toSun.x) / ${glslFloat(C.width)};
+  float up = R.y / ${glslFloat(C.reach)};
+  float column = exp(-across * across - up * up) * smoothstep(0.0, 0.015, R.y) * smoothstep(0.0, 0.5, dot(away, toSun));
+  float folds = vnoise(vWorld.xz * vec2(1.0 / ${glslFloat(FOLDS.along)}, 1.0 / ${glslFloat(FOLDS.across)}) + vec2(0.0, uTime * ${glslFloat(FOLDS.slide)}));
+  float crisp = 1.0 - smoothstep(${glslFloat(FOLDS.fade[0])}, ${glslFloat(FOLDS.fade[1])}, footprint);
+  column *= mix(1.0, smoothstep(0.2, 0.8, folds) * 1.5, ${glslFloat(C.broken)} * crisp);
+  mirrored += ${glslVec3(C.color)} * column;
+
+  // a film of oil on it all: what is bright runs through colors, patch by patch, more of them the flatter it is seen
+  float patchy = vnoise(vWorld.xz * ${glslFloat(F.scale)} + vec2(uTime * ${glslFloat(F.creep)}, -uTime * ${glslFloat(F.creep)} * 0.7));
+  patchy += 0.5 * vnoise(vWorld.zx * ${glslFloat(F.scale)} * 2.3 - vec2(uTime * ${glslFloat(F.creep)} * 1.3, 0.0));
+  vec3 film = 0.5 + 0.5 * cos(6.2831853 * (patchy * ${glslFloat(F.bands)} + cosV * ${glslFloat(FILM_BY_ANGLE)} + vec3(0.0, 0.33, 0.67)));
+  float light = min(dot(mirrored, vec3(0.3, 0.6, 0.1)), ${glslFloat(SHEEN_CEILING)});
+  mirrored += film * light * ${glslFloat(F.strength)} * (1.0 - smoothstep(${glslFloat(FILM_FADE[0])}, ${glslFloat(FILM_FADE[1])}, footprint));
+
+  // the oil's own body lies behind the haze; the mirror image was fogged over its whole path when it was rendered.
+  // Out at the rim, where nothing shines, it is haze and nothing else, the same as the sky behind it: no edge to be seen.
+  #ifdef FOG_EXP2
+    float fogFactor = 1.0 - exp(-fogDensity * fogDensity * vFogDepth * vFogDepth);
+  #else
+    float fogFactor = smoothstep(fogNear, fogFar, vFogDepth);
   #endif
-  gl_FragColor = vec4(mix(body, mirrored, fresnel), 1.0);
+  float outward = length(vWorld.xz - cameraPosition.xz) / ${glslFloat(W.grid.radius)};
+  vec3 body = mix(${glslVec3(new Color(W.color).toArray())}, fogColor, max(fogFactor, smoothstep(${glslFloat(W.rim.body[0])}, ${glslFloat(W.rim.body[1])}, outward)));
+  gl_FragColor = vec4(mix(body, mirrored, fresnel * (1.0 - smoothstep(${glslFloat(W.rim.mirror[0])}, ${glslFloat(W.rim.mirror[1])}, outward))), 1.0);
 }
 `;
 
@@ -152,9 +232,9 @@ const UP = new Vector3(0, 1, 0);
 const MIN_HEIGHT = 0.01;
 /**
  * How far (share of the reflection, either axis) a water pixel may read from its own mirrored spot:
- * the swell's largest displacement (its slopes summed, across both screen axes) plus the longest streak.
+ * the swell's steepest tilt turned into the frame (twice it, by the larger deflection) plus the longest streak.
  */
-const READ_REACH = W.ripple.strength * Math.SQRT2 * WAVE_SLOPE.reduce((a, b) => a + b, 0) + W.streak;
+const READ_REACH = 2 * WAVES.reduce((sum, w, i) => sum + w.height * WAVE_K[i], 0) * Math.max(...W.deflection) + W.streak * (1 + W.streakGrowth[1]);
 
 type Drawable = Mesh | Line | Points;
 /** What may carry its own bounds (instanced, batched and skinned meshes). */
@@ -162,6 +242,20 @@ type Bounded = Object3D & { boundingSphere?: Sphere | null; computeBoundingSpher
 
 function isDrawable(o: Object3D): o is Drawable {
   return (o as Mesh).isMesh === true || (o as Line).isLine === true || (o as Points).isPoints === true;
+}
+
+/** Rings out from the middle, each `growth` times as far from the last as the last from the one before: fine at the eye, coarse where nothing shows it. */
+function underTheEye(): BufferGeometry {
+  const G = W.grid;
+  const geometry = new RingGeometry(0, 1, G.sectors, G.rings);
+  const outer = Math.pow(G.growth, G.rings) - 1;
+  const p = geometry.getAttribute('position');
+  for (let i = 0; i < p.count; i++) {
+    const r = Math.hypot(p.getX(i), p.getY(i));
+    const stretch = r > 0 ? (((Math.pow(G.growth, r * G.rings) - 1) / outer) * G.radius) / r : 0;
+    p.setXY(i, p.getX(i) * stretch, p.getY(i) * stretch);
+  }
+  return geometry.rotateX(-Math.PI / 2);
 }
 
 const surface = new Vector3();
@@ -178,57 +272,61 @@ const viewport = new Vector4();
 const sphere = new Sphere();
 
 /**
- * A calm sea that is a mirror. Just before it is drawn from any camera, the scene is drawn from that
- * camera's reflection in the surface (HDR, same layers, nothing below the water, nothing beyond the
- * eye's far plane, its own shadow maps reused); the water shows that image through a slow swell, dark
- * straight down and a mirror toward the horizon (Fresnel), with lights drawn out into soft streaks.
+ * A sea of black oil. Just before it is drawn from any camera, the scene is drawn from that camera's
+ * reflection in the surface (HDR, same layers, nothing below the surface, nothing beyond the eye's far
+ * plane, its own shadow maps reused, and straight space: the oil looks its reflection up where things
+ * are before space curls, so the two agree); the oil shows that image through a long heavy swell, black
+ * straight down and a mirror along the surface, with a film of colors on what is bright. Its grid lies
+ * under the eye and bends with curved space.
  */
-export class MirrorWater extends Mesh<PlaneGeometry, ShaderMaterial> {
+export class MirrorWater extends Mesh<BufferGeometry, ShaderMaterial> {
   /** A reflection never draws reflections (and only one mirror renders at a time). */
   private static reflecting = false;
+
+  /** Told when a reflection starts (true) and ends (false): what the mirror need not show can step aside. */
+  onMirror: ((mirroring: boolean) => void) | null = null;
 
   private readonly target = new WebGLRenderTarget(1, 1, { type: HalfFloatType, samples: W.samples });
   private readonly mirror = new PerspectiveCamera();
   private readonly textureMatrix = new Matrix4();
-  private readonly bounds = new Box3();
   /** Hidden for the length of one reflection (beyond the eye's far plane). */
   private readonly hidden: Object3D[] = [];
   /** View depth (m) past which the reflection being rendered drops whole objects. */
   private depthLimit = 0;
 
   constructor() {
-    const geometry = new PlaneGeometry(W.size, W.size);
-    geometry.rotateX(-Math.PI / 2);
     super(
-      geometry,
+      underTheEye(),
       new ShaderMaterial({
         vertexShader: VERT,
         fragmentShader: FRAG,
         fog: true,
-        uniforms: UniformsUtils.merge([
-          UniformsLib.fog,
-          {
-            uColor: { value: new Color(W.color) },
-            uReflectance: { value: new Vector2(...W.reflectance) },
-            uTime: { value: 0 },
-            uRipple: { value: new Vector4(W.ripple.scale, W.ripple.strength, W.ripple.speed, W.ripple.tilt) },
-            uStreak: { value: W.streak },
-          },
-        ]),
+        uniforms: {
+          ...UniformsUtils.clone(UniformsLib.fog),
+          uTime: { value: 0 },
+          // shared by reference (a clone would drop a render target's texture)
+          tReflection: { value: null },
+          uTextureMatrix: { value: null },
+          ...warpUniforms,
+        },
       }),
     );
     this.name = 'MirrorWater';
     // only the color of the reflection is ever read
     this.target.resolveDepthBuffer = false;
-    // shared by reference (a merge would copy them, and drop a render target's texture)
-    this.material.uniforms.tReflection = { value: this.target.texture };
-    this.material.uniforms.uTextureMatrix = { value: this.textureMatrix };
-    this.position.set(W.center[0], W.level, W.center[1]);
+    this.material.uniforms.tReflection.value = this.target.texture;
+    this.material.uniforms.uTextureMatrix.value = this.textureMatrix;
+    this.position.y = W.level;
+  }
+
+  /** What rides the swell shares its clock (read it from here: `uTime`). */
+  get timeUniform(): { value: number } {
+    return this.material.uniforms.uTime;
   }
 
   /** Advance the swell (s). */
   update(time: number): void {
-    this.material.uniforms.uTime.value = REDUCED_MOTION ? 0 : time;
+    this.timeUniform.value = REDUCED_MOTION ? 0 : time;
   }
 
   dispose(): void {
@@ -241,10 +339,9 @@ export class MirrorWater extends Mesh<PlaneGeometry, ShaderMaterial> {
     if (MirrorWater.reflecting) return;
     surface.setFromMatrixPosition(this.matrixWorld);
     eye.setFromMatrixPosition(camera.matrixWorld);
-    // from under the water, or from where none of it is within reach, there is nothing to mirror
+    // from under the surface there is nothing to mirror
     if (eye.y - surface.y < MIN_HEIGHT) return;
     const far = (camera as PerspectiveCamera).far;
-    if (this.bounds.setFromObject(this).distanceToPoint(eye) > far) return;
 
     // the eye and its gaze, reflected in the surface
     const m = this.mirror;
@@ -261,7 +358,7 @@ export class MirrorWater extends Mesh<PlaneGeometry, ShaderMaterial> {
     m.layers.mask = camera.layers.mask;
     this.textureMatrix.copy(BIAS).multiply(m.projectionMatrix).multiply(m.matrixWorldInverse);
 
-    // oblique near plane on the surface (Lengyel): nothing below the water is drawn into the mirror
+    // oblique near plane on the surface (Lengyel): nothing below the surface is drawn into the mirror
     plane.setFromNormalAndCoplanarPoint(UP, surface).applyMatrix4(m.matrixWorldInverse);
     clip.set(plane.normal.x, plane.normal.y, plane.normal.z, plane.constant);
     const p = m.projectionMatrix.elements;
@@ -288,9 +385,14 @@ export class MirrorWater extends Mesh<PlaneGeometry, ShaderMaterial> {
     const autoUpdate = shadows.autoUpdate;
     const needsUpdate = shadows.needsUpdate;
     const xr = renderer.xr.enabled;
+    // the mirror looks in straight space: this pixel of oil asks what stands where its ray goes before space curls
+    const curved = warp.amount;
+    const { x: bendUp, y: bendAside, z: twist, w: wave } = curved;
     MirrorWater.reflecting = true;
     this.visible = false;
+    this.onMirror?.(true);
     try {
+      curved.x = curved.y = curved.z = curved.w = 0;
       this.hideBeyond(scene, far);
       // this frame's shadow maps are already drawn: the mirror reuses them
       shadows.autoUpdate = false;
@@ -308,6 +410,11 @@ export class MirrorWater extends Mesh<PlaneGeometry, ShaderMaterial> {
       renderer.xr.enabled = xr;
       renderer.setRenderTarget(previous, face, level);
       renderer.state.viewport(viewport);
+      curved.x = bendUp;
+      curved.y = bendAside;
+      curved.z = twist;
+      curved.w = wave;
+      this.onMirror?.(false);
       this.visible = true;
       MirrorWater.reflecting = false;
     }

@@ -1,0 +1,73 @@
+{
+  "maps": ["body_color", "body_normal", "body_specular", "head_color", "head_normal", "head_specular", "opacity_color"],
+  "avatars": [
+    {
+      "key": "photographer",
+      "name": "Male_Adult_07",
+      "group": "Adults",
+      "prefix": "m013",
+      "size": 1024,
+      "clips": [
+        { "name": "m_idle_breathe_01", "folder": "static" },
+        { "name": "m_take_picture", "folder": "static" }
+      ]
+    },
+    {
+      "key": "figure_man",
+      "name": "Male_Adult_03",
+      "group": "Adults",
+      "prefix": "m004",
+      "size": 512,
+      "clips": [
+        { "name": "m_gestic_laugh_extreme", "folder": "static", "trim": [1.5, 7.5] },
+        { "name": "m_crouch_idle", "folder": "static", "trim": [0, 1.5] },
+        { "name": "m_idle_touch_face_01", "folder": "static", "trim": [0, 4] },
+        { "name": "m_idle_touch_hair_01", "folder": "static", "trim": [0, 3.6] },
+        { "name": "m_idle_roll_head_01", "folder": "static" },
+        { "name": "m_listen_door", "folder": "static", "trim": [2, 6] },
+        { "name": "m_knock_door", "folder": "static", "trim": [2.6, 5] },
+        { "name": "m_sit_chair_idle_roll_head", "folder": "static", "trim": [0, 6] },
+        { "name": "m_wave_02", "folder": "static", "trim": [1, 5] },
+        { "name": "m_claphands_02", "folder": "static", "trim": [1, 5] },
+        { "name": "m_walk_bruised", "folder": "xy" },
+        { "name": "m_turn_right_180", "folder": "xyz" }
+      ]
+    },
+    {
+      "key": "figure_nurse",
+      "name": "Medical_Female_01",
+      "group": "Professions",
+      "prefix": "f152",
+      "size": 512,
+      "clips": [
+        { "name": "f_walk_injured", "folder": "xy" },
+        { "name": "f_crouch_idle", "folder": "static", "trim": [0, 1.5] },
+        { "name": "f_listen_door", "folder": "static", "trim": [2, 5] },
+        { "name": "f_idle_touch_hair_01", "folder": "static", "trim": [0, 3.6] }
+      ]
+    },
+    {
+      "key": "figure_woman",
+      "name": "Female_Adult_02",
+      "group": "Adults",
+      "prefix": "f002",
+      "size": 512,
+      "clips": []
+    },
+    {
+      "key": "figure_child",
+      "name": "Male_Child_01",
+      "group": "Children",
+      "prefix": "cm001",
+      "size": 512,
+      "maps": ["body_color", "body_normal", "body_specular", "head_color", "head_normal", "head_specular"],
+      "renameRoot": "Bip02",
+      "quaternionsOnly": true,
+      "rootScale": 0.79,
+      "clips": [
+        { "name": "m_idle_breathe_01", "folder": "static" },
+        { "name": "m_sit_chair_idle_roll_head", "folder": "static", "trim": [0, 2] }
+      ]
+    }
+  ]
+}
