@@ -177,12 +177,13 @@ export class GiantPrint {
   readonly imageCenter = new Vector3(G.center[0], G.center[1] + IMAGE_RISE, G.z);
   /** The hooks, the links the light reaches, and a coarser link (their reflections are made from these). */
   readonly hooks: Object3D[] = [];
-  readonly chain: InstancedMesh;
+  chain!: InstancedMesh;
   readonly coarseLink = linkGeometry(...COARSE_LINK);
 
   private readonly hanger = new Group();
   private readonly hardware = new Group();
   private sway = 0;
+  private top = 0;
 
   constructor(portal: Texture, kit: DreamKit) {
     this.root.name = 'GiantPrint';
@@ -199,14 +200,19 @@ export class GiantPrint {
     this.hanger.add(this.photo);
     this.hardware.name = 'Hooks';
     this.root.add(this.hanger, this.hardware);
-    this.chain = this.buildHardware(kit, top);
+    this.top = top;
 
     const l = G.light;
     kit.lights.add([this.imageCenter.x, this.imageCenter.y, G.z - l.behind], l.color, l.intensity, l.distance);
   }
 
   /** Two hooks through the top edge, each on its chain, straight up into the dark. Returns the links the light reaches. */
-  private buildHardware(kit: DreamKit, top: number): InstancedMesh {
+  /** The hooks and chains: made when the void is (their files are not in memory before). */
+  buildHardware(kit: DreamKit): void {
+    this.chain = this.makeHardware(kit, this.top);
+  }
+
+  private makeHardware(kit: DreamKit, top: number): InstancedMesh {
     const H = G.hooks;
     const C = G.chain;
     const steel = kit.surface('rust_streaked', H.tile, { metalness: H.metalness });

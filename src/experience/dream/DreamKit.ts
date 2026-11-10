@@ -132,7 +132,7 @@ export class DreamKit {
   readonly figures: FigureKit;
   readonly lights = new LightPool();
 
-  private readonly glassDone = new Set<string>();
+  private readonly glassDone = new WeakSet<object>();
 
   constructor(ctx: KitContext) {
     this.assets = ctx.assets;
@@ -147,9 +147,9 @@ export class DreamKit {
   model(key: string) {
     const gltf = this.assets.models.get(key);
     if (!gltf) throw new Error(`model not loaded: ${key}`);
-    if (!this.glassDone.has(key)) {
+    if (!this.glassDone.has(gltf)) {
       reflectionOnlyGlass(gltf.scene);
-      this.glassDone.add(key);
+      this.glassDone.add(gltf);
     }
     return gltf;
   }

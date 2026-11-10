@@ -4,6 +4,8 @@
  * Progress values are normalized timeline positions in [0, 1].
  */
 
+import { journeySeconds, PROLOGUE_SECONDS, WAKING_SECONDS } from './journey.config';
+
 export const PHASES = [
   'INTRO',
   'CAMERA_RAISE',
@@ -21,13 +23,13 @@ export const PHASES = [
 
 export type Phase = (typeof PHASES)[number];
 
-/** A moment on the timeline as [phase, fraction of that phase]. */
-export type Cue = readonly [Phase, number];
+/** A moment on the timeline: [phase, fraction of it], [ROOM, room, fraction of its time] or [STEP, step of the journey, fraction of it]. */
+export type Cue = readonly [Phase, number] | readonly ['ROOM', string, number] | readonly ['STEP', number, number];
 
 /** Seconds of the whole piece when nobody touches anything. */
-const RUN_SECONDS = 180;
-/** Second at which something happens, as a timeline position. */
-const at = (seconds: number) => seconds / RUN_SECONDS;
+const RUN_SECONDS = PROLOGUE_SECONDS + journeySeconds + WAKING_SECONDS;
+/** Second at which something happens (or a stretch of seconds), as a timeline position. */
+export const at = (seconds: number) => seconds / RUN_SECONDS;
 
 export const timelineConfig = {
   /**
@@ -45,36 +47,39 @@ export const timelineConfig = {
     PHOTO_APPROACH: at(25.5),
     PHOTO_DEPTH: at(28.5),
     PHOTO_ENTRY: at(31),
-    /** The walk through the nightmare (see walk.config.ts): most of the piece. */
-    WORLD: at(34),
+    /** The evenings of the nightmare (see journey.config.ts): most of the piece. */
+    WORLD: at(PROLOGUE_SECONDS),
     /** The last photograph, and waking up. */
-    EXPLORATION: at(169),
+    EXPLORATION: at(PROLOGUE_SECONDS + journeySeconds),
   } satisfies Record<Phase, number>,
   /**
    * The dream does not wait: once begun, the timeline moves on by itself (progress / s), so that the
-   * whole piece takes three minutes untouched. Scrolling forward hurries it; scrolling back holds it
+   * whole piece takes half an hour untouched. Scrolling forward hurries it; scrolling back holds it
    * for `autoHold` seconds. The menu can switch this off.
    */
   autoRate: 1 / RUN_SECONDS,
   autoHold: 3,
   /** Where inside CAPTURE the shutter fires (fraction of the phase). */
   shutterAt: 0.45,
-  /** Wheel pixels needed to travel the whole timeline. */
-  scrollLength: 12000,
+  /** Wheel pixels needed to travel the whole timeline: a notch of the wheel is about 1.8 s of the piece. */
+  scrollLength: (RUN_SECONDS * 200) / 3,
   /** Clamp of a single wheel event (px) so one flick can never jump a state. */
   maxWheelStep: 120,
   touchMultiplier: 2.4,
   keyStep: 300,
   /** Exponential follow rate of the smoothed timeline (1/s). */
   damping: 3.2,
-  /** Maximum timeline speed (progress / s). */
-  maxSpeed: 0.19,
+  /** Maximum timeline speed (progress / s): at most this many seconds of the piece per second. */
+  maxSpeed: at(34),
+  /** How much faster than its own pace scrolling can drive the walk, and a room that does not say otherwise. */
+  hurryWalk: 7,
+  hurryRoom: 2.5,
   /** Local slow-motion around important beats: cue, half-width (progress), speed multiplier. */
   tempo: [
-    { at: ['CAPTURE', 0.3] as Cue, width: 0.003, scale: 0.42 }, // the shutter (centered just before it fires)
-    { at: ['PHOTO_DEPTH', 0.5] as Cue, width: 0.007, scale: 0.65 }, // paper surface -> depth
-    { at: ['PHOTO_ENTRY', 1 / 6] as Cue, width: 0.005, scale: 0.7 }, // passing through the paper
-    { at: ['WORLD', 0.893] as Cue, width: 0.004, scale: 0.6 }, // through the giant print
+    { at: ['CAPTURE', 0.3] as Cue, width: at(0.54), scale: 0.42 }, // the shutter (centered just before it fires)
+    { at: ['PHOTO_DEPTH', 0.5] as Cue, width: at(1.26), scale: 0.65 }, // paper surface -> depth
+    { at: ['PHOTO_ENTRY', 1 / 6] as Cue, width: at(0.9), scale: 0.7 }, // passing through the paper
+    { at: ['WORLD', 0.893] as Cue, width: at(0.72), scale: 0.6 }, // through the giant print
   ],
   /** Micro hit-stop when the shutter fires. */
   shutterHoldSeconds: 0.14,
@@ -173,7 +178,7 @@ export const lookConfig = {
   /** While walking, the gaze drifts back to the way ahead (rate 1/s at full walking speed). */
   recenter: 0.9,
   /** Timeline speed (progress / s) that counts as full walking speed. */
-  walkSpeed: 0.02,
+  walkSpeed: at(3.6),
   /** Faster than the dream's own pace by this factor counts as hurrying. */
   hurrying: 1.6,
   /** Arrow-key turning speed (deg / s). */
@@ -213,10 +218,12 @@ export const photographerConfig = {
   heading: 180,
   /** Pitch of the designed framing (deg): level, a hair below the horizon. */
   aimPitch: -2.2,
-  /** Fraction of the timeline after CAPTURE over which the lens lets go of the designed framing. */
-  aimRelease: 0.006,
+  /** Stretch of the timeline after CAPTURE over which the lens lets go of the designed framing. */
+  aimRelease: at(1.08),
   /** Shutter button travel around the shutter beat (timeline progress before / release window after). */
-  button: { lead: 0.002, release: [0.001, 0.0035] as const },
+  button: { lead: at(0.36), release: [at(0.18), at(0.63)] as const },
+  /** The idle sway of the opening fades over this stretch of the timeline. */
+  introFade: at(10.8),
   envMapIntensity: 0.8,
   /** Where the left elbow points while reaching (m below and to the side of the shoulder). */
   elbowPole: { down: 0.6, out: 0.35 },
@@ -315,11 +322,11 @@ export const directorConfig = {
     paper: ['PHOTO_REVEAL', 0.2] as Cue,
   },
   /** The ambience comes back between these timeline offsets after the shutter. */
-  duckRelease: [0.003, 0.014] as const,
+  duckRelease: [at(0.54), at(2.52)] as const,
   /** Uniform lens softness while it hunts for focus during AIM and FOCUS. */
   lensHunt: 0.35,
   /** No adaptive resolution change within this distance (progress) of the shutter. */
-  adaptQuiet: 0.003,
+  adaptQuiet: at(0.54),
   /** Grades (see Grade.ts): the cold real alley and the dream. */
   outerGrade: { exposure: 1.0, saturation: 0.8, warmth: -0.05, tint: 0.0, flare: 0.0015 },
   dreamGrade: { exposure: 1.06, saturation: 0.9, warmth: 0.035, tint: 0.012, flare: 0.004 },

@@ -82,6 +82,13 @@ async function processModel(item) {
   // so its node transform only carries the (meshopt) dequantization afterwards
   if (item.zeroNodeTranslations) for (const node of root.listScenes()[0].listChildren()) node.setTranslation([0, 0, 0]);
 
+  // some sources keep a glass's look in an image with no alpha, which makes it opaque: `clearGlass` is a pattern of material names
+  if (item.clearGlass) {
+    const glass = new RegExp(item.clearGlass);
+    for (const m of root.listMaterials()) {
+      if (glass.test(m.getName())) m.setBaseColorTexture(null).setBaseColorFactor([0.03, 0.03, 0.035, 0.12]).setAlphaMode('BLEND').setRoughnessFactor(0.08).setMetallicFactor(0).setMetallicRoughnessTexture(null);
+    }
+  }
   const transforms = [dedup(), prune({ keepAttributes: false }), weld()];
   if (item.simplify) transforms.push(simplify({ simplifier: MeshoptSimplifier, ratio: item.simplify, error: item.simplifyError ?? 0.002 }));
   transforms.push(
@@ -97,9 +104,11 @@ async function processModel(item) {
 
 // ------------------------------------------------------------------ materials
 
-async function writeSet(key, size, color, normal, orm) {
+async function writeSet(key, size, color, normal, orm, tint) {
   const base = path.join(OUT, 'textures', key);
-  await sharp(color).resize(size, size).webp({ quality: 84 }).toFile(`${base}_color.webp`);
+  // `tint` in scripts/assets.json: { saturation, brightness, hue } changes the base color only
+  const base_color = tint ? sharp(color).modulate(tint) : sharp(color);
+  await base_color.resize(size, size).webp({ quality: 84 }).toFile(`${base}_color.webp`);
   await sharp(normal).resize(size, size).webp({ quality: 90 }).toFile(`${base}_normal.webp`);
   await sharp(orm).resize(size, size).webp({ quality: 88 }).toFile(`${base}_orm.webp`);
   console.log(`material ${key.padEnd(34)} ${kb(`${base}_color.webp`)} + ${kb(`${base}_normal.webp`)} + ${kb(`${base}_orm.webp`)}`);
@@ -132,7 +141,7 @@ async function polyhavenMaterial(item) {
   const [color, normal, arm, rough, ao] = await Promise.all([get('Diffuse'), get('nor_gl'), get('arm'), get('Rough'), get('AO')]);
   const size = item.size ?? 1024;
   const orm = arm ?? (await packOrm(size, ao, rough, null));
-  await writeSet(item.key, size, color, normal, orm);
+  await writeSet(item.key, size, color, normal, orm, item.tint);
 }
 
 async function ambientcgMaterial(item) {
@@ -146,7 +155,7 @@ async function ambientcgMaterial(item) {
   };
   const size = item.size ?? 1024;
   const orm = await packOrm(size, find('AmbientOcclusion'), find('Roughness'), find('Metalness'));
-  await writeSet(item.key, size, find('Color'), find('NormalGL'), orm);
+  await writeSet(item.key, size, find('Color'), find('NormalGL'), orm, item.tint);
 }
 
 // ------------------------------------------------------------------ hdris

@@ -51,6 +51,7 @@
               <div class="loader__track"><span class="loader__fill" data-ui="loader-bar"></span></div>
             </div>
             <button class="btn start__begin" type="button" data-ui="start-button" disabled><span data-i18n="start">Begin</span></button>
+            <button class="btn start__begin" type="button" data-ui="continue" hidden><span data-i18n="continueFrom"></span> <span data-ui="continue-name"></span></button>
           </div>
         </div>
       </section>
@@ -121,6 +122,9 @@
       <p class="narration" data-ui="narration" aria-hidden="true"></p>
       <p class="sr-only" data-ui="narration-voice" aria-live="polite"></p>
 
+      <!-- what a room lets you do, for as long as it lets you -->
+      <p class="room-hint" data-ui="room-hint" aria-live="polite"></p>
+
       <!-- the last words, over the picture -->
       <p class="motto finale" data-ui="finale" aria-live="polite"></p>
 
@@ -128,6 +132,8 @@
       <section class="end" data-ui="end" aria-labelledby="end-title">
         <div class="end__panel">
           <h2 class="end__title" id="end-title" lang="en">The Dream of the Photo</h2>
+          <p class="end__caption" data-i18n="endAlbum" data-ui="end-caption" hidden></p>
+          <div class="end__album" data-ui="end-album"></div>
           <p class="end__memories"><span class="end__count" data-ui="end-count">0 / 0</span> <span data-i18n="endMemories">memories found</span></p>
           <button class="btn end__replay" type="button" data-ui="replay"><span data-i18n="replay">Dream it again</span></button>
         </div>
@@ -140,6 +146,7 @@
             <h2 class="menu__title" id="menu-title" data-i18n="paused">Paused</h2>
             <div class="menu__actions">
               <button class="btn btn--solid" type="button" data-ui="resume"><span data-i18n="resume">Resume</span></button>
+              <button class="btn" type="button" data-ui="skip"><span data-i18n="skip">Skip this part</span></button>
               <button class="btn" type="button" data-ui="restart"><span data-i18n="restart">Start over</span></button>
             </div>
             <dl class="menu__settings">

@@ -6,18 +6,30 @@
 > *The dream of a photograph turns hair white,*
 > *The dream of a photograph, every evening, half.*
 
-A nightmare in real time. A photographer in a wet back alley at dusk takes one picture. You go into the print, and
-the dream carries you, whether you want it or not (it moves by itself; scrolling only hurries it or holds it back for a moment; dragging looks around):
+A nightmare in real time, about thirty-three minutes long. A photographer in a wet back alley at dusk takes one
+picture. You go into the print, and for seven evenings the dream carries you through it, whether you want it
+or not (it moves by itself; scrolling only hurries it or holds it back for a moment; dragging looks around).
 
-- the rain stopped by the shutter lengthens into white hair hanging from above the roofs;
-- washing lines of scratched-out faces and gas masks; a street that should have ended, of people who are only half;
-- a colossal concrete hall: a ward of beds, empty dresses on hooks, a waterfall of hair, a dinner of halves under a chandelier, a giant head that turns when you are not looking, screens that show your back;
-- a darkroom in safelight red, where every print shows what stands behind you, one step closer;
-- a gullet of meat, with a heart, and teeth that close behind you;
-- a black void and a print on butcher's hooks; an oil sea under a half sun that never sets, a crowd up to the waist, a rubber duck the size of a house;
-- and you wake.
+Each evening is a stretch of the dream's walk (white hair hanging from above the roofs, washing lines of
+scratched-out faces, a concrete hall of beds and halves, a darkroom where every print shows what stands behind
+you, a gullet of meat, an oil sea under a half sun) and a run of small rooms, each a nightmare of its own built
+on a common fear:
 
-Space itself curves through the piece (`src/experience/render/Warp.ts`). Things change only when you are not looking. The title screen carries a content warning: disturbing images, sudden sounds, flickering light.
+- **The First Evening, Hair:** a corridor that does not end, a waiting room where the hollows turn, birches with eyes, a ceiling of spiders.
+- **The Second Evening, Half:** a family dinner under insects, beds in a field under the moon, a duct that narrows, the dentist's needle.
+- **The Third Evening, Sleep:** sleep paralysis, a mirror that lags behind you, a bus stop watched by dogs, a lift that stops between floors.
+- **The Fourth Evening, Water:** a house going under, the deep, a drained pool of snakes, a hospital ward.
+- **The Fifth Evening, Dark:** the dark and your own flash, washing lines with faces, an attic of dolls, a chase, being buried.
+- **The Sixth Evening, Nothing:** a steel beam over a storm, the fall down a shaft, holes, a beach of teeth, an exam on a stage, a birthday party.
+- **The Last Evening, You:** home and a phone that rings, the stairs, your own funeral, and the album.
+
+The corridor with the clock at half past comes back every evening, each time worse, and each evening opens over
+a tray of developer where the last picture the shutter took of you comes up. The shutter keeps your pictures;
+at the end they hang in a hall that has no top. Then you wake.
+
+Space itself curves through the piece (`src/experience/render/Warp.ts`). Things change only when you are not
+looking. The title screen carries a content warning (adults only; it names the fears), and any part can be
+skipped from the menu.
 
 It plays like a game: a title screen, chapters announced as you reach them, a journey bar, a gaze reticle,
 hidden **memories** that reveal themselves to a long enough look (found ones are remembered between
@@ -38,8 +50,9 @@ npm run build     # type check (tsc --noEmit), then production build into dist/
 npm run preview   # serve dist/ locally (http://localhost:4173)
 ```
 
-Everything is preloaded before the piece starts (the experience is one continuous shot, so nothing may pop
-in later); the title screen shows the progress.
+The opening is preloaded before the piece starts, and the title screen shows the progress. Each room's files
+are fetched while the one before it plays and it is built under the cut to black, so nothing pops in; a room
+is dropped from memory as soon as it lies behind you.
 
 ## Controls
 
@@ -64,6 +77,8 @@ production `?debug` does nothing.
   `WORLD`, `EXPLORATION`.
 - `?debug&p=0.5` deep-links to a timeline position between 0 and 1. Positions past the shutter take the
   picture at its exact beat first, so the print is always correct (the same holds for the last picture).
+- `?debug&room=<id>` starts at a room of the journey (a file name in `src/experience/rooms/list`, with
+  `@n` for a later visit, for example `corridor@4` or `evening@7`).
 - `window.__exp` is the running `Experience` instance.
 
 ## Architecture
@@ -88,6 +103,11 @@ src/
     transition/PhotoPortal   capture camera, world camera and the geometry of the passage
     render/                  Pipeline (render targets, DOF, AgX, grain, adaptive resolution), Grade, GLSL
     world/                   Alley (facades, ground, props, cables, lights), FacadeBuilder, props, SkyDome
+    rooms/                   the journey: JourneyDirector (fetches each room ahead, builds it under the cut
+                             to black, drops what lies behind), Room (the contract every room keeps),
+                             RoomKit (shared set dressing), RoomSound (a room's own files, levelled per
+                             room), Album (the pictures the shutter keeps), Swarm, Snakes, Fire,
+                             list/*.ts (one file per room)
     audio/AudioEngine.ts     Web Audio: synthesized bed and mechanics, optional recorded samples
     debug/Debug.ts           development overlay (loaded on demand)
   ui/                        Overlay (title screen, HUD, pause menu, ending), Narration (subtitles), i18n (TR / EN)
@@ -99,7 +119,8 @@ src/
   `dream.config.ts` what differs inside the picture and its set pieces; `walk.config.ts` the walk (the
   camera path through the dream, and the waking); `sea.config.ts` the sea behind the giant print;
   `copy.config.ts` every word in both languages: the narration and when each line appears, the chapters,
-  the memories and the interface; `audio.config.ts` the mix.
+  the memories and the interface; `audio.config.ts` the mix, including each room's level;
+  `journey.config.ts` the seven evenings, the order of their walks and rooms, and how long each lasts.
 - **One scene, two worlds.** The real alley and the world inside the photograph are the same scene.
   Render layers separate what exists only in the real moment (the photographer, the held camera and
   print) from what exists only in the dream. `DreamDirector.setPass` switches shared objects (puddle
@@ -159,6 +180,12 @@ The server fetches the avatar, textures and animations into `.asset-cache/rocket
 them with three.js (`FBXLoader` → `GLTFExporter`: meters, PBR materials, alpha-tested hair, the clips the
 piece uses) and saves `.asset-cache/character/photographer.glb`. `npm run assets -- --only photographer`
 then optimizes it like any other model.
+
+The rooms' own files come from three more scripts: `node scripts/build-scans.mjs` (scanned and found models,
+cleaned and scaled), `node scripts/build-props.mjs` (props assembled or reposed here, such as the sitting
+dogs) and `python scripts/build-room-audio.py` (every sound under `public/audio/rooms`, cut, filtered and
+levelled from its CC0 or CC BY source; `--only <names>` rebuilds some, `--check` compares the recipes with
+the shipped files, `--docs` writes the sound index and notices).
 
 The generated files in `public/` are part of the source tree, so building and deploying need neither the
 network sources nor the converter.

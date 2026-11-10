@@ -46,7 +46,7 @@ export interface RegionLook {
   grade: GradeParams;
 }
 
-export type RegionName = 'alley' | 'street' | 'hall' | 'darkroom' | 'flesh' | 'void' | 'sea';
+export type RegionName = 'alley' | 'street' | 'hall' | 'darkroom' | 'flesh' | 'void' | 'sea' | 'room';
 
 /** Looks blend over this many meters around every border, so no threshold can be seen. */
 export const REGION_BLEND = 3;

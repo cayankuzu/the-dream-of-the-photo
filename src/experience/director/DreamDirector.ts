@@ -20,6 +20,7 @@ import {
   type Texture,
 } from 'three';
 import { LAYERS, REDUCED_MOTION, renderConfig, shotsConfig } from '../../config/experience.config';
+import { ROOM_SPACE } from '../../config/journey.config';
 import { dreamConfig as D } from '../../config/dream.config';
 import { fearConfig, LAYOUT, REGION_BLEND, REGION_MARGIN, REGIONS, warpConfig, type RegionLook, type RegionName, type SpotSpec } from '../../config/nightmare.config';
 import { ALLEY, fireEscape, lightingConfig } from '../../config/scene.config';
@@ -36,10 +37,11 @@ import { FleshTunnel } from '../dream/FleshTunnel';
 import { GiantPrint } from '../dream/GiantPrint';
 import { HallShell } from '../dream/hall/HallShell';
 import { HallTableaux } from '../dream/hall/HallTableaux';
-import { Moments, type MomentPass } from '../dream/Moments';
+import { Moments } from '../dream/Moments';
 import { Street } from '../dream/Street';
 import { TheVoid } from '../dream/TheVoid';
 import type { LookControls, PointOfInterest } from '../interaction/LookControls';
+import type { Room, RoomFrame, RoomInput } from '../rooms/Room';
 import { clamp, DEG, lerp, range, smootherstep, wobble } from '../math';
 import { Photograph } from '../photograph/Photograph';
 import { Grade, type GradeParams } from '../render/Grade';
@@ -113,6 +115,46 @@ function introCamera(aspect: number): PerspectiveCamera {
   return cam;
 }
 
+/** A set piece of the walk, made only when the journey comes near it: the fractions of the walk it is seen from, and what it needs. */
+interface Piece {
+  key: string;
+  walk: readonly [number, number];
+  models: readonly string[];
+  materials: readonly string[];
+  make: (d: DreamDirector) => DreamModule[];
+}
+
+const PIECES: readonly Piece[] = [
+  { key: 'alley', walk: [0, 0.3], models: ['gas_mask', 'payphone', 'raven', 'rocking_chair'], materials: [], make: (d) => [new AlleyDream(d.kit, d.momentTextures)] },
+  { key: 'street', walk: [0, 0.38], models: ['caged_light', 'fluorescent', 'gnome'], materials: ['conc_board', 'conc_stained'], make: (d) => [new Street(d.kit)] },
+  {
+    key: 'hall',
+    walk: [0.33, 0.54],
+    models: ['angel', 'antique_camera', 'barber_chair', 'bed_frame', 'bull_head', 'caged_light', 'chalkboard', 'chandelier', 'corset_mannequin', 'crutches', 'dentist_chair', 'dining_chair', 'dining_table', 'empty_dress', 'fluorescent', 'gas_mask', 'giant_head', 'gnome', 'grandfather_clock', 'guillotine', 'hatchet', 'horse_head', 'iron_chair', 'mannequin', 'meat_hook', 'ornate_mirror', 'rat', 'satyr_head', 'school_chair', 'school_desk', 'shark_jaw', 'television_a', 'television_b', 'wheelchair', 'winged_monster'],
+    materials: ['asphalt_wet_black', 'conc_board', 'conc_cracked', 'conc_pour_lifts', 'conc_stained', 'rust_streaked'],
+    make: (d) => [new HallShell(d.kit), new HallTableaux(d.kit)],
+  },
+  {
+    key: 'darkroom',
+    walk: [0.51, 0.65],
+    models: ['antique_camera', 'caged_light', 'mri_head', 'portrait_frame', 'projector', 'rat', 'raven'],
+    materials: ['conc_stained', 'flesh_smeared', 'paint_peeling', 'rust_streaked', 'tile_floor_dark', 'tile_hospital_broken'],
+    make: (d) => [new Darkroom(d.kit)],
+  },
+  { key: 'flesh', walk: [0.62, 0.77], models: ['forearm', 'heart', 'skull', 'teeth_lower', 'teeth_upper'], materials: ['flesh_fibre', 'flesh_pitted', 'flesh_smeared'], make: (d) => [new FleshTunnel(d.kit)] },
+  { key: 'sea', walk: [0.73, 1], models: ['ghost_ship', 'hercules_head', 'rubber_duck', 'singing_bust'], materials: [], make: (d) => [d.makeSea()] },
+  { key: 'void', walk: [0.73, 0.91], models: ['covered_car', 'dogu', 'forearm', 'hanging_cage', 'meat_hook', 'payphone', 'rocking_chair'], materials: ['rust_streaked'], make: (d) => {
+      d.giant.buildHardware(d.kit);
+      d.giant.root.traverse((o) => {
+        o.layers.set(LAYERS.DREAM);
+        o.frustumCulled = false;
+      });
+      return [new TheVoid(d.kit, d.giant)];
+    } },
+];
+
+const overlaps = (piece: Piece, range: readonly [number, number]) => piece.walk[0] <= range[1] && piece.walk[1] >= range[0];
+
 const REAL_SPOTS: readonly SpotSpec[] = [lightingConfig.key, lightingConfig.security, lightingConfig.crossStreet];
 /** The walk's own spaces, in order (the sea is apart). */
 const WALK_REGIONS = REGIONS.filter((r) => r.name !== 'sea');
@@ -133,7 +175,7 @@ const SECOND_BEAT = { at: 0.28, strength: 0.65 };
 export class DreamDirector {
   readonly grade = new Grade();
   readonly giant: GiantPrint;
-  readonly sea: DreamSea;
+  sea: DreamSea | null = null;
   readonly kit: DreamKit;
   /** A place for what only pictures see (put far below the world, shown only while it is photographed). */
   readonly stage = new Group();
@@ -144,6 +186,11 @@ export class DreamDirector {
   beat = false;
   /** A scare adds its own fear for a moment (decays by itself). */
   fearBoost = 0;
+  /** The room running now (the walk stands still meanwhile), and how far through it. */
+  room: Room | null = null;
+  private roomT = 0;
+  private roomInput!: RoomInput;
+  private readonly rooms = new Set<Room>();
   /** The space of the camera of the last main pass. */
   region: RegionName = 'alley';
   /** The main pass needs its shadow map rendered once: the shadow-casting light has moved. */
@@ -155,8 +202,8 @@ export class DreamDirector {
   }
 
   private readonly root = new Group();
-  private readonly modules: DreamModule[];
-  private readonly far: DreamModule[];
+  private readonly modules: DreamModule[] = [];
+  private readonly pieceState = new Map<string, { fetched?: Promise<unknown>; built?: Promise<void>; ready?: boolean }>();
   private readonly stairs = new Group();
   private readonly clockHands: ClockHand[];
   private readonly groundIntensity: number;
@@ -233,23 +280,6 @@ export class DreamDirector {
     this.buildStairs();
     this.buildFoundPhotograph();
     this.giant = new GiantPrint(ctx.portal, this.kit);
-    this.sea = new DreamSea(this.kit, { moments: this.moments.textures, moonPhoto: this.foundRT.texture });
-    this.modules = [
-      new AlleyDream(this.kit, this.moments.textures),
-      new Street(this.kit),
-      new HallShell(this.kit),
-      new HallTableaux(this.kit),
-      new Darkroom(this.kit),
-      new FleshTunnel(this.kit),
-      new TheVoid(this.kit, this.giant),
-      this.sea,
-    ];
-    // compiled one by one, after what the first minutes need
-    this.far = this.modules.filter((m) => !(m instanceof AlleyDream));
-    for (const m of this.modules) {
-      if (m.region && m.spots) this.spotsByRegion.set(m.region, m.spots);
-      this.root.add(m.root);
-    }
     this.root.add(this.stairs, this.giant.root, this.kit.lights.root, this.stage);
     this.root.traverse((o) => {
       o.layers.set(LAYERS.DREAM);
@@ -271,7 +301,6 @@ export class DreamDirector {
       const sphere = instanced ? mesh.boundingSphere! : mesh.geometry.boundingSphere!;
       sphere.radius += ALLEY_BEND / mesh.matrixWorld.getMaxScaleOnAxis();
     });
-    for (const m of this.far) this.root.remove(m.root);
 
     const keys = warpConfig.keys;
     const at = keys.map((k) => k.at);
@@ -325,38 +354,102 @@ export class DreamDirector {
    */
   developFirst(): void {
     this.renderReal(this.foundRT, introCamera(1));
-    for (const m of this.modules) if (!this.far.includes(m)) m.develop?.(this.picture);
+    this.moments.develop((target: WebGLRenderTarget, camera: PerspectiveCamera) => this.renderReal(target, camera));
   }
 
-  /**
-   * What lies further on is made ready one set piece at a time: `compile` builds its shaders, then it
-   * takes its pictures, so nothing stops once the piece plays, and the loader moves in the meantime.
-   */
-  async prepareFar(compile: (root: Group) => Promise<void>, onProgress: (share: number) => void): Promise<void> {
-    const breathe = () => new Promise((resolve) => setTimeout(resolve));
-    const steps = this.far.length + 1;
-    for (let i = 0; i < this.far.length; i++) {
-      const m = this.far[i];
-      this.root.add(m.root);
-      await compile(m.root);
-      await breathe();
-      m.develop?.(this.picture);
-      onProgress((i + 1) / steps);
-      await breathe();
+  /** The pictures the drifting prints show. */
+  get momentTextures(): readonly Texture[] {
+    return this.moments.textures;
+  }
+
+  makeSea(): DreamSea {
+    this.sea = new DreamSea(this.kit, { moments: this.moments.textures, moonPhoto: this.foundRT.texture });
+    return this.sea;
+  }
+
+  private pieceSlot(key: string) {
+    let slot = this.pieceState.get(key);
+    if (!slot) {
+      slot = {};
+      this.pieceState.set(key, slot);
     }
-    const still = this.giant.stillCamera();
-    // the still and the moments see each other (the giant print in a moment, the prints over the sea in
-    // the still): develop the still on both sides of the moments
-    this.picture(this.giant.stillRT, still);
-    await this.moments.develop(
-      (target: WebGLRenderTarget, camera: PerspectiveCamera, pass: MomentPass) => (pass === 'real' ? this.renderReal(target, camera) : this.picture(target, camera)),
-      breathe,
-    );
-    this.picture(this.giant.stillRT, still);
+    return slot;
+  }
+
+  /** Bring in the files of the set pieces seen along this stretch of the walk. */
+  fetchPieces(range: readonly [number, number]): Promise<void> {
+    const a = this.ctx.assets;
+    return Promise.all(
+      PIECES.filter((p) => overlaps(p, range)).map((p) => {
+        const slot = this.pieceSlot(p.key);
+        slot.fetched ??= Promise.all([...p.models.map((k) => a.model(k, `${k}.glb`)), ...p.materials.map((k) => a.material(k, k))]);
+        return slot.fetched;
+      }),
+    ).then(() => undefined);
+  }
+
+  /** Make the set pieces of this stretch of the walk, one at a time, with their shaders and their pictures. */
+  async buildPieces(range: readonly [number, number], compile: (root: Group) => Promise<void>): Promise<void> {
+    for (const piece of PIECES.filter((p) => overlaps(p, range))) {
+      const slot = this.pieceSlot(piece.key);
+      slot.built ??= (async () => {
+        await this.fetchPieces(piece.walk);
+        await new Promise((resolve) => setTimeout(resolve));
+        for (const m of piece.make(this)) {
+          this.modules.push(m);
+          if (m.region && m.spots) this.spotsByRegion.set(m.region, m.spots);
+          m.root.traverse((o) => {
+            o.layers.set(LAYERS.DREAM);
+            o.frustumCulled = false;
+          });
+          this.root.add(m.root);
+          await compile(m.root);
+          m.develop?.(this.picture);
+          await new Promise((resolve) => setTimeout(resolve));
+        }
+        // the giant print's still shows the sea
+        if (piece.key === 'sea') this.picture(this.giant.stillRT, this.giant.stillCamera());
+        slot.ready = true;
+      })();
+      await slot.built;
+    }
+  }
+
+  /** Every file any piece of the walk uses. */
+  get walkFiles(): string[] {
+    return PIECES.flatMap((p) => [...(p.models ?? []), ...(p.materials ?? [])]);
+  }
+
+  piecesReady(range: readonly [number, number]): boolean {
+    return PIECES.filter((p) => overlaps(p, range)).every((p) => this.pieceSlot(p.key).ready);
+  }
+
+  /** A room has been built: it waits, unseen, until the journey reaches it. */
+  adoptRoom(room: Room): void {
+    room.root.traverse((o) => {
+      o.layers.set(LAYERS.DREAM);
+      o.frustumCulled = false;
+    });
+    room.root.visible = false;
+    this.rooms.add(room);
+    this.root.add(room.root);
+  }
+
+  dropRoom(room: Room): void {
+    this.rooms.delete(room);
+    this.root.remove(room.root);
+    if (this.room === room) this.room = null;
+  }
+
+  /** The room running now, and what the viewer is doing. */
+  setRoom(room: Room | null, t: number, input: RoomInput): void {
+    this.room = room;
+    this.roomT = t;
+    this.roomInput = input;
   }
 
   /** A picture of the dream, in straight space, under the sky of the end. */
-  private readonly picture = (target: WebGLRenderTarget, camera: PerspectiveCamera): void => {
+  readonly picture = (target: WebGLRenderTarget, camera: PerspectiveCamera): void => {
     const walk = this.walk;
     this.straight = true;
     this.walk = 1;
@@ -393,7 +486,7 @@ export class DreamDirector {
     this.insideTime = 0;
     this.dreamClock = D.clock.stoppedAt;
     Object.assign(this.state, { window: false, chair: false, stairs: false });
-    this.sea.figure.visible = true;
+    if (this.sea) this.sea.figure.visible = true;
     for (const m of this.modules) m.reset?.();
   }
 
@@ -413,8 +506,19 @@ export class DreamDirector {
     grade: { exposure: 1, saturation: 1, warmth: 0, tint: 0, flare: 0 } as GradeParams,
   };
 
-  private readAir(z: number, sea: boolean): void {
+  private readAir(z: number, sea: boolean, room: Room | null = null): void {
     const a = this.air;
+    if (room) {
+      const r = room.air;
+      a.fogColor.setHex(r.fog.color);
+      a.fogDensity = r.fog.density;
+      a.envIntensity = r.envIntensity;
+      a.sky = r.sky;
+      a.env = r.env;
+      a.region = 'room';
+      Object.assign(a.grade, r.grade);
+      return;
+    }
     let from = SEA_REGION;
     let to = SEA_REGION;
     let t = 0;
@@ -438,14 +542,23 @@ export class DreamDirector {
 
   setPass(kind: 'real' | 'dream', camera: PerspectiveCamera): void {
     const dream = kind === 'dream';
-    const sea = dream && DreamDirector.inSea(camera);
+    const room = dream && camera.position.x > ROOM_SPACE / 2 ? this.room : null;
+    const sea = dream && !room && DreamDirector.inSea(camera);
     const z = sea ? camera.position.z - SEA.z : camera.position.z;
     const { alley, sky, scene } = this.ctx;
     const walkLook = smootherstep(range(0, D.sky.fullAt, this.walk));
 
     // space
     const amount = warp.amount;
-    if (dream && !this.straight) {
+    if (room) {
+      room.warpAt(this.roomT, amount);
+      if (REDUCED_MOTION) {
+        amount.x *= warpConfig.reducedMotion;
+        amount.y *= warpConfig.reducedMotion;
+        amount.z *= warpConfig.reducedMotion;
+        amount.w *= warpConfig.reducedMotion;
+      }
+    } else if (dream && !this.straight) {
       const t = this.warpTracks;
       amount.x = t.bendUp.at(this.walk);
       amount.y = t.bendAside.at(this.walk);
@@ -460,7 +573,7 @@ export class DreamDirector {
     sky.updateMatrixWorld();
     const s = sky.uniforms;
     if (dream) {
-      this.readAir(z, sea);
+      this.readAir(z, sea, room);
       const a = this.air;
       this.fog.color.copy(a.fogColor);
       this.fog.density = a.fogDensity;
@@ -486,7 +599,7 @@ export class DreamDirector {
     }
 
     // light
-    const specs = dream ? (this.spotsByRegion.get(this.air.region) ?? REAL_SPOTS) : REAL_SPOTS;
+    const specs = room ? room.spots : dream ? (this.spotsByRegion.get(this.air.region) ?? REAL_SPOTS) : REAL_SPOTS;
     this.spots.forEach((light, i) => {
       const spec = specs[i];
       if (!spec) {
@@ -509,14 +622,21 @@ export class DreamDirector {
     const corner = Math.atan(Math.hypot(tanV, tanV * camera.aspect));
     const seesBehind = Math.acos(clamp(-forward.z, -1, 1)) + corner > Math.PI / 2;
     alley.farEnd.visible = !dream;
-    alley.root.visible = !dream || (!sea && z > ALLEY_SEEN_FROM && (seesBehind || z > ALLEY.front - BEHIND));
+    alley.root.visible = !dream || (!room && !sea && z > ALLEY_SEEN_FROM && (seesBehind || z > ALLEY.front - BEHIND));
+    for (const r of this.rooms) {
+      r.root.visible = r === room;
+      if (r === room) {
+        r.followEye(camera);
+        r.prepare?.(camera);
+      }
+    }
     for (const m of this.modules) {
-      const inWorld = dream && Boolean(m.inSea) === sea;
+      const inWorld = dream && !room && Boolean(m.inSea) === sea;
       m.root.visible = inWorld && z < m.span[0] + REGION_MARGIN && z > m.span[1] - REGION_MARGIN && (seesBehind || z > m.span[1] - BEHIND);
       if (m.root.visible) m.prepare?.(camera);
     }
-    this.stairs.visible = dream && this.state.stairs && !sea && z > ALLEY_SEEN_FROM;
-    this.giant.root.visible = dream && !sea && z < LAYOUT.void.from + REGION_MARGIN;
+    this.stairs.visible = dream && this.state.stairs && !room && !sea && z > ALLEY_SEEN_FROM;
+    this.giant.root.visible = dream && !room && !sea && z < LAYOUT.void.from + REGION_MARGIN;
 
     if (this.windowGlow && this.windowRoomMaterial) this.windowGlow.material = dream && this.state.window ? this.windowMaterial : this.windowRoomMaterial;
     if (this.chair) this.placeChair(dream && this.state.chair);
@@ -534,7 +654,9 @@ export class DreamDirector {
   /** The render the viewer sees: on entering a space (or coming from the real moment) its shadows are drawn once. */
   mainPass(camera: PerspectiveCamera): void {
     this.setPass('dream', camera);
-    const key = this.spotsByRegion.get(this.air.region)?.[0] ?? REAL_SPOTS[0];
+    const room = camera.position.x > ROOM_SPACE / 2 ? this.room : null;
+    const key = room ? (room.spots[0] ?? null) : (this.spotsByRegion.get(this.air.region)?.[0] ?? REAL_SPOTS[0]);
+    if (room?.movingShadows) this.shadowDirty = true;
     if (key !== this.keySpot || this.previousPass === 'real') {
       this.keySpot = key;
       this.previousPass = 'dream';
@@ -563,7 +685,7 @@ export class DreamDirector {
 
   /** The last photograph has been taken: its taker is gone (and back when you scroll back). */
   set photographerGone(gone: boolean) {
-    this.sea.figure.visible = !gone;
+    if (this.sea) this.sea.figure.visible = !gone;
   }
 
   // ------------------------------------------------------------------ per frame
@@ -586,9 +708,11 @@ export class DreamDirector {
     this.updateHeart(walk, dt, paused);
 
     // the walk frame: in the sea the eye is drawn at the sea's offset
-    const sea = DreamDirector.inSea(view);
+    const room = view.position.x > ROOM_SPACE / 2 ? this.room : null;
+    const sea = !room && DreamDirector.inSea(view);
     eye.copy(view.position);
     if (sea) eye.sub(SEA);
+    if (room) eye.sub(room.root.position);
     this.ctx.sky.uniforms.uDreamRotation.value = D.sky.rotation + time * D.sky.turnRate;
 
     const f = this.frame;
@@ -599,18 +723,25 @@ export class DreamDirector {
     f.walk = walk;
     f.fear = this.fear;
     f.heartbeat = this.heartbeat;
-    this.giant.update(time, eye);
-    if (inside > 0) {
+    if (!room) this.giant.update(time, eye);
+    if (room) {
+      const rf = f as RoomFrame;
+      rf.t = this.roomT;
+      rf.seconds = this.roomT * room.seconds;
+      rf.input = this.roomInput;
+      if (!paused) room.advance(this.roomT);
+      room.update(rf);
+    } else if (inside > 0) {
       for (const m of this.modules) {
         if (Boolean(m.inSea) !== sea || eye.z > m.span[0] + REGION_MARGIN || eye.z < m.span[1] - REGION_MARGIN) continue;
         m.update(f);
       }
     }
 
-    this.readAir(eye.z, sea);
+    this.readAir(eye.z, sea, room);
     this.region = this.air.region;
 
-    if (exploring) {
+    if (exploring && !room) {
       const m = D.beats.margin;
       const t = this.insideTime;
       const s = this.state;
@@ -633,7 +764,7 @@ export class DreamDirector {
   private updateHeart(walk: number, dt: number, paused: boolean): void {
     if (paused) return;
     this.fearBoost = Math.max(0, this.fearBoost - dt * 0.35);
-    const base = walk > 0 ? this.fearTrack.at(walk) : fearConfig.prologue;
+    const base = this.room ? this.room.fear : walk > 0 ? this.fearTrack.at(walk) : fearConfig.prologue;
     this.fear = clamp(base + this.fearBoost, 0, 1);
     const h = fearConfig.heart;
     this.heartPhase += dt * lerp(h.calm, h.panic, this.fear);

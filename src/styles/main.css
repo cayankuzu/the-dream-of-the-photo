@@ -974,6 +974,27 @@ html[lang='tr'] .stamp {
   visibility: visible;
 }
 
+/* what a room lets you do: small, at the very foot of the picture */
+.room-hint {
+  position: absolute;
+  left: var(--edge-x);
+  right: var(--edge-x);
+  bottom: calc(var(--edge-bottom) + 2.2rem);
+  margin: 0;
+  color: var(--ink);
+  font-family: var(--type);
+  font-size: 0.95rem;
+  letter-spacing: 0.08em;
+  text-align: center;
+  text-shadow: var(--outline);
+  opacity: 0;
+  transition: opacity 0.6s;
+}
+
+.room-hint.is-on {
+  opacity: 0.85;
+}
+
 /* the letters still to come hold their place, so the line never rewraps while it is typed */
 .narration__rest {
   visibility: hidden;
@@ -1044,6 +1065,29 @@ body.is-over .end {
   line-height: 1.15;
   letter-spacing: 0.02em;
   text-transform: uppercase;
+}
+
+.end__caption {
+  margin: 0;
+  font-family: var(--type);
+  font-size: 1rem;
+}
+
+/* what the shutter kept: a contact sheet of the viewer's own pictures */
+.end__album {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(3.4rem, 1fr));
+  gap: 0.35rem;
+  max-height: calc(var(--vh) * 38);
+  overflow: hidden;
+}
+
+.end__album canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 0.18rem solid #d9d5c8;
+  border-bottom-width: 0.5rem;
 }
 
 .end__memories {

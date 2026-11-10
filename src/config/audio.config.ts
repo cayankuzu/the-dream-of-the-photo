@@ -1,3 +1,5 @@
+import { isRoom, JOURNEY } from './journey.config';
+
 /** A span of a recording, in seconds from the start of its file. */
 export type Span = { offset: number; duration: number };
 
@@ -24,6 +26,41 @@ export const audioConfig = {
   masterGain: 0.9,
   musicGain: 0.3,
   sfxGain: 0.85,
+  /** Each room's level in the mix (dB, by file name), so that rooms sit together; measured against the finished rooms. */
+  roomTrim: {
+    corridor: 8,
+    evening: 12,
+    waitingroom: 5.2,
+    birches: 8.7,
+    spiders: 8.3,
+    kitchen: 9.3,
+    beds: 8.1,
+    crawl: 3,
+    dentist: 6.4,
+    karabasan: 4.8,
+    mirror: 9.1,
+    busstop: 0.9,
+    elevator: 4,
+    flood: 5.2,
+    deep: 1.4,
+    pool: 4.9,
+    ward: 4.1,
+    darkness: 6.4,
+    washing: 3,
+    dolls: 3.2,
+    chase: 3.1,
+    buried: 4.7,
+    beam: 1.4,
+    shaft: 2.4,
+    holes: 8.7,
+    teeth: 5.5,
+    exam: 4.6,
+    party: 4.5,
+    home: 0,
+    stairs: 10,
+    funeral: 6.2,
+    album: 7.9,
+  } as Record<string, number>,
   reverbSeconds: 3.8,
   reverbOuter: 0.12,
   reverbDream: 0.55,
@@ -263,7 +300,7 @@ const SCREENS: Place = { x: 0, z: -123.5, ref: 10 };
 const PROJECTOR: Place = { x: 2.16, z: -130.4, ref: 3.4 };
 
 /** Seconds of the walk at the piece's own pace. */
-const WALK_SECONDS = 135;
+const WALK_SECONDS = JOURNEY.reduce((sum, s) => (isRoom(s) ? sum : sum + s.seconds), 0);
 
 /** The teeth close here at the latest (the blow itself may come a little earlier). */
 const TEETH = 0.74;
@@ -743,6 +780,7 @@ export const nightConfig = {
     flesh: { room: 0.2, hall: 0 },
     void: { room: 0, hall: 1 },
     sea: { room: 0.2, hall: 1 },
+    room: { room: 0.8, hall: 0 },
   },
   spaceFade: 0.8,
   /**

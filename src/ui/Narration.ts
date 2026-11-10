@@ -1,4 +1,4 @@
-import { narration } from '../config/copy.config';
+import { narration, type Text } from '../config/copy.config';
 import { REDUCED_MOTION } from '../config/experience.config';
 import { cueToProgress } from '../experience/timeline/Timeline';
 import { lang, tr } from './i18n';
@@ -53,6 +53,11 @@ export class Narration {
     unseen.className = 'narration__rest';
     unseen.append(this.rest);
     el.append(this.typed, unseen);
+  }
+
+  /** A room speaks: from here to there on the timeline. */
+  say(text: Text, from: number, to: number): void {
+    lines.push({ from, to, text });
   }
 
   update(progress: number, now: number): void {

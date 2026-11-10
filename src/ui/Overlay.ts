@@ -1,11 +1,12 @@
-import { chapters, memories, type Lang, type MemoryId, type UiKey } from '../config/copy.config';
+import { at } from '../config/experience.config';
+import { chapters, memories, type Lang, type MemoryId, type Text, type UiKey } from '../config/copy.config';
 import { scaresConfig } from '../experience/director/Scares';
 import { cueToProgress } from '../experience/timeline/Timeline';
 import { lang, onLang, percent, say, setLang, tr } from './i18n';
 import { Narration } from './Narration';
 
 /** Timeline position after which the piece counts as started. */
-const STARTED_AT = 0.008;
+const STARTED_AT = at(1.44);
 /** Timeline position of the slam to black: the motto goes with the picture. */
 const BLACK_AT = cueToProgress(['EXPLORATION', scaresConfig.end.at]);
 /** Timeline position at which the piece is over: the last panel, on that black. */
@@ -30,7 +31,6 @@ const RETICLE = { open: 1.3, closed: 0.72 };
 /** Where the choice of walking by itself is remembered (a convenience: everything works without it). */
 const MOVES_KEY = 'dream-of-the-photo.moves';
 
-const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII', 'XIII'];
 const chapterStarts = chapters.map((c) => cueToProgress(c.at));
 const TOUCH = window.matchMedia('(pointer: coarse)').matches;
 const HOVER = window.matchMedia('(hover: hover)').matches;
@@ -128,6 +128,11 @@ export class Overlay {
   private readonly movesToggle = q<HTMLButtonElement>('moves');
   private readonly movesLabel = q('moves-label');
   private readonly narration = new Narration(q('narration'), q('narration-voice'));
+  private readonly roomHint = q('room-hint');
+  private roomHintText: Text | null = null;
+  private readonly continueButton = q<HTMLButtonElement>('continue');
+  private readonly continueName = q('continue-name');
+  private continueText: Text | null = null;
   /** Everything the pause menu covers (inert while it is open). */
   private readonly behindMenu = [q('hud'), q('end'), q('start'), document.getElementById('stage')!];
   private readonly ticks: HTMLElement[] = [];
@@ -175,6 +180,12 @@ export class Overlay {
   onBegin: ((gesture: boolean) => void) | null = null;
   onPause: ((paused: boolean) => void) | null = null;
   onRestart: (() => void) | null = null;
+  /** The viewer leaves this part of the journey behind. */
+  onSkip: (() => void) | null = null;
+  /** The viewer takes up where an earlier visit left off. */
+  onContinue: (() => void) | null = null;
+  /** What the shutter has kept (shown at the end). */
+  albumPictures: (() => HTMLCanvasElement[]) | null = null;
   /** The visitor switched the walking by itself on or off. */
   onAuto: ((on: boolean) => void) | null = null;
 
@@ -191,6 +202,14 @@ export class Overlay {
     this.movesToggle.addEventListener('click', () => this.setMoves(!this.moves));
     q('menu-button').addEventListener('click', (e) => this.setPaused(true, e.currentTarget as HTMLElement));
     q('resume').addEventListener('click', (e) => this.setPaused(false, null, e.detail > 0));
+    q('skip').addEventListener('click', (e) => {
+      this.onSkip?.();
+      this.setPaused(false, null, e.detail > 0);
+    });
+    this.continueButton.addEventListener('click', () => {
+      this.onContinue?.();
+      this.begin(true);
+    });
     q('restart').addEventListener('click', (e) => {
       this.setPaused(false, null, e.detail > 0);
       this.restart();
@@ -255,7 +274,13 @@ export class Overlay {
     writeMotto(this.motto);
     if (this.ending) writeMotto(this.finale);
     if (this.chapterIndex >= 0) this.chapterName.textContent = tr(chapters[this.chapterIndex].name);
-    if (this.announced >= 0) this.stampName.textContent = tr(chapters[this.announced].name);
+    if (this.announced >= 0) {
+      this.stampName.textContent = tr(chapters[this.announced].name);
+      const title = chapters[this.announced].title;
+      this.stampNumber.textContent = title ? tr(title) : '';
+    }
+    if (this.roomHintText) this.roomHint.textContent = tr(this.roomHintText);
+    if (this.continueText) this.continueName.textContent = tr(this.continueText);
     if (this.toastMemory) this.toastName.textContent = tr(memories[this.toastMemory]);
     this.loaderLabel.textContent = percent(this.loaded);
     this.journeyPercent.textContent = percent(this.journeyWhole / 100);
@@ -336,6 +361,25 @@ export class Overlay {
     this.bar.style.transform = `scaleX(${fraction.toFixed(3)})`;
     this.loaderLabel.textContent = percent(fraction);
     this.loader.setAttribute('aria-valuenow', String(Math.round(fraction * 100)));
+  }
+
+  /** A room speaks: from here to there on the timeline. */
+  say(text: Text, from: number, to: number): void {
+    this.narration.say(text, from, to);
+  }
+
+  /** What a room lets the viewer do now (null when nothing). */
+  roomPrompt(text: Text | null): void {
+    this.roomHintText = text;
+    if (text) this.roomHint.textContent = tr(text);
+    this.roomHint.classList.toggle('is-on', Boolean(text));
+  }
+
+  /** An earlier visit got this far: the title offers to go on from it. */
+  offerContinue(name: Text): void {
+    this.continueText = name;
+    this.continueName.textContent = tr(name);
+    this.continueButton.hidden = false;
   }
 
   ready(): void {
@@ -472,11 +516,12 @@ export class Overlay {
     if (i === this.chapterIndex) return;
     this.chapterIndex = i;
     const name = tr(chapters[i].name);
-    this.chapterNumber.textContent = ROMAN[i];
+    this.chapterNumber.textContent = chapters[i].number ?? '';
     this.chapterName.textContent = name;
     if (!this.begun || i <= this.announced) return;
     this.announced = i;
-    this.stampNumber.textContent = ROMAN[i];
+    const title = chapters[i].title;
+    this.stampNumber.textContent = title ? tr(title) : '';
     this.stampName.textContent = name;
     // the blow again, also if the last stamp is still there
     this.stamp.classList.remove('is-on');
@@ -593,8 +638,25 @@ export class Overlay {
     if (over === this.over) return;
     this.over = over;
     document.body.classList.toggle('is-over', over);
+    if (over) this.hangAlbum();
     if (over && !this.paused) this.replay.focus({ preventScroll: true });
     else if (!over) this.replay.blur();
+  }
+
+  /** The pictures the shutter kept, copied onto the end screen. */
+  private hangAlbum(): void {
+    const pictures = this.albumPictures?.() ?? [];
+    const album = q('end-album');
+    album.replaceChildren(
+      ...pictures.map((picture) => {
+        const copy = document.createElement('canvas');
+        copy.width = picture.width;
+        copy.height = picture.height;
+        copy.getContext('2d')!.drawImage(picture, 0, 0);
+        return copy;
+      }),
+    );
+    q('end-caption').hidden = pictures.length === 0;
   }
 
   setSound(on: boolean): void {

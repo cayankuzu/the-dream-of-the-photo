@@ -699,6 +699,963 @@
       "source": "local",
       "path": ".asset-cache/scans/teeth_lower.glb",
       "textureSize": 256
+    },
+    {
+      "key": "armchair",
+      "source": "polyhaven",
+      "id": "ArmChair_01",
+      "res": "1k",
+      "textureSize": 1024
+    },
+    {
+      "key": "armchair_green",
+      "source": "polyhaven",
+      "id": "GreenChair_01",
+      "res": "1k",
+      "textureSize": 1024
+    },
+    {
+      "key": "sofa_leather",
+      "source": "polyhaven",
+      "id": "sofa_02",
+      "res": "1k",
+      "textureSize": 1024
+    },
+    {
+      "key": "chair_white",
+      "source": "polyhaven",
+      "id": "painted_wooden_chair_01",
+      "res": "1k",
+      "textureSize": 512
+    },
+    {
+      "key": "chair_worn",
+      "source": "polyhaven",
+      "id": "painted_wooden_chair_02",
+      "res": "1k",
+      "textureSize": 512
+    },
+    {
+      "key": "table_kitchen",
+      "source": "polyhaven",
+      "id": "painted_wooden_table",
+      "res": "1k",
+      "textureSize": 1024
+    },
+    {
+      "key": "table_small",
+      "source": "polyhaven",
+      "id": "wooden_table_02",
+      "res": "1k",
+      "textureSize": 512
+    },
+    {
+      "key": "side_table",
+      "source": "polyhaven",
+      "id": "side_table_tall_01",
+      "res": "1k",
+      "textureSize": 512,
+      "simplify": 0.5,
+      "simplifyError": 0.01
+    },
+    {
+      "key": "bed_gothic",
+      "source": "polyhaven",
+      "id": "GothicBed_01",
+      "res": "1k",
+      "textureSize": 1024,
+      "simplify": 0.6,
+      "simplifyError": 0.005
+    },
+    {
+      "key": "dresser",
+      "source": "polyhaven",
+      "id": "GothicCommode_01",
+      "res": "1k",
+      "textureSize": 1024
+    },
+    {
+      "key": "cabinet_white",
+      "source": "polyhaven",
+      "id": "painted_wooden_cabinet",
+      "res": "1k",
+      "textureSize": 1024
+    },
+    {
+      "key": "cupboard_blue",
+      "source": "polyhaven",
+      "id": "painted_wooden_cabinet_02",
+      "res": "1k",
+      "textureSize": 1024
+    },
+    {
+      "key": "sideboard",
+      "source": "polyhaven",
+      "id": "vintage_cabinet_01",
+      "res": "1k",
+      "textureSize": 1024,
+      "simplify": 0.25,
+      "simplifyError": 0.01
+    },
+    {
+      "key": "console",
+      "source": "polyhaven",
+      "id": "ClassicConsole_01",
+      "res": "1k",
+      "textureSize": 512
+    },
+    {
+      "key": "nightstand",
+      "source": "polyhaven",
+      "id": "ClassicNightstand_01",
+      "res": "1k",
+      "textureSize": 512
+    },
+    {
+      "key": "nightstand_painted",
+      "source": "polyhaven",
+      "id": "painted_wooden_nightstand",
+      "res": "1k",
+      "textureSize": 512
+    },
+    {
+      "key": "bookshelf_worn",
+      "source": "polyhaven",
+      "id": "wooden_bookshelf_worn",
+      "res": "1k",
+      "textureSize": 512,
+      "simplify": 0.5,
+      "simplifyError": 0.01
+    },
+    {
+      "key": "lamp_pendant",
+      "source": "polyhaven",
+      "id": "modern_ceiling_lamp_01",
+      "res": "1k",
+      "textureSize": 512
+    },
+    {
+      "key": "lamp_bulkhead",
+      "source": "polyhaven",
+      "id": "industrial_wall_lamp",
+      "res": "1k",
+      "textureSize": 512
+    },
+    {
+      "key": "stove",
+      "source": "polyhaven",
+      "id": "electric_stove",
+      "res": "1k",
+      "textureSize": 1024,
+      "simplify": 0.6,
+      "simplifyError": 0.005
+    },
+    {
+      "key": "pot_enamel",
+      "source": "polyhaven",
+      "id": "pot_enamel_01",
+      "res": "1k",
+      "textureSize": 512,
+      "simplify": 0.4,
+      "simplifyError": 0.01
+    },
+    {
+      "key": "jug",
+      "source": "polyhaven",
+      "id": "jug_01",
+      "res": "1k",
+      "textureSize": 512,
+      "simplify": 0.6,
+      "simplifyError": 0.01
+    },
+    {
+      "key": "cutting_board",
+      "source": "polyhaven",
+      "id": "wooden_cutting_board",
+      "res": "1k",
+      "textureSize": 512
+    },
+    {
+      "key": "cake",
+      "source": "polyhaven",
+      "id": "carrot_cake",
+      "res": "1k",
+      "textureSize": 512,
+      "simplify": 0.4,
+      "simplifyError": 0.01
+    },
+    {
+      "key": "lighter_zippo",
+      "source": "polyhaven",
+      "id": "vintage_lighter",
+      "res": "1k",
+      "textureSize": 512
+    },
+    {
+      "key": "alarm_clock",
+      "source": "polyhaven",
+      "id": "alarm_clock_01",
+      "res": "1k",
+      "textureSize": 1024,
+      "simplify": 0.5,
+      "simplifyError": 0.005,
+      "clearGlass": "_[Gg]lass$"
+    },
+    {
+      "key": "frame_round",
+      "source": "polyhaven",
+      "id": "hanging_picture_frame_03",
+      "res": "1k",
+      "textureSize": 512,
+      "simplify": 0.25,
+      "simplifyError": 0.01
+    },
+    {
+      "key": "frame_gold",
+      "source": "polyhaven",
+      "id": "fancy_picture_frame_02",
+      "res": "1k",
+      "textureSize": 512,
+      "simplify": 0.2,
+      "simplifyError": 0.01
+    },
+    {
+      "key": "basket_wicker",
+      "source": "polyhaven",
+      "id": "wicker_basket_01",
+      "res": "1k",
+      "textureSize": 512,
+      "simplify": 0.3,
+      "simplifyError": 0.01
+    },
+    {
+      "key": "branches_dry",
+      "source": "polyhaven",
+      "id": "dry_branches_medium_01",
+      "res": "1k",
+      "textureSize": 512,
+      "simplify": 0.35,
+      "simplifyError": 0.01
+    },
+    {
+      "key": "phone_ornate",
+      "source": "local",
+      "path": ".asset-cache/scans/phone_ornate.glb",
+      "textureSize": 128,
+      "simplify": 0.5,
+      "simplifyError": 0.005
+    },
+    {
+      "key": "tv_retro",
+      "source": "local",
+      "path": ".asset-cache/scans/tv_retro.glb",
+      "textureSize": 128
+    },
+    {
+      "key": "chair_plastic",
+      "source": "local",
+      "path": ".asset-cache/scans/chair_plastic.glb",
+      "textureSize": 128
+    },
+    {
+      "key": "chair_ladder",
+      "source": "local",
+      "path": ".asset-cache/scans/chair_ladder.glb",
+      "textureSize": 128
+    },
+    {
+      "key": "bench_urban",
+      "source": "local",
+      "path": ".asset-cache/scans/bench_urban.glb",
+      "textureSize": 128
+    },
+    {
+      "key": "bench_changing",
+      "source": "local",
+      "path": ".asset-cache/scans/bench_changing.glb",
+      "textureSize": 128
+    },
+    {
+      "key": "seats_row",
+      "source": "local",
+      "path": ".asset-cache/scans/seats_row.glb",
+      "textureSize": 256
+    },
+    {
+      "key": "seat_theatre",
+      "source": "local",
+      "path": ".asset-cache/scans/seat_theatre.glb",
+      "textureSize": 256
+    },
+    {
+      "key": "filing_cabinet",
+      "source": "local",
+      "path": ".asset-cache/scans/filing_cabinet.glb",
+      "textureSize": 128
+    },
+    {
+      "key": "locker",
+      "source": "local",
+      "path": ".asset-cache/scans/locker.glb",
+      "textureSize": 128,
+      "simplify": 0.5,
+      "simplifyError": 0.005
+    },
+    {
+      "key": "door_six",
+      "source": "local",
+      "path": ".asset-cache/scans/door_six.glb",
+      "textureSize": 128
+    },
+    {
+      "key": "door_flush",
+      "source": "local",
+      "path": ".asset-cache/scans/door_flush.glb",
+      "textureSize": 128
+    },
+    {
+      "key": "door_knob",
+      "source": "local",
+      "path": ".asset-cache/scans/door_knob.glb",
+      "textureSize": 128
+    },
+    {
+      "key": "door_frame",
+      "source": "local",
+      "path": ".asset-cache/scans/door_frame.glb",
+      "textureSize": 128
+    },
+    {
+      "key": "sink",
+      "source": "local",
+      "path": ".asset-cache/scans/sink.glb",
+      "textureSize": 128
+    },
+    {
+      "key": "tap",
+      "source": "local",
+      "path": ".asset-cache/scans/tap.glb",
+      "textureSize": 128
+    },
+    {
+      "key": "faucet",
+      "source": "local",
+      "path": ".asset-cache/scans/faucet.glb",
+      "textureSize": 128
+    },
+    {
+      "key": "soap_dispenser",
+      "source": "local",
+      "path": ".asset-cache/scans/soap_dispenser.glb",
+      "textureSize": 128
+    },
+    {
+      "key": "towel_ring",
+      "source": "local",
+      "path": ".asset-cache/scans/towel_ring.glb",
+      "textureSize": 128
+    },
+    {
+      "key": "sink_drain",
+      "source": "local",
+      "path": ".asset-cache/scans/sink_drain.glb",
+      "textureSize": 128
+    },
+    {
+      "key": "drinking_fountain",
+      "source": "local",
+      "path": ".asset-cache/scans/drinking_fountain.glb",
+      "textureSize": 128
+    },
+    {
+      "key": "toothbrush",
+      "source": "local",
+      "path": ".asset-cache/scans/toothbrush.glb",
+      "textureSize": 128
+    },
+    {
+      "key": "comb",
+      "source": "local",
+      "path": ".asset-cache/scans/comb.glb",
+      "textureSize": 128
+    },
+    {
+      "key": "plate",
+      "source": "local",
+      "path": ".asset-cache/scans/plate.glb",
+      "textureSize": 128
+    },
+    {
+      "key": "bowl",
+      "source": "local",
+      "path": ".asset-cache/scans/bowl.glb",
+      "textureSize": 128
+    },
+    {
+      "key": "fork",
+      "source": "local",
+      "path": ".asset-cache/scans/fork.glb",
+      "textureSize": 128
+    },
+    {
+      "key": "knife",
+      "source": "local",
+      "path": ".asset-cache/scans/knife.glb",
+      "textureSize": 128
+    },
+    {
+      "key": "spoon",
+      "source": "local",
+      "path": ".asset-cache/scans/spoon.glb",
+      "textureSize": 128
+    },
+    {
+      "key": "mug",
+      "source": "local",
+      "path": ".asset-cache/scans/mug.glb",
+      "textureSize": 128
+    },
+    {
+      "key": "tumbler",
+      "source": "local",
+      "path": ".asset-cache/scans/tumbler.glb",
+      "textureSize": 128
+    },
+    {
+      "key": "salt_shaker",
+      "source": "local",
+      "path": ".asset-cache/scans/salt_shaker.glb",
+      "textureSize": 128
+    },
+    {
+      "key": "bread_half",
+      "source": "local",
+      "path": ".asset-cache/scans/bread_half.glb",
+      "textureSize": 256
+    },
+    {
+      "key": "pillow",
+      "source": "local",
+      "path": ".asset-cache/scans/pillow.glb",
+      "textureSize": 128
+    },
+    {
+      "key": "hanger",
+      "source": "local",
+      "path": ".asset-cache/scans/hanger.glb",
+      "textureSize": 128
+    },
+    {
+      "key": "coat_stand",
+      "source": "local",
+      "path": ".asset-cache/scans/coat_stand.glb",
+      "textureSize": 128,
+      "simplify": 0.5,
+      "simplifyError": 0.005
+    },
+    {
+      "key": "coat_hook",
+      "source": "local",
+      "path": ".asset-cache/scans/coat_hook.glb",
+      "textureSize": 128
+    },
+    {
+      "key": "fedora",
+      "source": "local",
+      "path": ".asset-cache/scans/fedora.glb",
+      "textureSize": 128
+    },
+    {
+      "key": "boot_felt",
+      "source": "local",
+      "path": ".asset-cache/scans/boot_felt.glb",
+      "textureSize": 128
+    },
+    {
+      "key": "sandal",
+      "source": "local",
+      "path": ".asset-cache/scans/sandal.glb",
+      "textureSize": 128
+    },
+    {
+      "key": "shoes_leather",
+      "source": "local",
+      "path": ".asset-cache/scans/shoes_leather.glb",
+      "textureSize": 256
+    },
+    {
+      "key": "slippers",
+      "source": "local",
+      "path": ".asset-cache/scans/slippers.glb",
+      "textureSize": 256
+    },
+    {
+      "key": "booties",
+      "source": "local",
+      "path": ".asset-cache/scans/booties.glb",
+      "textureSize": 256
+    },
+    {
+      "key": "tweezers",
+      "source": "local",
+      "path": ".asset-cache/scans/tweezers.glb",
+      "textureSize": 128
+    },
+    {
+      "key": "pliers",
+      "source": "local",
+      "path": ".asset-cache/scans/pliers.glb",
+      "textureSize": 128
+    },
+    {
+      "key": "molar",
+      "source": "local",
+      "path": ".asset-cache/scans/molar.glb",
+      "textureSize": 128
+    },
+    {
+      "key": "molar_low",
+      "source": "local",
+      "path": ".asset-cache/scans/molar_low.glb",
+      "textureSize": 128,
+      "simplify": 0.08,
+      "simplifyError": 0.05
+    },
+    {
+      "key": "syringe",
+      "source": "local",
+      "path": ".asset-cache/scans/syringe.glb",
+      "textureSize": 256
+    },
+    {
+      "key": "dental_mirror",
+      "source": "local",
+      "path": ".asset-cache/scans/dental_mirror.glb",
+      "textureSize": 256
+    },
+    {
+      "key": "scalpel",
+      "source": "local",
+      "path": ".asset-cache/scans/scalpel.glb",
+      "textureSize": 256
+    },
+    {
+      "key": "tube_light",
+      "source": "local",
+      "path": ".asset-cache/scans/tube_light.glb",
+      "textureSize": 128
+    },
+    {
+      "key": "lamp_floor",
+      "source": "local",
+      "path": ".asset-cache/scans/lamp_floor.glb",
+      "textureSize": 256,
+      "simplify": 0.5,
+      "simplifyError": 0.01
+    },
+    {
+      "key": "radiator",
+      "source": "local",
+      "path": ".asset-cache/scans/radiator.glb",
+      "textureSize": 128,
+      "simplify": 0.6,
+      "simplifyError": 0.005
+    },
+    {
+      "key": "baluster_turned",
+      "source": "local",
+      "path": ".asset-cache/scans/baluster_turned.glb",
+      "textureSize": 128,
+      "simplify": 0.4,
+      "simplifyError": 0.005
+    },
+    {
+      "key": "newel_cap",
+      "source": "local",
+      "path": ".asset-cache/scans/newel_cap.glb",
+      "textureSize": 128
+    },
+    {
+      "key": "handrail",
+      "source": "local",
+      "path": ".asset-cache/scans/handrail.glb",
+      "textureSize": 128
+    },
+    {
+      "key": "vent_cover",
+      "source": "local",
+      "path": ".asset-cache/scans/vent_cover.glb",
+      "textureSize": 128
+    },
+    {
+      "key": "air_vent",
+      "source": "local",
+      "path": ".asset-cache/scans/air_vent.glb",
+      "textureSize": 128
+    },
+    {
+      "key": "drain_grate",
+      "source": "local",
+      "path": ".asset-cache/scans/drain_grate.glb",
+      "textureSize": 128
+    },
+    {
+      "key": "light_switch",
+      "source": "local",
+      "path": ".asset-cache/scans/light_switch.glb",
+      "textureSize": 128
+    },
+    {
+      "key": "window_wood",
+      "source": "local",
+      "path": ".asset-cache/scans/window_wood.glb",
+      "textureSize": 256
+    },
+    {
+      "key": "curtains",
+      "source": "local",
+      "path": ".asset-cache/scans/curtains.glb",
+      "textureSize": 256
+    },
+    {
+      "key": "staircase",
+      "source": "local",
+      "path": ".asset-cache/scans/staircase.glb",
+      "textureSize": 256
+    },
+    {
+      "key": "pool_ladder",
+      "source": "local",
+      "path": ".asset-cache/scans/pool_ladder.glb",
+      "textureSize": 128
+    },
+    {
+      "key": "bus_city",
+      "source": "local",
+      "path": ".asset-cache/scans/bus_city.glb",
+      "textureSize": 256,
+      "simplify": 0.6,
+      "simplifyError": 0.005
+    },
+    {
+      "key": "coffin",
+      "source": "local",
+      "path": ".asset-cache/scans/coffin.glb",
+      "textureSize": 128
+    },
+    {
+      "key": "coffin_lid",
+      "source": "local",
+      "path": ".asset-cache/scans/coffin_lid.glb",
+      "textureSize": 128
+    },
+    {
+      "key": "urn",
+      "source": "local",
+      "path": ".asset-cache/scans/urn.glb",
+      "textureSize": 128
+    },
+    {
+      "key": "vase",
+      "source": "local",
+      "path": ".asset-cache/scans/vase.glb",
+      "textureSize": 128
+    },
+    {
+      "key": "easel",
+      "source": "local",
+      "path": ".asset-cache/scans/easel.glb",
+      "textureSize": 256
+    },
+    {
+      "key": "roses",
+      "source": "local",
+      "path": ".asset-cache/scans/roses.glb",
+      "textureSize": 256,
+      "simplify": 0.5,
+      "simplifyError": 0.01
+    },
+    {
+      "key": "horn_bulb",
+      "source": "local",
+      "path": ".asset-cache/scans/horn_bulb.glb",
+      "textureSize": 128
+    },
+    {
+      "key": "cake_stand",
+      "source": "local",
+      "path": ".asset-cache/scans/cake_stand.glb",
+      "textureSize": 128
+    },
+    {
+      "key": "gramophone",
+      "source": "local",
+      "path": ".asset-cache/scans/gramophone.glb",
+      "textureSize": 256
+    },
+    {
+      "key": "dolly_peg",
+      "source": "local",
+      "path": ".asset-cache/scans/dolly_peg.glb",
+      "textureSize": 128
+    },
+    {
+      "key": "bell_service",
+      "source": "local",
+      "path": ".asset-cache/scans/bell_service.glb",
+      "textureSize": 128
+    },
+    {
+      "key": "ticket_stub",
+      "source": "local",
+      "path": ".asset-cache/scans/ticket_stub.glb",
+      "textureSize": 128
+    },
+    {
+      "key": "pencil",
+      "source": "local",
+      "path": ".asset-cache/scans/pencil.glb",
+      "textureSize": 128
+    },
+    {
+      "key": "noticeboard",
+      "source": "local",
+      "path": ".asset-cache/scans/noticeboard.glb",
+      "textureSize": 128
+    },
+    {
+      "key": "bucket",
+      "source": "local",
+      "path": ".asset-cache/scans/bucket.glb",
+      "textureSize": 128
+    },
+    {
+      "key": "roach",
+      "source": "local",
+      "path": ".asset-cache/scans/roach.glb",
+      "textureSize": 256
+    },
+    {
+      "key": "fly",
+      "source": "local",
+      "path": ".asset-cache/scans/fly.glb",
+      "textureSize": 256
+    },
+    {
+      "key": "bus_shelter",
+      "source": "local",
+      "path": ".asset-cache/scans/bus_shelter.glb",
+      "textureSize": 256
+    },
+    {
+      "key": "fridge",
+      "source": "local",
+      "path": ".asset-cache/scans/fridge.glb",
+      "textureSize": 256
+    },
+    {
+      "key": "iv_stand",
+      "source": "local",
+      "path": ".asset-cache/scans/iv_stand.glb",
+      "textureSize": 512
+    },
+    {
+      "key": "monitor_ecg",
+      "source": "local",
+      "path": ".asset-cache/scans/monitor_ecg.glb",
+      "textureSize": 512
+    },
+    {
+      "key": "xray_light",
+      "source": "local",
+      "path": ".asset-cache/scans/xray_light.glb",
+      "textureSize": 512
+    },
+    {
+      "key": "spider",
+      "source": "local",
+      "path": ".asset-cache/scans/spider.glb",
+      "textureSize": 1024
+    },
+    {
+      "key": "spider_low",
+      "source": "local",
+      "path": ".asset-cache/scans/spider_low.glb",
+      "textureSize": 256
+    },
+    {
+      "key": "sheet_chair",
+      "source": "local",
+      "path": ".asset-cache/scans/sheet_chair.glb",
+      "textureSize": 64,
+      "simplify": 0.35,
+      "simplifyError": 0.002
+    },
+    {
+      "key": "sheet_armchair",
+      "source": "local",
+      "path": ".asset-cache/scans/sheet_armchair.glb",
+      "textureSize": 64,
+      "simplify": 0.3,
+      "simplifyError": 0.002
+    },
+    {
+      "key": "sheet_sofa",
+      "source": "local",
+      "path": ".asset-cache/scans/sheet_sofa.glb",
+      "textureSize": 64,
+      "simplify": 0.22,
+      "simplifyError": 0.002
+    },
+    {
+      "key": "sheet_table",
+      "source": "local",
+      "path": ".asset-cache/scans/sheet_table.glb",
+      "textureSize": 64,
+      "simplify": 0.22,
+      "simplifyError": 0.002
+    },
+    {
+      "key": "sheet_lamp",
+      "source": "local",
+      "path": ".asset-cache/scans/sheet_lamp.glb",
+      "textureSize": 64,
+      "simplify": 0.3,
+      "simplifyError": 0.002
+    },
+    {
+      "key": "sheet_figure",
+      "source": "local",
+      "path": ".asset-cache/scans/sheet_figure.glb",
+      "textureSize": 64,
+      "simplify": 0.3,
+      "simplifyError": 0.002
+    },
+    {
+      "key": "shroud_body",
+      "source": "local",
+      "path": ".asset-cache/scans/shroud_body.glb",
+      "textureSize": 64,
+      "simplify": 0.4,
+      "simplifyError": 0.002
+    },
+    {
+      "key": "bed_iron",
+      "source": "local",
+      "path": ".asset-cache/scans/bed_iron.glb",
+      "textureSize": 64
+    },
+    {
+      "key": "eyeball",
+      "source": "local",
+      "path": ".asset-cache/scans/eyeball.glb",
+      "textureSize": 512
+    },
+    {
+      "key": "party_hat",
+      "source": "local",
+      "path": ".asset-cache/scans/party_hat.glb",
+      "textureSize": 128
+    },
+    {
+      "key": "balloon",
+      "source": "local",
+      "path": ".asset-cache/scans/balloon.glb",
+      "textureSize": 64
+    },
+    {
+      "key": "candle_party",
+      "source": "local",
+      "path": ".asset-cache/scans/candle_party.glb",
+      "textureSize": 64
+    },
+    {
+      "key": "music_box",
+      "source": "local",
+      "path": ".asset-cache/scans/music_box.glb",
+      "textureSize": 64
+    },
+    {
+      "key": "doll",
+      "source": "local",
+      "path": ".asset-cache/scans/doll.glb",
+      "textureSize": 1024
+    },
+    {
+      "key": "doll_low",
+      "source": "local",
+      "path": ".asset-cache/scans/doll_low.glb",
+      "textureSize": 512
+    },
+    {
+      "key": "coat",
+      "source": "local",
+      "path": ".asset-cache/scans/coat.glb",
+      "textureSize": 512
+    },
+    {
+      "key": "roach_low",
+      "source": "local",
+      "path": ".asset-cache/scans/roach_low.glb",
+      "textureSize": 64
+    },
+    {
+      "key": "stage_light",
+      "source": "local",
+      "path": ".asset-cache/scans/stage_light.glb",
+      "textureSize": 256
+    },
+    {
+      "key": "dental_drill",
+      "source": "local",
+      "path": ".asset-cache/scans/dental_drill.glb",
+      "textureSize": 64
+    },
+    {
+      "key": "tea_glass",
+      "source": "local",
+      "path": ".asset-cache/scans/tea_glass.glb",
+      "textureSize": 64
+    },
+    {
+      "key": "roast_lump",
+      "source": "polyhaven",
+      "id": "sweet_potato",
+      "res": "1k",
+      "textureSize": 512
+    },
+    {
+      "key": "buns",
+      "source": "polyhaven",
+      "id": "hamburger_buns",
+      "res": "1k",
+      "textureSize": 512,
+      "simplify": 0.5,
+      "simplifyError": 0.005
+    },
+    {
+      "key": "dog_sit_a",
+      "source": "local",
+      "path": ".asset-cache/scans/dog_sit_a.glb",
+      "textureSize": 64
+    },
+    {
+      "key": "dog_sit_b",
+      "source": "local",
+      "path": ".asset-cache/scans/dog_sit_b.glb",
+      "textureSize": 64
+    },
+    {
+      "key": "dog_sit_c",
+      "source": "local",
+      "path": ".asset-cache/scans/dog_sit_c.glb",
+      "textureSize": 64
+    },
+    {
+      "key": "shark",
+      "source": "local",
+      "path": ".asset-cache/scans/shark.glb",
+      "textureSize": 64
     }
   ],
   "materials": [
@@ -812,6 +1769,197 @@
       "source": "ambientcg",
       "id": "Sponge001",
       "res": "1K",
+      "size": 512
+    },
+    {
+      "key": "tile_bone",
+      "source": "ambientcg",
+      "id": "Tiles136B",
+      "res": "1K",
+      "size": 1024
+    },
+    {
+      "key": "tile_white",
+      "source": "ambientcg",
+      "id": "Tiles133B",
+      "res": "1K",
+      "size": 1024
+    },
+    {
+      "key": "tile_pool",
+      "source": "ambientcg",
+      "id": "Tiles132B",
+      "res": "1K",
+      "size": 1024,
+      "tint": {
+        "saturation": 0.5,
+        "hue": -28,
+        "brightness": 0.95
+      }
+    },
+    {
+      "key": "tile_wet",
+      "source": "polyhaven",
+      "id": "worn_tile_floor",
+      "res": "1k",
+      "size": 1024
+    },
+    {
+      "key": "tile_checker",
+      "source": "polyhaven",
+      "id": "floor_tiles_06",
+      "res": "1k",
+      "size": 1024
+    },
+    {
+      "key": "paint_green",
+      "source": "polyhaven",
+      "id": "painted_concrete",
+      "res": "1k",
+      "size": 1024
+    },
+    {
+      "key": "plaster_pale",
+      "source": "polyhaven",
+      "id": "painted_plaster_wall",
+      "res": "1k",
+      "size": 1024
+    },
+    {
+      "key": "plaster_mould",
+      "source": "polyhaven",
+      "id": "worn_mossy_plasterwall",
+      "res": "1k",
+      "size": 1024
+    },
+    {
+      "key": "plaster_gallery",
+      "source": "polyhaven",
+      "id": "plastered_wall_04",
+      "res": "1k",
+      "size": 1024
+    },
+    {
+      "key": "wallpaper_old",
+      "source": "polyhaven",
+      "id": "decrepit_wallpaper",
+      "res": "1k",
+      "size": 1024
+    },
+    {
+      "key": "litter_dark",
+      "source": "polyhaven",
+      "id": "forest_leaves_03",
+      "res": "1k",
+      "size": 1024
+    },
+    {
+      "key": "litter_wet",
+      "source": "polyhaven",
+      "id": "leaves_forest_ground",
+      "res": "1k",
+      "size": 1024
+    },
+    {
+      "key": "grass_meadow",
+      "source": "polyhaven",
+      "id": "sparse_grass",
+      "res": "1k",
+      "size": 1024
+    },
+    {
+      "key": "soil_dark",
+      "source": "polyhaven",
+      "id": "farm_soil",
+      "res": "1k",
+      "size": 1024
+    },
+    {
+      "key": "rust_sheet",
+      "source": "polyhaven",
+      "id": "rusty_metal_05",
+      "res": "1k",
+      "size": 1024
+    },
+    {
+      "key": "duct_galvanized",
+      "source": "polyhaven",
+      "id": "rusty_metal_02",
+      "res": "1k",
+      "size": 1024
+    },
+    {
+      "key": "steel_scuffed",
+      "source": "ambientcg",
+      "id": "Metal024",
+      "res": "1K",
+      "size": 1024
+    },
+    {
+      "key": "metal_plate_dark",
+      "source": "polyhaven",
+      "id": "metal_plate_02",
+      "res": "1k",
+      "size": 1024
+    },
+    {
+      "key": "wood_rot",
+      "source": "polyhaven",
+      "id": "wood_peeling_paint_weathered",
+      "res": "1k",
+      "size": 1024
+    },
+    {
+      "key": "wood_raw_boards",
+      "source": "polyhaven",
+      "id": "worn_planks",
+      "res": "1k",
+      "size": 1024
+    },
+    {
+      "key": "wood_floor_dark",
+      "source": "polyhaven",
+      "id": "old_wooden_floor_02",
+      "res": "1k",
+      "size": 1024
+    },
+    {
+      "key": "wood_stair",
+      "source": "polyhaven",
+      "id": "stair_planks",
+      "res": "1k",
+      "size": 1024
+    },
+    {
+      "key": "wood_dark_paint",
+      "source": "polyhaven",
+      "id": "black_painted_planks",
+      "res": "1k",
+      "size": 1024
+    },
+    {
+      "key": "linen_white",
+      "source": "polyhaven",
+      "id": "rough_linen",
+      "res": "1k",
+      "size": 512,
+      "tint": {
+        "saturation": 0.06,
+        "brightness": 1.3
+      }
+    },
+    {
+      "key": "velvet_red",
+      "source": "polyhaven",
+      "id": "velour_velvet",
+      "res": "1k",
+      "size": 512
+    },
+    {
+      "key": "carpet_dirty",
+      "source": "polyhaven",
+      "id": "dirty_carpet",
+      "res": "1k",
       "size": 512
     }
   ],

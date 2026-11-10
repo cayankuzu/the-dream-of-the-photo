@@ -114,6 +114,8 @@ const MOVING_RATE = 4;
 const TAU = Math.PI * 2;
 /** Below this share a layer counts as silent. */
 const SILENT = 0.0006;
+/** The sample rate of files decoded before there is a context (Hz). */
+const DECODE_RATE = 48000;
 /** A share jumping by this much within one mixing step is a cut in its keys. */
 const CUT_JUMP = 0.2;
 /** Scrolling back this far past a blow (walk) undoes it. */
@@ -206,6 +208,7 @@ export class AudioEngine {
   // the nightmare's nodes
   /** What the walk plays, straight to the ears; and what it sends to the reverb of the space. */
   private dryBus!: GainNode;
+  private silentDecoder: OfflineAudioContext | null = null;
   private wetBus!: GainNode;
   private spaceRoom!: GainNode;
   private spaceHall!: GainNode;
@@ -280,6 +283,21 @@ export class AudioEngine {
   /** True once the browser lets the context play. */
   get running(): boolean {
     return this.ctx?.state === 'running';
+  }
+
+  /** Fetch one file under public/audio for a room (null when missing or the sound is off for good). */
+  async fetchSound(file: string): Promise<AudioBuffer | null> {
+    return this.decode(`audio/${file}`);
+  }
+
+  /** Let go of a room's file: its samples live on only while a voice still plays them. */
+  releaseSound(file: string): void {
+    this.files.delete(`audio/${file}`);
+  }
+
+  /** Where a room's voices go, once sound runs. */
+  roomOutput(): { ctx: AudioContext; sfx: AudioNode; reverb: AudioNode } | null {
+    return this.ctx && this.sfx ? { ctx: this.ctx, sfx: this.sfx, reverb: this.reverbSend } : null;
   }
 
   private resume(): void {
@@ -471,15 +489,20 @@ export class AudioEngine {
   }
 
   private async fetchFile(url: string): Promise<AudioBuffer | null> {
-    const ctx = this.ctx;
-    if (!ctx) return null;
     try {
       const res = await fetch(`${import.meta.env.BASE_URL}${url}`);
       if (!res.ok) return null;
-      return await ctx.decodeAudioData(await res.arrayBuffer());
+      return await this.decoder().decodeAudioData(await res.arrayBuffer());
     } catch {
       return null;
     }
+  }
+
+  /** The live context, or before the first gesture one that never plays: a decoded buffer works in any context. */
+  private decoder(): BaseAudioContext {
+    if (this.ctx) return this.ctx;
+    this.silentDecoder ??= new OfflineAudioContext(2, 1, DECODE_RATE);
+    return this.silentDecoder;
   }
 
   /** Peak and RMS (linear, over all channels) of a span of `buffer`. */

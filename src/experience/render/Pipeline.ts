@@ -180,6 +180,8 @@ export interface DreamFx {
   burn: number;
   /** 0..1 the picture turns to its negative. */
   negative: number;
+  /** 0..1 everything goes white (a cut made of a flash). */
+  white: number;
   /** A picture cut in for a frame or two: what, and how much of it. */
   insert: Texture | null;
   insertMix: number;
@@ -206,6 +208,7 @@ export const restingFx = (): DreamFx => ({
   dip: 0,
   burn: 0,
   negative: 0,
+  white: 0,
   insert: null,
   insertMix: 0,
   black: 0,
@@ -278,6 +281,7 @@ uniform float uInsertMix;
 uniform vec2 uInsertScale;
 uniform float uNegative;
 uniform float uBlack;
+uniform float uWhite;
 uniform float uScratches;
 uniform float uTunnel;
 uniform float uClump;
@@ -360,6 +364,7 @@ void main() {
   c = linearToSRGB(c);
   if (uNegative > 0.0) c = mix(c, 1.0 - c, uNegative);
   if (uBlack > 0.0) c *= 1.0 - uBlack;
+  if (uWhite > 0.0) c = mix(c, vec3(1.0), uWhite);
   if (uScratches > 0.0) c = filmDamage(c, uv, aspect);
   if (uBurn > 0.0) c = filmBurn(c, uv, aspect);
   vec2 v = (vUv - 0.5) * vec2(aspect, 1.0);
@@ -672,6 +677,7 @@ export class Pipeline {
         uInsertScale: { value: new Vector2(1, 1) },
         uNegative: { value: 0 },
         uBlack: { value: 0 },
+        uWhite: { value: 0 },
         uScratches: { value: 0 },
         uTunnel: { value: 0 },
         uClump: { value: 0 },
@@ -920,6 +926,7 @@ export class Pipeline {
     u.uInsertMix.value = fx.insert ? fx.insertMix : 0;
     u.uNegative.value = fx.negative;
     u.uBlack.value = fx.black;
+    u.uWhite.value = fx.white;
     u.uBurn.value = fx.burn;
     u.uFilmTime.value = fx.film;
     this.writeDamage(fx, frame);

@@ -28,6 +28,8 @@ export class ScrollInput {
   lookEnabled = false;
   /** Off while the pause menu is open. */
   enabled = true;
+  /** A room has taken Space for its own (see RoomInputs). */
+  spaceTaken = false;
   /** The axis the current one-finger gesture was decided on. */
   touchAxis: 'none' | 'x' | 'y' = 'none';
   private lastTouchY: number | null = null;
@@ -97,7 +99,7 @@ export class ScrollInput {
   };
 
   private onKey = (e: KeyboardEvent): void => {
-    if (!this.enabled || !walkKey(e)) return;
+    if (!this.enabled || !walkKey(e) || (e.key === ' ' && this.spaceTaken)) return;
     const step = timelineConfig.keyStep;
     switch (e.key) {
       case 'ArrowDown':

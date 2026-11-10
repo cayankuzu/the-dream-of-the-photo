@@ -245,6 +245,9 @@ export class Scares {
   /** The beat, as the lens feels it. */
   private swell = 0;
 
+  /** The journey's cut between steps: how much it covers the picture, and with what. */
+  readonly journeyCut = { cover: 0, white: false };
+
   constructor(private readonly ctx: ScareContext) {
     const S = C.stage;
     this.flash = ctx.dream.kit.lights.add([S.at[0], S.at[1], S.at[2]], S.flashColor, 0, 1);
@@ -433,6 +436,22 @@ export class Scares {
     fx.flicker = TRACK.flicker.at(along) * (1 + fear * F.flicker);
     fx.grain = TRACK.grain.at(along);
     fx.burn = TRACK.burn.at(along);
+    const room = dream.room;
+    if (room) {
+      const f = room.film;
+      fx.bloom = (f.bloom ?? 0) * (1 + fear * F.bloom);
+      fx.bloomFrom = f.bloomFrom ?? REST.from;
+      const tint = f.bloomTint ?? NEUTRAL;
+      fx.bloomTint.setRGB(tint[0], tint[1], tint[2]);
+      fx.ghost = f.ghost ?? 0;
+      fx.aberration = (f.aberration ?? 0) * (1 + fear * F.aberration);
+      fx.barrel = (f.barrel ?? 0) * (C.barrelFloor + (1 - C.barrelFloor) * this.swell);
+      fx.scratches = Math.min(1, (f.scratches ?? 0) * (1 + fear * F.scratches));
+      fx.weave = (f.weave ?? 0) * (1 + fear * F.weave);
+      fx.flicker = (f.flicker ?? 0) * (1 + fear * F.flicker);
+      fx.grain = f.grain ?? 0.2;
+      fx.burn = f.burn ?? 0;
+    }
   }
 
   /** What the blows running now do on top of it. */
@@ -441,7 +460,8 @@ export class Scares {
     const blackout = this.blackoutLight();
     const teeth = this.teethLight();
     dream.dim = Math.min(blackout, teeth);
-    fx.black = ended ? 1 : Math.max((1 - blackout) * C.blackout.veil, (1 - teeth) * C.teeth.veil);
+    fx.black = ended ? 1 : Math.max((1 - blackout) * C.blackout.veil, (1 - teeth) * C.teeth.veil, this.journeyCut.white ? 0 : this.journeyCut.cover, dream.room?.black ?? 0);
+    fx.white = Math.max(this.journeyCut.white ? this.journeyCut.cover : 0, dream.room?.white ?? 0);
     // over: nothing is left to spill or to linger
     if (ended) fx.bloom = fx.ghost = 0;
     fx.dip = this.sinceDip < this.dipSeconds ? this.dipDepth * Math.sin((Math.PI * this.sinceDip) / this.dipSeconds) : 0;

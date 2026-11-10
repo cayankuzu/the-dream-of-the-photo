@@ -270,18 +270,15 @@ export const dreamConfig = {
   moments: {
     resolution: 256,
     /**
-     * pass 'real': the real moment before the shot (the photographer, from where no one stood);
-     * pass 'dream': places further along the walk (walk-frame positions are offset into the sea past the print).
+     * pass 'real': the real moment before the shot (the photographer, from where no one stood).
      */
     views: [
       { pass: 'real', position: [0.35, 1.7, -2.4] as V3, target: [0, 1.62, 0] as V3, fov: 40 },
       { pass: 'real', position: [0.2, 9.5, -1.2] as V3, target: [0, 0, -0.6] as V3, fov: 50 },
       { pass: 'real', position: [0.5, 1.5, -14] as V3, target: [0, 1.4, 0] as V3, fov: 22 },
-      { pass: 'dream', position: [0, 1.7, -40] as V3, target: [0, 3, -62] as V3, fov: 58 },
-      { pass: 'dream', position: [-2, 1.7, -68] as V3, target: [4, 5, -110] as V3, fov: 70 },
-      { pass: 'dream', position: [0, 1.62, -128] as V3, target: [0, 1.5, -146] as V3, fov: 60 },
-      { pass: 'dream', position: [0, 1.7, -154] as V3, target: [0, 1.7, -180] as V3, fov: 66 },
-      { pass: 'dream', position: [0.2, 1.65, -240] as V3, target: [0.15, 2, -300] as V3, fov: 56 },
+      { pass: 'real', position: [-1.2, 2.6, 2.4] as V3, target: [0.1, 1.3, -1] as V3, fov: 34 },
+      { pass: 'real', position: [1.4, 0.5, -3] as V3, target: [0, 1.5, 0] as V3, fov: 30 },
+      { pass: 'real', position: [0, 5.5, -18] as V3, target: [0, 1.5, -2] as V3, fov: 26 },
     ],
   },
 

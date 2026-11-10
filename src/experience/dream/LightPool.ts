@@ -48,6 +48,13 @@ export class LightPool {
     return light;
   }
 
+  /** A light that is no more. */
+  remove(light: DreamLight): void {
+    const i = this.lights.indexOf(light);
+    if (i >= 0) this.lights.splice(i, 1);
+    this.score.delete(light);
+  }
+
   /** Give the pool to the lights that matter most from here. */
   assign(eye: Vector3): void {
     const near: DreamLight[] = [];

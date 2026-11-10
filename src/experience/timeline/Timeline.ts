@@ -1,5 +1,6 @@
 import { PHASES, timelineConfig, type Cue, type Phase } from '../../config/experience.config';
-import { clamp } from '../math';
+import { isRoom, JOURNEY, journeySeconds, type JourneyStep } from '../../config/journey.config';
+import { clamp, lerp } from '../math';
 
 export interface PhaseInfo {
   phase: Phase;
@@ -21,8 +22,61 @@ export function phaseEnd(phase: Phase): number {
   return i < PHASES.length - 1 ? starts[i + 1] : 1;
 }
 
-/** 0..1 progress of `p` through `phase` (clamped). */
+/** Where each step of the journey lies on the timeline, and how far along the walk it begins. */
+interface PlacedStep {
+  step: JourneyStep;
+  index: number;
+  from: number;
+  to: number;
+  /** The walk's fraction at its start and end (a room stands still at one place of the walk). */
+  walkFrom: number;
+  walkTo: number;
+}
+
+export const JOURNEY_STEPS: readonly PlacedStep[] = (() => {
+  const a = timelineConfig.phaseStart.WORLD;
+  const b = timelineConfig.phaseStart.EXPLORATION;
+  let seconds = 0;
+  let walk = 0;
+  return JOURNEY.map((step, index) => {
+    const from = a + ((b - a) * seconds) / journeySeconds;
+    seconds += step.seconds;
+    const to = a + ((b - a) * seconds) / journeySeconds;
+    const walkFrom = isRoom(step) ? walk : step.walk[0];
+    walk = isRoom(step) ? walk : step.walk[1];
+    return { step, index, from, to, walkFrom, walkTo: walk };
+  });
+})();
+
+/** The step of the journey at `p` (the nearest one outside the journey). */
+export function stepAt(p: number): PlacedStep {
+  let lo = 0;
+  let hi = JOURNEY_STEPS.length - 1;
+  while (lo < hi) {
+    const mid = (lo + hi + 1) >> 1;
+    if (p >= JOURNEY_STEPS[mid].from) lo = mid;
+    else hi = mid - 1;
+  }
+  return JOURNEY_STEPS[lo];
+}
+
+/** The room running at `p`, and how far through its time; null on the walk or outside the journey. */
+export function roomAt(p: number): { id: string; t: number; step: PlacedStep } | null {
+  if (p < phaseStart('WORLD') || p >= phaseStart('EXPLORATION')) return null;
+  const s = stepAt(p);
+  return isRoom(s.step) ? { id: s.step.room, t: clamp((p - s.from) / (s.to - s.from), 0, 1), step: s } : null;
+}
+
+function walkAt(p: number): number {
+  if (p <= phaseStart('WORLD')) return 0;
+  if (p >= phaseStart('EXPLORATION')) return 1;
+  const s = stepAt(p);
+  return lerp(s.walkFrom, s.walkTo, clamp((p - s.from) / (s.to - s.from), 0, 1));
+}
+
+/** 0..1 progress of `p` through `phase` (clamped). In WORLD: the fraction of the walk, standing still during rooms. */
 export function phaseProgress(p: number, phase: Phase): number {
+  if (phase === 'WORLD') return walkAt(p);
   const a = phaseStart(phase);
   const b = phaseEnd(phase);
   return clamp((p - a) / (b - a), 0, 1);
@@ -42,12 +96,32 @@ export function phaseAt(p: number): PhaseInfo {
   return { phase, local: phaseProgress(p, phase) };
 }
 
-/** Timeline position of a [phase, fraction-of-phase] cue (config stays readable when phases move). */
-export const cueToProgress = ([phase, t]: Cue): number => phaseStart(phase) + (phaseEnd(phase) - phaseStart(phase)) * t;
+/** Timeline position of a cue (config stays readable when phases move). */
+export function cueToProgress(cue: Cue): number {
+  if (cue[0] === 'STEP') {
+    const placed = JOURNEY_STEPS[cue[1]];
+    return lerp(placed.from, placed.to, cue[2]);
+  }
+  if (cue[0] === 'ROOM') {
+    const placed = JOURNEY_STEPS.find((s) => isRoom(s.step) && s.step.room === cue[1]);
+    if (!placed) throw new Error(`no such room on the journey: ${cue[1]}`);
+    return lerp(placed.from, placed.to, cue[2]);
+  }
+  const [phase, t] = cue;
+  if (phase === 'WORLD') {
+    const placed = JOURNEY_STEPS.find((s) => !isRoom(s.step) && t <= s.walkTo && t >= s.walkFrom);
+    if (placed) return lerp(placed.from, placed.to, (t - placed.walkFrom) / (placed.walkTo - placed.walkFrom));
+  }
+  return phaseStart(phase) + (phaseEnd(phase) - phaseStart(phase)) * t;
+}
 
 export const SHUTTER_PROGRESS = cueToProgress(['CAPTURE', timelineConfig.shutterAt]);
 
 const tempo = timelineConfig.tempo.map((t) => ({ ...t, at: cueToProgress(t.at) }));
+
+/** Seconds the target may run ahead of what is showing, at the fastest allowed; how fast the legs tire (1/s). */
+const TARGET_LEAD = 1.5;
+const LEGS_FADE = 1.6;
 
 /**
  * Scroll is cinematic time: input moves a *target*, the visible timeline follows it
@@ -59,20 +133,32 @@ export class Timeline {
   progress = 0;
   /** The dream moves on by itself (see timelineConfig.autoRate). */
   auto = false;
+  /** Nothing the viewer does moves time here (a room that takes control). */
+  locked = false;
+  /** How far time can go from here: what comes next may not be ready, and the dream does not go back. */
+  bounds: readonly [number, number] = [0, 1];
+  /** How many times its own pace time may move here. */
+  hurry = Infinity;
+  /** Forward pushes in the last moments (timeline pixels per second, decaying): the viewer's legs. */
+  legs = 0;
   private hold = 0;
   private autoHold = 0;
   private readonly marks = new Map<number, Listener[]>();
 
   /** Add raw scroll "pixels" (positive = forward). */
   push(pixels: number): void {
+    if (this.locked) return;
     this.target = clamp(this.target + pixels / timelineConfig.scrollLength, 0, 1);
     // going back is allowed, for a moment: the dream waits before it pulls you on again
     if (pixels < 0) this.autoHold = timelineConfig.autoHold;
+    else this.legs += pixels;
   }
 
   /** Jump immediately (debug / deep links). */
   seek(p: number): void {
     this.target = this.progress = clamp(p, 0, 1);
+    // whatever held time back was about where it used to be
+    this.bounds = [0, 1];
   }
 
   /** Fire `listener` whenever the smoothed timeline crosses `at` (with the crossing direction). */
@@ -93,11 +179,15 @@ export class Timeline {
       return;
     }
     this.autoHold = Math.max(0, this.autoHold - dt);
+    this.legs *= Math.exp(-LEGS_FADE * dt);
     if (this.auto && this.autoHold === 0) this.target = Math.min(1, this.target + timelineConfig.autoRate * dt);
+    const cap = Math.min(timelineConfig.maxSpeed, this.hurry * timelineConfig.autoRate);
+    // what is pushed beyond what it could reach soon is lost: a flick of the wheel does not run on for a minute
+    this.target = clamp(this.target, this.bounds[0], Math.min(this.bounds[1], this.progress + cap * TARGET_LEAD));
     const before = this.progress;
     const diff = this.target - this.progress;
     let step = diff * (1 - Math.exp(-timelineConfig.damping * dt));
-    const limit = timelineConfig.maxSpeed * this.tempoAt(this.progress) * dt;
+    const limit = cap * this.tempoAt(this.progress) * dt;
     step = clamp(step, -limit, limit);
     if (Math.abs(diff) < 1e-5) step = diff;
     this.progress += step;

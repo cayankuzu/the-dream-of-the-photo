@@ -1,6 +1,7 @@
 import {
   DataTexture,
   LoadingManager,
+  type Mesh,
   RepeatWrapping,
   SRGBColorSpace,
   Texture,
@@ -64,6 +65,42 @@ export class Assets {
     const maps = { map, normalMap, ormMap };
     this.materials.set(key, maps);
     return maps;
+  }
+
+  /** A room's model is no longer needed. */
+  releaseModel(key: string): void {
+    const gltf = this.models.get(key);
+    if (!gltf) return;
+    this.models.delete(key);
+    this.freeModel(gltf);
+  }
+
+  /** What a copy of a model holds on the GPU goes (drawn again, it is uploaded again). */
+  freeModel(gltf: GLTF): void {
+    gltf.scene.traverse((o) => {
+      const mesh = o as Mesh;
+      if (!mesh.isMesh) return;
+      mesh.geometry.dispose();
+      for (const m of Array.isArray(mesh.material) ? mesh.material : [mesh.material]) {
+        for (const value of Object.values(m)) if ((value as Texture | null)?.isTexture) (value as Texture).dispose();
+        m.dispose();
+      }
+    });
+  }
+
+  /** A room's material is no longer needed. */
+  releaseMaterial(key: string): void {
+    const maps = this.materials.get(key);
+    if (!maps) return;
+    this.materials.delete(key);
+    this.freeMaterial(maps);
+  }
+
+  /** What a copy of a material holds on the GPU goes. */
+  freeMaterial(maps: MaterialMaps): void {
+    maps.map.dispose();
+    maps.normalMap.dispose();
+    maps.ormMap.dispose();
   }
 
   async environment(key: string, file: string): Promise<DataTexture> {

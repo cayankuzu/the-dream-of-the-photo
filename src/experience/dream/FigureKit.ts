@@ -27,7 +27,7 @@ import type { Assets } from '../assets/Assets';
 export type AvatarKey = 'figure_man' | 'figure_nurse' | 'figure_woman' | 'figure_child';
 
 /** Keep the avatar's own face, wash it out to blank plaster, or scratch it away (black holes for eyes). */
-export type FaceStyle = 'keep' | 'blank' | 'scratched';
+export type FaceStyle = 'keep' | 'blank' | 'scratched' | 'hollow';
 
 /** Half of a body: the half that remains. */
 export type Half = 'upper' | 'lower' | 'left' | 'right';
@@ -50,6 +50,8 @@ export interface FigureSpec {
   tint?: number;
   /** How bleached the clothes are, 0..1 (default .5). */
   bleach?: number;
+  /** Not skin and clothes but stitched cloth all over (with `face: 'hollow'`, a sack with a hole for a face). */
+  skin?: 'sack';
 }
 
 /** Colors of what is left inside a body that ends. */
@@ -220,6 +222,52 @@ export function headMap(source: Texture, face: FaceStyle, white: boolean, seed: 
   return textureOf(canvas, source);
 }
 
+/** Stitched cloth over a body's own folds: the map's light and shade kept, its color gone; a hole where a face was. */
+function sackMap(source: Texture, hollow: boolean): CanvasTexture {
+  const { canvas, ctx, w, h } = canvasOf(source);
+  const img = ctx.getImageData(0, 0, w, h);
+  const d = img.data;
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const i = (y * w + x) * 4;
+      const l = (d[i] * 0.3 + d[i + 1] * 0.59 + d[i + 2] * 0.11) / 255;
+      // weave: warp and weft, a little uneven
+      const weave = 0.9 + 0.1 * Math.sin(x * 1.9) * Math.sin(y * 1.9) + 0.04 * Math.sin(x * 0.13 + y * 0.07);
+      const v = (0.62 + (l - 0.4) * 0.3) * weave * 255;
+      d[i] = v;
+      d[i + 1] = v * 0.93;
+      d[i + 2] = v * 0.8;
+    }
+  }
+  ctx.putImageData(img, 0, 0);
+  if (hollow) {
+    const cx = FACE.center[0] * w;
+    const cy = (FACE.center[1] + 0.02) * h;
+    const rx = FACE.radius[0] * 0.78 * w;
+    const ry = FACE.radius[1] * 0.92 * h;
+    ctx.fillStyle = '#020101';
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // a hem of stitches around the hole
+    ctx.strokeStyle = 'rgba(30,22,14,0.8)';
+    ctx.lineWidth = w * 0.006;
+    for (let a = 0; a < Math.PI * 2; a += 0.22) {
+      const c = Math.cos(a);
+      const n = Math.sin(a);
+      ctx.beginPath();
+      ctx.moveTo(cx + c * rx * 1.02, cy + n * ry * 1.02);
+      ctx.lineTo(cx + c * rx * 1.13, cy + n * ry * 1.13);
+      ctx.stroke();
+    }
+    ctx.fillStyle = '#020101';
+    ctx.beginPath();
+    ctx.arc(FACE.eyeball[0] * w, FACE.eyeball[1] * h, FACE.eyeballRadius * w, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  return textureOf(canvas, source);
+}
+
 /** Hair cards: the color of bone, keeping only their shape. */
 export function hairMap(source: Texture): CanvasTexture {
   const { canvas, ctx, w, h } = canvasOf(source);
@@ -295,6 +343,8 @@ export class Crowd {
       const mesh = new InstancedMesh(p.geometry, p.material, count);
       mesh.frustumCulled = false;
       mesh.receiveShadow = true;
+      // the bake is shared (see FigureKit.bake)
+      mesh.userData.shared = true;
       return mesh;
     });
     this.root.add(...this.meshes);
@@ -369,13 +419,17 @@ export class FigureKit {
     const white = spec.white ?? true;
     const face = spec.face ?? 'blank';
     const bleach = spec.bleach ?? BLEACH;
-    const key = `${spec.avatar}/${kind}/${face}/${white}/${bleach}/${spec.tint ?? ''}/${spec.half ?? ''}/${spec.cutAt ?? ''}`;
+    const key = `${spec.avatar}/${kind}/${face}/${white}/${bleach}/${spec.tint ?? ''}/${spec.half ?? ''}/${spec.cutAt ?? ''}/${spec.skin ?? ''}`;
     let m = this.materials.get(key);
     if (m) return m;
     m = source.clone();
     m.roughness = 1;
     m.vertexColors = false;
-    if (source.map) {
+    if (source.map && spec.skin === 'sack') {
+      m.map = sackMap(source.map, kind === 'head' && face === 'hollow');
+      m.normalMap = null;
+      m.color.set(spec.tint ?? 0xffffff);
+    } else if (source.map) {
       if (kind === 'head') m.map = headMap(source.map, face, white, spec.avatar.length * 97);
       else if (kind === 'hair' && white) m.map = hairMap(source.map);
       else if (kind === 'body' && bleach > 0) m.map = bleached(source.map, bleach);
@@ -390,7 +444,7 @@ export class FigureKit {
   /** The body in its pose as static geometry: feet on the ground, standing at the origin. */
   private bake(spec: FigureSpec): BakedPart[] {
     const clip = this.clipFor(spec);
-    const key = `${spec.avatar}/${clip?.name ?? ''}/${spec.time ?? 0}/${spec.face ?? 'blank'}/${spec.white ?? true}/${spec.veil ?? false}/${spec.half ?? ''}/${spec.cutAt ?? ''}/${spec.tint ?? ''}/${spec.bleach ?? ''}`;
+    const key = `${spec.avatar}/${clip?.name ?? ''}/${spec.time ?? 0}/${spec.face ?? 'blank'}/${spec.white ?? true}/${spec.veil ?? false}/${spec.half ?? ''}/${spec.cutAt ?? ''}/${spec.tint ?? ''}/${spec.bleach ?? ''}/${spec.skin ?? ''}`;
     const known = this.baked.get(key);
     if (known) return known;
 
@@ -461,6 +515,8 @@ export class FigureKit {
       geometry: mergeGeometries(pieces.filter((p) => p.material === material).map((p) => p.geometry))!,
       material,
     }));
+    // a sack has no hair
+    if (spec.skin === 'sack') parts.splice(0, parts.length, ...parts.filter((p) => !/opacity/.test(p.material.name)));
 
     if (spec.veil) {
       const head = body.getObjectByName(HEAD_BONE);
@@ -533,6 +589,11 @@ export class FigureKit {
       this.materials.set(key, m);
     }
     return { geometry: g, material: m };
+  }
+
+  /** The maps it painted for bodies (shared by all that look alike), to free once no one alive wears them. */
+  painted(): Texture[] {
+    return [...this.materials.values()].flatMap((m) => ((m.map as CanvasTexture | null)?.isCanvasTexture ? [m.map!] : []));
   }
 
   /** `count` bodies frozen in one pose. Place them with `set`, then `commit`. */

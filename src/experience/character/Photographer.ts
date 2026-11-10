@@ -250,7 +250,7 @@ export class Photographer {
   }
 
   update(p: number, time: number): void {
-    const intro = 1 - range(0, 0.06, p);
+    const intro = 1 - range(0, P.introFade, p);
     this.take.time = this.clipTime.at(p) + intro * P.idleSway * wobble(time * 0.6, 1);
     // breathing is time-driven while the performance itself is scrubbed by the timeline
     this.breathe.time = time % this.breathe.getClip().duration;
