@@ -1,4 +1,4 @@
-import { Group, Vector3, type InstancedMesh, type Material, type Mesh, type Object3D, type RenderTarget, type ShaderMaterial, type SkinnedMesh, type Sprite, type Texture } from 'three';
+import { Group, Vector3, type BufferGeometry, type InstancedMesh, type Material, type Mesh, type Object3D, type RenderTarget, type ShaderMaterial, type SkinnedMesh, type Sprite, type Texture } from 'three';
 import type { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import type { Text } from '../../config/copy.config';
 import { isRoom, JOURNEY, ROOM_SLOTS, ROOM_SPACE, ROOM_STEP, roomFile, roomVisit, type Cut, type WalkStep } from '../../config/journey.config';
@@ -38,13 +38,16 @@ export interface RoomStage {
   hint(text: Text | null): void;
 }
 
-/** Everything a dropped room's mesh holds on the GPU; what belongs to a loaded file or to the people stays. */
-function release(root: Group, keep: ReadonlySet<Texture>, uniformsOf: UniformsOf): void {
+/**
+ * Everything a dropped room's mesh holds on the GPU; what belongs to a loaded file or to the people stays, and so
+ * does what something still alive draws with.
+ */
+function release(root: Group, keep: ReadonlySet<Texture>, uniformsOf: UniformsOf, used: InUse): void {
   const textures = new Set<Texture>();
   const materials = new Set<Material>();
   const take = (value: unknown) => {
     const t = value as Texture | null;
-    if (t?.isTexture && !t.isRenderTargetTexture && !keep.has(t)) textures.add(t);
+    if (t?.isTexture && !t.isRenderTargetTexture && !keep.has(t) && !used.textures.has(t)) textures.add(t);
   };
   const takeAll = (uniforms: Record<string, { value: unknown }> | undefined, only?: RegExp) => {
     if (!uniforms) return;
@@ -58,8 +61,8 @@ function release(root: Group, keep: ReadonlySet<Texture>, uniformsOf: UniformsOf
     if (o.userData.shared) return;
     // a body that moves keeps its bones in a texture of its own
     if ((o as SkinnedMesh).isSkinnedMesh) (o as SkinnedMesh).skeleton?.dispose();
-    if (!(o as Sprite).isSprite) drawn.geometry.dispose();
-    for (const m of Array.isArray(drawn.material) ? drawn.material : [drawn.material]) materials.add(m);
+    if (!(o as Sprite).isSprite && !used.geometries.has(drawn.geometry)) drawn.geometry.dispose();
+    for (const m of Array.isArray(drawn.material) ? drawn.material : [drawn.material]) if (!used.materials.has(m)) materials.add(m);
   });
   for (const m of materials) {
     for (const value of Object.values(m)) take(value);
@@ -95,21 +98,46 @@ function materialsUnder(root: Object3D, each: (m: Material) => void): void {
   });
 }
 
+/** What everything still in the scene draws with. */
+interface InUse {
+  geometries: Set<BufferGeometry>;
+  materials: Set<Material>;
+  textures: Set<Texture>;
+  /** Their images: a texture's clones share its image, and its GL texture. */
+  sources: Set<object>;
+}
+
+function inUse(scene: Object3D, uniformsOf: UniformsOf): InUse {
+  const used: InUse = { geometries: new Set(), materials: new Set(), textures: new Set(), sources: new Set() };
+  scene.traverse((o) => {
+    if ((o as Mesh).geometry) used.geometries.add((o as Mesh).geometry);
+  });
+  materialsUnder(scene, (m) => {
+    if (used.materials.has(m)) return;
+    used.materials.add(m);
+    picturesOf(m, uniformsOf, (t) => {
+      used.textures.add(t);
+      used.sources.add(t.source);
+    });
+  });
+  return used;
+}
+
 /**
  * What a dropped room holds outside its scene: pictures and render targets in its own fields, in arrays of them,
  * or in plain uniform objects it handed to a shader. Instances of other classes (the album, the kit) are not its own.
  */
-function releaseHeld(room: Room, keep: ReadonlySet<Texture>): void {
+function releaseHeld(room: Room, keep: ReadonlySet<Texture>, used: InUse): void {
   const seen = new Set<unknown>();
   const visit = (value: unknown, depth: number): void => {
     if (!value || typeof value !== 'object' || seen.has(value)) return;
     seen.add(value);
     if ((value as Texture).isTexture) {
-      if (!keep.has(value as Texture)) (value as Texture).dispose();
+      if (!keep.has(value as Texture) && !used.textures.has(value as Texture)) (value as Texture).dispose();
       return;
     }
     if ((value as RenderTarget).isRenderTarget) {
-      (value as RenderTarget).dispose();
+      if (!used.textures.has((value as RenderTarget).texture)) (value as RenderTarget).dispose();
       return;
     }
     if (depth === 0) return;
@@ -216,7 +244,14 @@ export class JourneyDirector {
           shutter: () => (this.shutterAsked = true),
         });
         this.dream.adoptRoom(room);
+        // what a room shows only later must still have its shader now, under the cut, not mid-scene
+        const hidden: Object3D[] = [];
+        room.root.traverse((o) => {
+          if (!o.visible) hidden.push(o);
+        });
+        for (const o of hidden) o.visible = true;
         await this.compile(room.root);
+        for (const o of hidden) o.visible = false;
         room.develop?.(this.dream.picture);
         slot.room = room;
         slot.state = 'ready';
@@ -230,42 +265,55 @@ export class JourneyDirector {
 
   private dropRoom(id: string): void {
     const slot = this.rooms.get(id);
-    if (!slot?.room) return;
+    if (!slot) return;
+    if (!slot.room) {
+      // fetched (or failed) and never built: it goes with its files like any other; one whose files or build are
+      // still on their way goes at a later step, once they have come
+      if (slot.state === 'fetching' || slot.state === 'building') return;
+      this.rooms.delete(id);
+      this.forgetFiles(id, slot.file?.assets);
+      return;
+    }
     // the whole scene it hangs in: what is still alive after it
     let scene: Object3D = slot.room.root;
     while (scene.parent) scene = scene.parent;
     this.dream.dropRoom(slot.room);
     slot.room.dispose();
     const keep = this.loadedTextures();
-    release(slot.room.root, keep, this.uniformsOf);
-    releaseHeld(slot.room, keep);
+    const used = inUse(scene, this.uniformsOf);
+    release(slot.room.root, keep, this.uniformsOf, used);
+    releaseHeld(slot.room, keep, used);
     this.rooms.delete(id);
     this.forgetFiles(id, slot.file?.assets);
-    this.sweepCopies(scene);
+    this.sweepCopies(used);
   }
 
   /**
    * Every fetch loads its own copy of a file, and the newest copy is the one its key gives: what a room built is
    * made of its copy, or of a newer one. A copy a room loaded that nothing alive shows any more leaves the GPU (its
-   * own room is gone, and neither the walk nor another room was built from it): forgotten if a newer copy has taken
-   * its key, kept loaded (and uploaded again if it is ever drawn) while the walk or a coming room may still build
-   * from it. The maps painted for bodies (see FigureKit) that no one alive wears any more go the same way.
+   * own room is gone, and neither the walk nor another room draws with its shapes, materials or pictures):
+   * forgotten if a newer copy has taken its key, kept loaded (and uploaded again if it is ever drawn) while the walk
+   * or a coming room may still build from it. What FigureKit keeps for bodies that look alike, the maps it painted
+   * and the poses it baked, goes the same way once no one alive wears or stands in them.
    */
-  private sweepCopies(scene: Object3D): void {
-    const shown = new Set<object>();
-    materialsUnder(scene, (m) => picturesOf(m, this.uniformsOf, (t) => shown.add(t.source)));
+  private sweepCopies(used: InUse): void {
     const none = () => undefined;
     for (const [copy, key] of this.roomCopies) {
       const model = 'scene' in copy;
-      let seen = false;
-      if (model) materialsUnder(copy.scene, (m) => picturesOf(m, none, (t) => (seen ||= shown.has(t.source))));
-      else seen = [copy.map, copy.normalMap, copy.ormMap].some((t) => shown.has(t.source));
-      if (seen) continue;
+      let drawn = false;
+      if (model) {
+        copy.scene.traverse((o) => (drawn ||= used.geometries.has((o as Mesh).geometry)));
+        materialsUnder(copy.scene, (m) => (drawn ||= used.materials.has(m)));
+        materialsUnder(copy.scene, (m) => picturesOf(m, none, (t) => (drawn ||= used.sources.has(t.source))));
+      } else drawn = [copy.map, copy.normalMap, copy.ormMap].some((t) => used.sources.has(t.source));
+      if (drawn) continue;
       if (model) this.assets.freeModel(copy);
       else this.assets.freeMaterial(copy);
       if ((model ? this.assets.models.get(key) : this.assets.materials.get(key)) !== copy) this.roomCopies.delete(copy);
     }
-    for (const t of this.dream.kit.figures.painted()) if (!shown.has(t.source)) t.dispose();
+    const figures = this.dream.kit.figures;
+    for (const t of figures.painted()) if (!used.sources.has(t.source)) t.dispose();
+    for (const g of figures.bakedGeometries()) if (!used.geometries.has(g)) g.dispose();
   }
 
   /** Textures of every file in memory (they outlive a room that shows them). */

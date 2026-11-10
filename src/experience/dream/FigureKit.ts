@@ -596,6 +596,11 @@ export class FigureKit {
     return [...this.materials.values()].flatMap((m) => ((m.map as CanvasTexture | null)?.isCanvasTexture ? [m.map!] : []));
   }
 
+  /** The poses it baked (shared by all crowds that stand alike), to free once no crowd alive stands in them. */
+  bakedGeometries(): BufferGeometry[] {
+    return [...this.baked.values()].flatMap((parts) => parts.map((p) => p.geometry));
+  }
+
   /** `count` bodies frozen in one pose. Place them with `set`, then `commit`. */
   crowd(spec: FigureSpec, count: number): Crowd {
     return new Crowd(this.bake(spec), count);

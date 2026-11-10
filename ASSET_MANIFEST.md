@@ -11,12 +11,12 @@ Sizes are those of the shipped files (1 KiB = 1024 bytes). Triangle counts are a
 
 | Kind | Files | Shipped size |
 | --- | ---: | ---: |
-| 3D models | 230 | 40.24 MiB |
+| 3D models | 229 | 39.02 MiB |
 | PBR materials | 129 | 22.74 MiB |
 | HDRIs | 4 | 5.35 MiB |
 | Audio | 660 | 46.18 MiB |
 | Fonts and their licenses | 15 | 0.51 MiB |
-| **Total** | **1038** | **115.02 MiB** |
+| **Total** | **1037** | **113.80 MiB** |
 
 ## 3D models
 
@@ -79,7 +79,6 @@ the largest allowed deviation as a fraction of the mesh radius (pipeline default
 | `projector` / `models/projector.glb` | Filmstrip Projector 8mm (PeterM) | Poly Haven | [polyhaven.com/a/filmstrip_projector_8mm](https://polyhaven.com/a/filmstrip_projector_8mm) | CC0 | 1k glTF; simplify ratio 0.4; WebP 1024 | 527 KiB | Throws a flickering beam in the darkroom. |
 | `portrait_frame` / `models/portrait_frame.glb` | Fancy Picture Frame 01 (Rob Tuytel, Rico Cilliers) | Poly Haven | [polyhaven.com/a/fancy_picture_frame_01](https://polyhaven.com/a/fancy_picture_frame_01) | CC0 | 1k glTF; simplify ratio 0.5; WebP 1024 | 362 KiB | Scratched portraits in the darkroom. |
 | `ghost_ship` / `models/ghost_ship.glb` | Dutch Ship Large 01 (James Ray Cock, Rico Cilliers, Nicolò Zubbini) | Poly Haven | [polyhaven.com/a/dutch_ship_large_01](https://polyhaven.com/a/dutch_ship_large_01) | CC0 | 1k glTF; simplify ratio 0.08; WebP 1024 | 1.68 MiB | Half sunk against the half sun. |
-| `roots` / `models/roots.glb` | Root Cluster 01 (Jenelle van Heerden, Rico Cilliers) | Poly Haven | [polyhaven.com/a/root_cluster_01](https://polyhaven.com/a/root_cluster_01) | CC0 | 1k glTF; simplify ratio 0.3; WebP 1024 | 1.22 MiB | Shipped, but not loaded or placed by the piece at present. |
 | `hatchet` / `models/hatchet.glb` | Hatchet (James Ray Cock, Ulan Cabanilla) | Poly Haven | [polyhaven.com/a/hatchet](https://polyhaven.com/a/hatchet) | CC0 | 1k glTF; simplify ratio 0.5; WebP 512 | 120 KiB | On a bench. |
 | `dining_table` / `models/dining_table.glb` | Dining Table (Aron Łyczek) | Poly Haven | [polyhaven.com/a/dining_table](https://polyhaven.com/a/dining_table) | CC0 | 1k glTF; simplify ratio 0.5; WebP 512 | 114 KiB | The dinner of halves. |
 | `dining_chair` / `models/dining_chair.glb` | Dining Chair 02 (James Ray Cock) | Poly Haven | [polyhaven.com/a/dining_chair_02](https://polyhaven.com/a/dining_chair_02) | CC0 | 1k glTF; simplify ratio 0.35; WebP 512 | 133 KiB | The dinner of halves. |
@@ -87,7 +86,7 @@ the largest allowed deviation as a fraction of the mesh radius (pipeline default
 | `school_desk` / `models/school_desk.glb` | School Desk 01 (Ethan Place) | Poly Haven | [polyhaven.com/a/SchoolDesk_01](https://polyhaven.com/a/SchoolDesk_01) | CC0 | 1k glTF; simplify ratio 0.5; WebP 512 | 69 KiB | The class. |
 | `chandelier` / `models/chandelier.glb` | Chandelier 01 (Kirill Sannikov) | Poly Haven | [polyhaven.com/a/Chandelier_01](https://polyhaven.com/a/Chandelier_01) | CC0 | 1k glTF; simplify ratio 0.5; WebP 512 | 256 KiB | The only warm light of the hall, over the dinner. |
 
-Total: 57 files, 21,962,716 bytes (20.95 MiB).
+Total: 56 files, 20,684,716 bytes (19.73 MiB).
 
 ## Scans and other 3D sources
 

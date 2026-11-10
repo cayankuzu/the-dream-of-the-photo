@@ -16,6 +16,16 @@ export function walkKey(e: KeyboardEvent): boolean {
 /** Pixels a one-finger drag travels before it is decided to be a look (sideways) or a walk (up/down). */
 const AXIS_LOCK = 10;
 
+/** W and S walk as Arrow Down and Arrow Up do, by the key's place on the keyboard, whatever the layout. */
+const WALK_KEYS: Readonly<Record<string, string>> = { KeyW: 'ArrowDown', KeyS: 'ArrowUp' };
+
+/** The key a walking key stands for, or the key itself; letters held with a modifier stay the browser's. */
+export function walkKeyOf(e: KeyboardEvent, keys: Readonly<Record<string, string>>): string {
+  const mapped = keys[e.code];
+  if (!mapped) return e.key;
+  return e.ctrlKey || e.metaKey || e.altKey ? '' : mapped;
+}
+
 /**
  * Translates wheel / trackpad / touch / keyboard intent into timeline pixels.
  * The page itself never scrolls: the experience owns the scroll.
@@ -101,15 +111,16 @@ export class ScrollInput {
   private onKey = (e: KeyboardEvent): void => {
     if (!this.enabled || !walkKey(e) || (e.key === ' ' && this.spaceTaken)) return;
     const step = timelineConfig.keyStep;
-    switch (e.key) {
+    const key = walkKeyOf(e, WALK_KEYS);
+    switch (key) {
       case 'ArrowDown':
       case 'PageDown':
       case ' ':
-        this.timeline.push(e.key === 'PageDown' ? step * 3 : step);
+        this.timeline.push(key === 'PageDown' ? step * 3 : step);
         break;
       case 'ArrowUp':
       case 'PageUp':
-        this.timeline.push(e.key === 'PageUp' ? -step * 3 : -step);
+        this.timeline.push(key === 'PageUp' ? -step * 3 : -step);
         break;
       default:
         return;

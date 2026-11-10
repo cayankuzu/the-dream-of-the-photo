@@ -137,6 +137,8 @@ const RIPPLE_SPEED = REDUCED_MOTION ? 0.14 : 0.42;
 const RIPPLE_START = 19;
 const RIPPLE_CALM = 1;
 const RIPPLE_LOOKED = 1.6;
+/** The chairs and those in them are drawn before the tile (only what is opaque, so the picture is the same): the tile they hide then fails the depth test before its water-light and its years are worked out. */
+const IN_FRONT_FIRST = -1;
 
 /** Seconds: the tap, the line, the many, the hush before they lift, heads up, heads round, the shutter, the cut. */
 const TAP_AT = 8;
@@ -332,14 +334,23 @@ float poolWall = (1.0 - poolFlat) * poolBelow;
 float poolLevel = poolFlat * poolBelow;
 float poolRun = abs(poolN.x) > abs(poolN.z) ? vPoolAt.z : vPoolAt.x;
 float poolBlot = poolFbm(vPoolAt.xz * 0.9 + vPoolAt.y * 0.7);
-float poolStreak = poolFbm(vec2(poolRun * 6.0, vPoolAt.y * 0.3 + 11.0));
-float poolLines = poolFbm(vec2(poolRun * 0.5, vPoolAt.y * 11.0));
-float poolRust = poolWall * smoothstep(0.6, 0.72, poolFbm(vec2(poolRun * 1.7, 3.0))) * smoothstep(-2.6, -0.25, vPoolAt.y);
+// stains, lines and rust belong to the basin's walls: anywhere else they weigh exactly nothing, so they are not worked out there
+float poolStreak = 0.0;
+float poolLines = 0.0;
+float poolRust = 0.0;
+if (poolWall > 0.0) {
+  poolStreak = poolFbm(vec2(poolRun * 6.0, vPoolAt.y * 0.3 + 11.0));
+  poolLines = poolFbm(vec2(poolRun * 0.5, vPoolAt.y * 11.0));
+  poolRust = poolWall * smoothstep(0.6, 0.72, poolFbm(vec2(poolRun * 1.7, 3.0))) * smoothstep(-2.6, -0.25, vPoolAt.y);
+}
 float poolAbove = max(vPoolAt.y - poolFloor(vPoolAt.z), 0.0);
 float poolCorner = poolWall * exp(-poolAbove * 2.4) + poolLevel * (exp(-(${BASIN_X.toFixed(2)} - abs(vPoolAt.x)) * 3.0) + exp(-(vPoolAt.z - (${BASIN_FAR.toFixed(2)})) * 3.0));
 float poolGutter = poolWall * smoothstep(-0.25, -0.23, vPoolAt.y) * (1.0 - smoothstep(-0.12, -0.10, vPoolAt.y));
 float poolLane = poolLevel * (1.0 - smoothstep(0.1, 0.125, min(abs(abs(vPoolAt.x) - ${LANE_X.toFixed(2)}), abs(vPoolAt.x)))) * smoothstep(${(BASIN_FAR + 0.9).toFixed(2)}, ${(BASIN_FAR + 1.1).toFixed(2)}, vPoolAt.z) * (1.0 - smoothstep(${(BASIN_NEAR - 1.1).toFixed(2)}, ${(BASIN_NEAR - 0.9).toFixed(2)}, vPoolAt.z));
-float poolWet = poolLevel * smoothstep(0.52, 0.7, poolFbm(vPoolAt.xz * 0.55 + 4.0)) * (1.0 - smoothstep(-11.0, -6.0, vPoolAt.z)) + (1.0 - poolBelow) * poolFlat * smoothstep(0.5, 0.7, poolBlot) * 0.45;
+// and the wet patches to the floor of the deep end
+float poolDry = smoothstep(-11.0, -6.0, vPoolAt.z);
+float poolWet = (1.0 - poolBelow) * poolFlat * smoothstep(0.5, 0.7, poolBlot) * 0.45;
+if (poolLevel > 0.0 && poolDry < 1.0) poolWet = poolLevel * smoothstep(0.52, 0.7, poolFbm(vPoolAt.xz * 0.55 + 4.0)) * (1.0 - poolDry) + poolWet;
 diffuseColor.rgb *= mix(0.84, 1.08, poolBlot);
 diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * vec3(0.6, 0.57, 0.44), smoothstep(0.36, 0.72, poolBlot) * poolBelow * 0.7);
 diffuseColor.rgb *= 1.0 - poolWall * (smoothstep(0.5, 0.72, poolStreak) * 0.36 + smoothstep(0.56, 0.7, poolLines) * 0.24);
@@ -746,6 +757,7 @@ export default class Pool extends Room {
     const columns = COLUMN_X.length;
     const chairs = kit.props('chair_white', rows * columns, { castShadow: true });
     this.rippleOn(chairs.root, CHAIR_TINT);
+    this.inFrontFirst(chairs.root);
     const tilt = new Quaternion().setFromAxisAngle(AXIS_X, -RAKE);
     const ONE = new Vector3(1, 1, 1);
     const every: Matrix4[] = [];
@@ -817,6 +829,7 @@ export default class Pool extends Room {
       crowd.commit();
       this.heads.push(head);
       root.add(crowd.root);
+      this.inFrontFirst(crowd.root);
     });
     this.watcher = this.watcherSeated!;
     this.watcherFrom = watcherTurn.clone().invert();
@@ -957,6 +970,15 @@ export default class Pool extends Room {
     };
     m.customProgramCacheKey = () => `pool-ripple-${grime}`;
     return m;
+  }
+
+  /** Draws what is opaque under `root` before the tile behind it (see IN_FRONT_FIRST). */
+  private inFrontFirst(root: Object3D): void {
+    root.traverse((o) => {
+      const mesh = o as Mesh;
+      const materials: Material[] = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+      if (mesh.isMesh && materials.every((m) => !m.transparent)) mesh.renderOrder = IN_FRONT_FIRST;
+    });
   }
 
   /** Changes how these snakes look, on top of their own shader. */

@@ -60,7 +60,7 @@ is dropped from memory as soon as it lies behind you.
 | --- | --- |
 | Mouse wheel, trackpad | Move through the moment, forward or back; inside the photograph, walk. Scroll is time: input is damped, speed-limited and slowed down around key beats, so nothing can be skipped. |
 | Touch | Swipe vertically to move through the moment and to walk. Inside the photograph a drag that starts sideways looks around; two fingers always walk. |
-| Keyboard | Arrow Down / Space forward, Arrow Up back; Page Down / Page Up take three steps; Arrow Left / Right turn the head inside the photograph; Enter begins; Esc or M opens and closes the menu (M also in full screen, where the browser keeps Esc). |
+| Keyboard | Arrow Down / W / Space forward, Arrow Up / S back; Page Down / Page Up take three steps; Arrow Left / Right or A / D turn the head inside the photograph (W, A, S and D by their place on the keyboard, whatever the layout); Enter begins; Esc or M opens and closes the menu (M also in full screen, where the browser keeps Esc). |
 | Drag (mouse or touch) | Look around inside the photograph; while you walk the gaze drifts back to the way ahead. Resting your gaze on something draws the view toward it, and fills the reticle's ring when it is a memory. |
 | HUD | Top right: memories found, language (TR / EN), sound, menu. The menu resumes, starts over, switches language, sound and full screen, and lists the controls. |
 

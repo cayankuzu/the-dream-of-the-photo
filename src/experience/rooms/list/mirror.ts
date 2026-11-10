@@ -59,7 +59,6 @@ export const assets: RoomAssets = {
     'rooms/tooth_tink_2.mp3',
     'rooms/tooth_tink_3.mp3',
     'rooms/tooth_tink_4.mp3',
-    'rooms/tooth_tink_5.mp3',
     'rooms/tooth_tink_6.mp3',
     'rooms/tooth_roll.mp3',
     'rooms/teeth_scatter.mp3',

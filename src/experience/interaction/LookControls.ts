@@ -2,7 +2,10 @@ import { MathUtils, Quaternion, Vector3 } from 'three';
 import type { MemoryId } from '../../config/copy.config';
 import { lookConfig, REDUCED_MOTION } from '../../config/experience.config';
 import { damp, DEG } from '../math';
-import { walkKey } from './ScrollInput';
+import { walkKey, walkKeyOf } from './ScrollInput';
+
+/** A and D turn as the left and right arrows do, by the key's place on the keyboard. */
+const TURN_KEYS: Readonly<Record<string, string>> = { KeyA: 'ArrowLeft', KeyD: 'ArrowRight' };
 
 export interface PointOfInterest {
   position: Vector3;
@@ -103,17 +106,19 @@ export class LookControls {
     this.element.classList.remove('is-grabbing');
   };
 
-  /** Left / right arrows turn the head (up / down stay the timeline's). */
+  /** Left / right arrows, or A / D, turn the head (up / down and W / S stay the timeline's). */
   private onKey = (e: KeyboardEvent): void => {
     if (!this.enabled || !walkKey(e)) return;
-    if (e.key === 'ArrowLeft') this.keyTurn = 1;
-    else if (e.key === 'ArrowRight') this.keyTurn = -1;
+    const key = walkKeyOf(e, TURN_KEYS);
+    if (key === 'ArrowLeft') this.keyTurn = 1;
+    else if (key === 'ArrowRight') this.keyTurn = -1;
     else return;
     e.preventDefault();
   };
 
   private onKeyUp = (e: KeyboardEvent): void => {
-    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') this.keyTurn = 0;
+    const key = TURN_KEYS[e.code] ?? e.key;
+    if (key === 'ArrowLeft' || key === 'ArrowRight') this.keyTurn = 0;
   };
 
   /** While walking the gaze drifts back to the way ahead (`amount` 0..1 of full walking speed). */

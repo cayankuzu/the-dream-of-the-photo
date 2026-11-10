@@ -46,7 +46,6 @@ export const assets: RoomAssets = {
     'rooms/dream_drone_low.mp3',
     'rooms/dream_drone_glass.mp3',
     'rooms/breath_calm.mp3',
-    'rooms/breath_in.mp3',
     'rooms/cough_far_1.mp3',
     'rooms/cough_far_3.mp3',
     'rooms/seat_creak_2.mp3',

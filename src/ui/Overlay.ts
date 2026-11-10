@@ -299,9 +299,9 @@ export class Overlay {
           { caps: [say('swipeSide')], does: 'look' },
         ]
       : [
-          { caps: [`${say('wheel')} ↓`, '↓'], does: 'hurry' },
-          { caps: [`${say('wheel')} ↑`, '↑'], does: 'back' },
-          { caps: [say('drag'), '←', '→'], does: 'look' },
+          { caps: [`${say('wheel')} ↓`, '↓', 'W'], does: 'hurry' },
+          { caps: [`${say('wheel')} ↑`, '↑', 'S'], does: 'back' },
+          { caps: [say('drag'), '←', '→', 'A', 'D'], does: 'look' },
           { caps: ['Esc', 'M'], does: 'menu' },
         ];
     this.menuKeys.replaceChildren(

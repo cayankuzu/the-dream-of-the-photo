@@ -104,6 +104,8 @@ const NEAR_HALF = 4.8;
 const MID_ROWS = 9;
 /** Where the people all look (z, m). */
 const FACING_Z = 14;
+/** The desk and all who sit, stand or come are drawn before the stage and the hall (only what is opaque, so the picture is the same): the boards, steps and walls they hide then fail the depth test before they are lit. */
+const IN_FRONT_FIRST = -1;
 
 // where the desk stands at each question, its center's z (m); it moves only while the eye is on the paper
 const MARKS = [11.6, 8.3, 5.7, 3.4, 1];
@@ -1097,6 +1099,13 @@ export default class Exam extends Room {
     this.clocks.push(this.build.motes(420, { x: [-3.2, 3.2], y: [0.2, 5], z: [0.5, 14] }, this.root, { size: 0.008, strength: 0.42 }).time);
     this.clocks.push(this.build.motes(300, { x: [-12, 12], y: [0, 9], z: [-18, 0] }, this.root, { size: 0.012, strength: 0.14, seed: 47 }).time);
 
+    for (const front of [this.desk, this.rows, this.her]) {
+      front.traverse((o) => {
+        const mesh = o as Mesh;
+        const materials: Material[] = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+        if (mesh.isMesh && materials.every((m) => !m.transparent)) mesh.renderOrder = IN_FRONT_FIRST;
+      });
+    }
     this.buildSound();
   }
 

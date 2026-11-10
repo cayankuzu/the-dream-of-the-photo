@@ -463,15 +463,6 @@
       "simplifyError": 0.01
     },
     {
-      "key": "roots",
-      "source": "polyhaven",
-      "id": "root_cluster_01",
-      "res": "1k",
-      "textureSize": 1024,
-      "simplify": 0.3,
-      "simplifyError": 0.03
-    },
-    {
       "key": "hatchet",
       "source": "polyhaven",
       "id": "hatchet",
