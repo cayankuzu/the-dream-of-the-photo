@@ -160,6 +160,8 @@ export const audioConfig = {
     pitch: 0.1,
     /** Seconds between drips: the first value plus up to the second, at random. */
     gap: [2.5, 6],
+    // the scenes of the narrated cut, measured the same way (offline, BS.1770) against the kitchen
+    barber: 3, cellar: 0.5, studio: 1.3, plane: -1.9, payphone: -0.5, lost: 3.2, birds: 1.8, car: 0, unseen: -1,
   },
   /**
    * The film's sound (film/Film.ts): one spoken line at a time, one cue of the score at a time, and everything else

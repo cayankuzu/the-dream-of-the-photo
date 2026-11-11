@@ -1317,10 +1317,10 @@ export default class Birds extends Room {
       for (const bed of [this.wind, this.grass, this.drone, this.gust]) bed?.gain(0, 0.25);
     });
     this.beat(WINGS_AT, () => {
-      this.wingsFar = s.play('rooms/pigeons_below.mp3', { gain: 0.45, lowpass: 1300, rate: 0.8, reverb: 0.2 });
+      this.wingsFar = s.play('rooms/pigeons_below.mp3', { gain: 0.3, lowpass: 1300, rate: 0.8, reverb: 0.2 });
     });
     this.beat(WINGS_AT + 0.25, () => {
-      this.wingsNear = s.play('rooms/pigeons_below.mp3', { gain: 0.5, rate: 0.88, reverb: 0.35, pan: 0.2 });
+      this.wingsNear = s.play('rooms/pigeons_below.mp3', { gain: 0.34, rate: 0.88, reverb: 0.35, pan: 0.2 });
       this.wingsNear.pan(-0.15, 1.6);
       this.wingsRush = s.play('rooms/sheets_lift.mp3', { gain: 0.32, rate: 0.82, reverb: 0.3 });
     });
