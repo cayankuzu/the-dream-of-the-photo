@@ -67,7 +67,7 @@ const LOOK: readonly Look[] = [
   // the photographer waits: the film starts to go
   { ...REST, at: 1, bloom: 1.2, tint: DUSK, aberration: 0.006, scratches: 0.3, grain: 0.45, weave: 0.001, flicker: 0.04 },
   // waking: the damage grows heavy, the film jams and burns, then the end
-  { ...REST, at: 1.07, bloom: 0.9, scratches: 0.45, grain: 0.5, weave: 0.0012, flicker: 0.05 },
+  { ...REST, at: 1.0257, bloom: 0.9, scratches: 0.45, grain: 0.5, weave: 0.0012, flicker: 0.05 },
   { ...REST, at: 1.3, bloom: 0.5, from: 0.9, scratches: 0.6, grain: 0.6, weave: 0.0016, flicker: 0.07 },
   { ...REST, at: 1.76, bloom: 0.5, from: 0.9, scratches: 0.9, grain: 0.9, weave: 0.0024, flicker: 0.1 },
   { ...REST, at: 1.985, bloom: 0.6, from: 0.9, scratches: 1, grain: 1.1, weave: 0.004, flicker: 0.14, burn: 0.45 },
@@ -488,7 +488,7 @@ export class Scares {
     fx.negative = !REDUCED_MOTION && after >= 0 && after < C.screens.negative ? 1 - after / C.screens.negative : 0;
   }
 
-  update(p: number, walk: number, _time: number, dt: number, paused: boolean): void {
+  update(p: number, walk: number, _time: number, dt: number, paused: boolean, street = false): void {
     const { fx, audio } = this.ctx;
     if (paused) {
       // the picture holds still behind the menu; a cut does not hold
@@ -523,15 +523,16 @@ export class Scares {
       audio.scare('lightsBack');
     }
 
+    // in the street between two evenings (and after the credits) the film is whole again
     const e = phaseProgress(p, 'EXPLORATION');
-    const ended = e >= C.end.at;
+    const ended = e >= C.end.at && !street;
     if (!ended) this.endArmed = true;
     else if (this.endArmed) {
       this.endArmed = false;
       if (!jumped) audio.scare('slam');
     }
 
-    this.writeLook(e > 0 ? 1 + e : walk, walk, dt);
+    this.writeLook(street ? 0 : e > 0 ? 1 + e : walk, street ? 0 : walk, dt);
     this.writeBlows(ended, dt);
 
     if (REDUCED_MOTION) {

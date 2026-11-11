@@ -1067,7 +1067,7 @@ export default class Ward extends Room {
       this.rumbleVoice = s.bed('rooms/gurney_rumble.mp3', { gain: 0.2, reverb: 0.2 });
       this.droneVoice = s.bed('rooms/dream_drone_low.mp3', { gain: 0.08, fade: 6 });
     });
-    this.beat(LINE_COME, () => this.say({ tr: 'Geldin mi?', en: 'Have you come?' }, 3.6));
+    this.beat(LINE_COME, () => this.say({ tr: 'Geldin mi?', en: 'Have you come?' }, 3.6, 'house'));
     this.beat(DOORS_HIT, () => s.play('rooms/gurney_stop.mp3', { gain: 0.2, reverb: 0.2 }));
     this.beat(DOORS_PASS + 0.8, () => {
       this.hallVoice = s.bed('rooms/waiting_room_tone.mp3', { gain: 0.12, fade: 3 });
@@ -1110,7 +1110,7 @@ export default class Ward extends Room {
     this.beat(WHITE_FROM, () => s.play('rooms/belt_slither_1.mp3', { gain: 0.35, pan: 0.5 }));
     this.beat(WHITE_FROM + 1, () => s.play('rooms/belt_slither_2.mp3', { gain: 0.35, pan: 0.55 }));
     this.beat(WHITE_FROM + 1.55, () => s.play('rooms/belt_slither_3.mp3', { gain: 0.35, pan: 0.6 }));
-    this.beat(LINE_MOTHER, () => this.say({ tr: 'Annen seni sordu.', en: 'Your mother was asking for you.' }, 4.5));
+    this.beat(LINE_MOTHER, () => this.say({ tr: 'Annen seni sordu.', en: 'Your mother was asking for you.' }, 4.5, 'dream'));
     this.beat(LINE_MOTHER + 3.6, () => s.play('rooms/breath_lungs.mp3', { gain: 0.4, pan: 0.6 }));
     this.beat(LINE_MOTHER + 6.4, () => s.play('rooms/breath_lungs.mp3', { gain: 0.3, pan: 0.6, rate: 0.9 }));
     this.beat(FLAT_AT, () => {

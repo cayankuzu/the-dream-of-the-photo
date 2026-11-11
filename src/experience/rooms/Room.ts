@@ -1,5 +1,6 @@
 import { Group, Vector3, type PerspectiveCamera, type WebGLRenderTarget } from 'three';
 import type { Text } from '../../config/copy.config';
+import type { VoiceStyle } from '../../config/film.config';
 import type { RegionLook, SpotSpec, WarpKey } from '../../config/nightmare.config';
 import { GlideTrack } from '../timeline/Track';
 import { DEG } from '../math';
@@ -47,9 +48,9 @@ export interface RoomContext {
   /** The pictures kept so far. */
   album: Album;
   /** The voice of the dream, the prompt at the foot of the picture, the shutter (see Room). */
-  say(text: Text, seconds: number): void;
+  say(text: Text, seconds: number, voice?: VoiceStyle): void;
   hint(text: Text | null): void;
-  shutter(): void;
+  shutter(flash: boolean): void;
 }
 
 /** The look of a room: as a space of the walk, except that it has no borders to blend across. */
@@ -207,14 +208,23 @@ export abstract class Room implements DreamModule {
     this.beats.sort((a, b) => a.t - b.t);
   }
 
+  /** The director: the room is run forward, in one frame, to the moment it is cut into (see RoomSound.skipping). */
+  set skipping(on: boolean) {
+    this.sound.skipping = on;
+  }
+
   /** The director: fire what time has reached. */
   advance(t: number): void {
     while (this.nextBeat < this.beats.length && this.beats[this.nextBeat].t <= t) this.beats[this.nextBeat++].fire();
   }
 
-  /** The voice of the dream says a line, for this long. Few words, each on its own. */
-  protected say(text: Text, seconds = 5): void {
-    this.ctx.say(text, seconds);
+  /**
+   * A line is said: by the narrator (the photograph), unless `voice` names the voice from the house ('house':
+   * through a window; 'phone': through a receiver or an intercom). It is spoken if it has a clip and shown at the
+   * foot of the picture for as long as it lasts (`seconds` only counts for a line without a clip). Few words.
+   */
+  protected say(text: Text, seconds = 5, voice?: VoiceStyle): void {
+    this.ctx.say(text, seconds, voice);
   }
 
   /** A small prompt at the foot of the picture (null takes it away). It only ever tells what the viewer can do. */
@@ -222,9 +232,12 @@ export abstract class Room implements DreamModule {
     this.ctx.hint(text);
   }
 
-  /** The shutter: a click, a flash, and the picture as it is now goes into the album. Once a room, at its worst moment. */
-  protected shutter(): void {
-    this.ctx.shutter();
+  /**
+   * The shutter: a click, a flash, and the picture as it is now goes into the album. Once a room, at its best
+   * picture. `flash` false keeps the picture and the click but not the white: for a quiet room that a flash would break.
+   */
+  protected shutter(flash = true): void {
+    this.ctx.shutter(flash);
   }
 
   /** Whether a point of the room's frame lies outside the view (`margin` deg widens the view). */

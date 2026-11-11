@@ -93,6 +93,8 @@ const ROOM_SECONDS = 70;
 /** When things happen (s). */
 const STIR_AT = [3.4, 4.7, 9.4, 10.6];
 const LATE_AT = 12;
+/** "Otur.": just before you are seated (s). */
+const SIT_LINE_AT = 28;
 const SIT_AT = 30;
 const TICK_AT = 40;
 const RAISE_AT = 44;
@@ -1890,7 +1892,9 @@ export default class TheAlbum extends Room {
       const pan = Math.sin(i * 1.7) * 0.6;
       this.beat(t, () => this.sound.play(file, { gain: 0.2, reverb: 0.15, pan, lowpass: 1800 }));
     }
-    this.beat(LATE_AT, () => this.say({ tr: 'Geç kaldın.', en: 'You are late.' }, 4));
+    // the mother's three lines are the voice from the house
+    this.beat(LATE_AT, () => this.say({ tr: 'Geç kaldın.', en: 'You are late.' }, 4, 'house'));
+    this.beat(SIT_LINE_AT, () => this.say({ tr: 'Otur.', en: 'Sit.' }, 3.5, 'house'));
     this.beat(18, () => {
       const fingers = this.sound.bed('rooms/hair_fingers.mp3', { gain: 0.22, fade: 3 });
       this.beat(27, () => fingers.gain(0, 3));
@@ -1908,7 +1912,6 @@ export default class TheAlbum extends Room {
       this.hall?.gain(0.25, 3);
       this.tick?.gain(0.07, 3);
     });
-    this.beat(TICK_AT + 1, () => this.say({ tr: 'Otur.', en: 'Sit.' }, 3.5));
     // the meal: forks, then mouths, one at a time, until you would give anything for it to stop
     this.beat(EAT_AT, () => {
       this.meal.push(this.sound.bed('rooms/forks_close.mp3', { gain: 0.28, fade: 1.5 }));
@@ -1937,7 +1940,7 @@ export default class TheAlbum extends Room {
       this.tick?.gain(0, 0.5);
       this.sound.play('rooms/fork_down_1.mp3', { gain: 0.45, reverb: 0.2, pan: 0.45 });
     });
-    this.beat(STOP_AT + 0.4, () => this.say({ tr: 'Sen de ye.', en: 'You eat too.' }, 3.4));
+    this.beat(STOP_AT + 0.4, () => this.say({ tr: 'Ye. Daha soğumadı.', en: 'Eat. It has not gone cold yet.' }, 3.4, 'house'));
     this.beat(STOP_AT + 2.1, () => this.sound.play('rooms/heart_beat.mp3', { gain: 0.35 }));
     this.beat(STOP_AT + 3.1, () => this.sound.play('rooms/heart_beat.mp3', { gain: 0.42 }));
     this.beat(SHUTTER_AT, () => this.shutter());

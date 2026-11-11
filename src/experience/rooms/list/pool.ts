@@ -40,7 +40,6 @@ export const assets: RoomAssets = {
     'rooms/drain_gurgle.mp3',
     'rooms/water_trickle.mp3',
     'rooms/snakes_scales.mp3',
-    'rooms/crowd_rise.mp3',
     'rooms/snake_hiss_close.mp3',
   ],
 };
@@ -98,7 +97,7 @@ const POSES = [4.2, 5.6, 2.8];
 const CLOTH = 0xe7edec;
 /** The chairs: old varnish under what paint is left (multiplies). */
 const CHAIR_TINT = 0x9c8f78;
-/** How far every head hangs forward until they lift (rad), and the point above the neck's foot it turns about (m). */
+/** How far every head hangs forward (rad), and the point above the neck's foot it turns about (m). */
 const BOW = 0.68;
 const NECK_ABOVE = 0.06;
 /** The one on the deck who has been looking at you all along: where it sits (m). */
@@ -122,36 +121,35 @@ const MOON_AT = [0.3, -6.5] as const;
 /** Its lamp stands this many times as far from there as the window is, so its rays are nearly parallel; candela. */
 const MOON_BEYOND = 2.6;
 const MOON = 6000;
-/** How much more moon when they have looked at you (share). */
-const MOON_SURGE = 0.3;
-/** Lights: water-light on the backs, the deck, the light on their faces when they turn, the lamp behind you. */
+/** Lights: water-light on the backs, the deck, the lamp behind you. */
 const WATER_FILL = 4.5;
 /** The moon that fills the hall above the rows, whatever the window does not reach. */
 const MOON_WASH = 22;
 const DECK_FILL = 0.7;
-const FACE_FILL = 20;
 const LAMP = 3.2;
 
-/** Water-light: speed of the ripple (per s), its time at the start, its strength before and after they look at you. */
+/** Water-light: speed of the ripple (per s), its time at the start, its strength. It goes on over them when they have stopped. */
 const RIPPLE_SPEED = REDUCED_MOTION ? 0.14 : 0.42;
 const RIPPLE_START = 19;
-const RIPPLE_CALM = 1;
-const RIPPLE_LOOKED = 1.6;
+const RIPPLE_LIGHT = 1;
 /** The chairs and those in them are drawn before the tile (only what is opaque, so the picture is the same): the tile they hide then fails the depth test before its water-light and its years are worked out. */
 const IN_FRONT_FIRST = -1;
 
-/** Seconds: the tap, the line, the many, the hush before they lift, heads up, heads round, the shutter, the cut. */
+/**
+ * Seconds of the script: the tap, the line, the many; the moment the whole knot stops dead in the middle of its
+ * movement and every sound with it but the hall's own air; the shutter on what has stopped; the cut.
+ */
 const TAP_AT = 8;
 const LINE_AT = 11;
 const MANY_FROM = 11.7;
 const MANY_BY = 12.5;
-const HUSH_AT = 12.7;
-const LIFT_FROM = 12.9;
-const LIFT_TO = 13.4;
-const TURN_FROM = 13.05;
-const TURN_TO = 13.85;
-const SHUTTER_AT = 13.92;
-const CUT_AT = 15;
+const FREEZE_AT = 13.5;
+const SHUTTER_AT = 14.3;
+const CUT_AT = 15.8;
+/** How long the sounds take to go at the freeze (s): short enough to be a cut, long enough not to click. */
+const FREEZE_CUT = 0.03;
+/** The one hiss, close: it swells from here until the freeze bites it off (its file swells for four seconds). */
+const HISS_AT = 11.9;
 /** The tap on the far wall of the basin (m), where the first thin one comes from under the eye (z), how fast and how long they are (m/s, m), and their radius (m). */
 const TAP_Y = -0.62;
 const TAP_Z = -5;
@@ -165,13 +163,9 @@ const KNOTS_SLOPE = 420;
 const KNOTS_SUMP = 44;
 /** Big ones that come out of the wall right under the eye, where a snake can be seen for what it is. */
 const BIG_ONES = 14;
-/** Seconds a knot takes to swell to its size once it exists, and how high all heads come up (m). */
+/** Seconds a knot takes to swell to its size once it exists. */
 const GROW = 0.32;
-const RISE = 0.3;
-const RISE_NEAR = 0.52;
 const SEED = 17;
-/** Where every head looks at the end: the eye as it is when they turn. */
-const EYE_AT: V3 = [-3.92, 1.56, -4.55];
 
 /** Cells of the numerals, as laid in tile. */
 const NUMERALS: Record<string, readonly string[]> = {
@@ -490,9 +484,6 @@ interface Sitter {
   index: number;
   neck: Vector3;
   body: Matrix4;
-  /** Where the head ends up, off the way the body faces (rad). */
-  yaw: number;
-  pitch: number;
 }
 
 const AXIS_X = new Vector3(1, 0, 0);
@@ -508,7 +499,8 @@ const scratch = new Matrix4();
  * A drained swimming pool at night. Rows of chairs stand on the floor of the deep end, facing the deep wall, with the
  * stitched people sitting in them and one seat empty. Water-light ripples over everything though there is no water,
  * and on the deep wall in black tile where the depth should be it says the hour of the dinner. A tap comes on, a thin
- * pale line comes down the slope, it is many, and when the whole floor is alive every head comes up and looks at you.
+ * pale line comes down the slope, it is many; nobody in the chairs moves. When the whole floor is alive, the knot
+ * stops dead in the middle of its movement, every sound with it, and stays stopped while the water-light goes on.
  */
 export default class Pool extends Room {
   readonly keys: readonly RoomKey[];
@@ -526,16 +518,12 @@ export default class Pool extends Room {
   fear = 0.35;
 
   private readonly rippleTime = { value: RIPPLE_START };
-  private readonly rippleLight = { value: RIPPLE_CALM };
+  private readonly rippleLight = { value: RIPPLE_LIGHT };
   private readonly rippleOrigin = { value: this.origin };
   private readonly dust: { value: number }[] = [];
-  private readonly sitters: Sitter[] = [];
-  private readonly heads: InstancedMesh[] = [];
   private readonly watcher: Sitter;
   private readonly watcherFrom: Quaternion;
   private readonly watcherNeck: Vector3;
-  private readonly moonlight;
-  private readonly faceLight;
   private readonly water: Mesh;
   private readonly fall: number;
   private readonly swarm: Snakes;
@@ -545,8 +533,6 @@ export default class Pool extends Room {
   private readonly placed: Float32Array;
   private readonly focusAt: Vector3;
   private growing = false;
-  private lift = -1;
-  private turn = -1;
   private readonly hushed: RoomVoice[] = [];
   private trickle: RoomVoice | null = null;
 
@@ -568,7 +554,7 @@ export default class Pool extends Room {
       this.warp = [
         { at: 0, bendUp: 0.001, bendAside: -0.0008, twist: 0, wave: 0 },
         { at: at(LINE_AT), bendUp: 0.0015, bendAside: 0.0008, twist: 0.0006, wave: 0 },
-        { at: at(TURN_TO), bendUp: 0.012, bendAside: 0.002, twist: 0.002, wave: 0 },
+        { at: at(FREEZE_AT), bendUp: 0.012, bendAside: 0.002, twist: 0.002, wave: 0 },
         { at: 1, bendUp: 0.013, bendAside: 0.002, twist: 0.002, wave: 0 },
       ];
     }
@@ -695,8 +681,7 @@ export default class Pool extends Room {
     const pane = new Vector3(WINDOW_X, windowMid, HALL_FAR);
     const lamp = target.clone().add(pane.clone().sub(target).multiplyScalar(MOON_BEYOND));
     const coneDeg = (Math.atan((Math.hypot(WINDOW_W, WINDOW_H) * 0.72) / pane.distanceTo(lamp)) * 180) / Math.PI;
-    this.moonlight = this.spot([lamp.x, lamp.y, lamp.z], [target.x, target.y, target.z], PALETTE.cold, MOON, coneDeg, 0.08);
-    this.spots = [this.moonlight, null, null];
+    this.spots = [this.spot([lamp.x, lamp.y, lamp.z], [target.x, target.y, target.z], PALETTE.cold, MOON, coneDeg, 0.08), null, null];
     const shaft = (offset: number, top: number, bottom: number, strength: number) => {
       const from = new Vector3(WINDOW_X + offset, windowMid, HALL_FAR);
       const to = new Vector3(target.x + offset * 1.6, target.y - 0.3, target.z);
@@ -713,7 +698,6 @@ export default class Pool extends Room {
     this.light([-0.5, -0.2, -5.6], 0xd2dee0, WATER_FILL, 12);
     this.light([-4.2, 3.2, -6], 0x7fa0a0, DECK_FILL, 9);
     this.light([0.4, 3.2, -8.2], 0xd8e2ee, MOON_WASH, 11);
-    this.faceLight = this.light([-2.6, 3.4, -5.6], 0xd6e8e2, 0, 12);
 
     // ladders that go down to nothing, a tap, the drain
     const chrome = new MeshStandardMaterial({ color: 0xd8e0e0, metalness: 0.55, roughness: 0.22 });
@@ -799,7 +783,7 @@ export default class Pool extends Room {
     const bodies = seats.map((seat) => seat.clone().multiply(new Matrix4().makeTranslation(0, 0, -SIT_BACK)));
     bodies.push(new Matrix4().compose(new Vector3(WATCHER[0], 0, WATCHER[2]), watcherTurn, ONE).multiply(new Matrix4().makeTranslation(0, 0, -SIT_BACK)));
     const cloth = new Map<Material, MeshStandardMaterial>();
-    const eye = new Vector3(...EYE_AT);
+    const sitters: Sitter[] = [];
     const feet: Vector3[] = [];
     POSES.forEach((time, pose) => {
       const mine = bodies.flatMap((body, i) => (i % POSES.length === pose ? [{ body, i }] : []));
@@ -817,24 +801,25 @@ export default class Pool extends Room {
       }
       mine.forEach(({ body, i }, index) => {
         crowd.setMatrix(index, body);
-        const q = new Quaternion().setFromRotationMatrix(body);
-        const toEye = eye.clone().sub(neck.clone().applyMatrix4(body)).applyQuaternion(q.clone().invert());
-        const sitter: Sitter = { head, index, neck, body, yaw: Math.atan2(toEye.x, toEye.z), pitch: Math.min(1.1, Math.atan2(toEye.y, Math.hypot(toEye.x, toEye.z))) };
+        const sitter: Sitter = { head, index, neck, body };
         if (i === bodies.length - 1) this.watcherSeated = sitter;
         else {
-          this.sitters.push(sitter);
+          sitters.push(sitter);
           feet.push(footA.clone().applyMatrix4(body), footB.clone().applyMatrix4(body));
         }
       });
       crowd.commit();
-      this.heads.push(head);
       root.add(crowd.root);
       this.inFrontFirst(crowd.root);
     });
     this.watcher = this.watcherSeated!;
     this.watcherFrom = watcherTurn.clone().invert();
     this.watcherNeck = this.watcher.neck.clone().applyMatrix4(this.watcher.body);
-    this.poseHeads(0, 0);
+    // every head hangs forward, and stays so whatever comes over their shoes
+    for (const s of sitters) {
+      this.aim(s, 0, BOW);
+      s.head.instanceMatrix.needsUpdate = true;
+    }
 
     // the first thin one and those that climb: near snakes
     const climbers: SnakePlace[] = [];
@@ -924,7 +909,8 @@ export default class Pool extends Room {
     root.add(this.swarm.root);
 
     this.beat(0, () => {
-      this.hushed.push(this.sound.bed('rooms/pool_room_tone.mp3', { gain: 0.3, fade: 1.6 }));
+      // the hall's own air: the one thing that goes on after the freeze
+      this.sound.bed('rooms/pool_room_tone.mp3', { gain: 0.3, fade: 1.6 });
       this.hushed.push(this.sound.bed('rooms/underwater_pool.mp3', { gain: 0.08, lowpass: 1400, fade: 3 }));
       this.hushed.push(this.sound.bed('rooms/dream_drone_hollow.mp3', { gain: 0.1, fade: 3 }));
     });
@@ -940,13 +926,10 @@ export default class Pool extends Room {
       this.trickle?.gain(0, 0.5);
       this.hushed.push(this.sound.bed('rooms/snakes_scales.mp3', { gain: 0.28, reverb: 0.3, fade: 0.9 }));
     });
-    // every sound stops at once, the hiss and the coats come out of nothing
-    this.beat(HUSH_AT, () => {
-      for (const v of this.hushed) v.gain(0, 0.14);
-    });
-    this.beat(LIFT_FROM, () => {
-      this.sound.play('rooms/crowd_rise.mp3', { gain: 0.4, reverb: 0.5 });
-      this.sound.play('rooms/snake_hiss_close.mp3', { gain: 0.35 });
+    this.beat(HISS_AT, () => this.hushed.push(this.sound.play('rooms/snake_hiss_close.mp3', { gain: 0.35, pan: -0.25 })));
+    // they stop, and every sound they made and the water made stops in the same instant
+    this.beat(FREEZE_AT, () => {
+      for (const v of this.hushed) v.gain(0, FREEZE_CUT);
     });
     this.beat(SHUTTER_AT, () => this.shutter());
     this.beat(CUT_AT, () => this.sound.stopAll(0.04));
@@ -1015,40 +998,28 @@ export default class Pool extends Room {
     s.head.setMatrixAt(s.index, whole.multiplyMatrices(s.body, turned));
   }
 
-  private poseHeads(lift: number, turn: number): void {
-    for (let i = 0; i < this.sitters.length; i++) {
-      const s = this.sitters[i];
-      this.aim(s, s.yaw * turn, BOW * (1 - lift) - s.pitch * lift);
-    }
-    for (let i = 0; i < this.heads.length; i++) this.heads[i].instanceMatrix.needsUpdate = true;
-    this.lift = lift;
-    this.turn = turn;
-  }
-
   update(frame: RoomFrame): void {
     const s = frame.seconds;
-    const looked = ease(LIFT_FROM, TURN_TO, s);
     this.rippleTime.value = RIPPLE_START + s * RIPPLE_SPEED;
-    this.rippleLight.value = RIPPLE_CALM + (RIPPLE_LOOKED - RIPPLE_CALM) * looked;
-    this.moonlight.intensity = MOON * (1 + MOON_SURGE * looked);
-    this.faceLight.intensity = FACE_FILL * looked;
     for (let i = 0; i < this.dust.length; i++) this.dust[i].value = frame.time;
 
     const running = ease(TAP_AT + 0.8, TAP_AT + 1.7, s);
     this.water.visible = running > 0;
     this.water.scale.y = Math.max(0.001, running * this.fall);
 
-    this.close.update(s);
-    this.swarm.update(s);
-    this.close.reveal(s < LINE_AT - 1.5 ? 0 : s < MANY_FROM ? 2 : this.closeCount);
+    // the snakes' own time stops at the freeze: every body, every wave, every tongue stays where it was
+    const alive = Math.min(s, FREEZE_AT);
+    this.close.update(alive);
+    this.swarm.update(alive);
+    this.close.reveal(alive < LINE_AT - 1.5 ? 0 : alive < MANY_FROM ? 2 : this.closeCount);
     let n = 0;
-    while (n < this.appears.length && this.appears[n] <= s) n++;
+    while (n < this.appears.length && this.appears[n] <= alive) n++;
     this.swarm.reveal(n);
     // each one swells out of the tile instead of being there all at once
-    const swelling = s > this.appears[0] && s < this.appears[this.appears.length - 1] + GROW;
+    const swelling = alive > this.appears[0] && alive < this.appears[this.appears.length - 1] + GROW;
     if (swelling || this.growing) {
       for (let i = 0; i < n; i++) {
-        const g = 0.25 + 0.75 * ease(this.appears[i], this.appears[i] + GROW, s);
+        const g = 0.25 + 0.75 * ease(this.appears[i], this.appears[i] + GROW, alive);
         scratch.fromArray(this.placed, i * 16);
         const e = scratch.elements;
         for (let k = 0; k < 11; k++) if (k !== 3 && k !== 7) e[k] *= g;
@@ -1057,21 +1028,16 @@ export default class Pool extends Room {
       this.swarm.root.instanceMatrix.needsUpdate = true;
       this.growing = swelling;
     }
-    const up = ease(LIFT_FROM, LIFT_TO + 0.3, s);
-    this.swarm.raise(RISE * up, EYE_AT, up);
-    this.close.raise(RISE_NEAR * up, EYE_AT, up);
 
-    const lift = ease(LIFT_FROM, LIFT_TO, s);
-    const turn = ease(TURN_FROM, TURN_TO, s);
-    if (lift !== this.lift || turn !== this.turn) this.poseHeads(lift, turn);
     // the one on the deck turns as you go by, from the first moment
     va.copy(frame.eye).sub(this.watcherNeck).applyQuaternion(this.watcherFrom);
     this.aim(this.watcher, Math.atan2(va.x, va.z), -Math.atan2(va.y, Math.hypot(va.x, va.z)));
     this.watcher.head.instanceMatrix.needsUpdate = true;
 
     this.focus = Math.hypot(frame.eye.x - this.focusAt.x, frame.eye.y - this.focusAt.y, frame.eye.z - this.focusAt.z);
-    this.fear = 0.35 + 0.15 * ease(TAP_AT, LINE_AT, s) + 0.5 * ease(LINE_AT, TURN_TO, s);
-    this.drift = s >= LIFT_FROM ? 0 : REDUCED_MOTION ? 0.3 : 0.7;
+    this.fear = 0.35 + 0.15 * ease(TAP_AT, LINE_AT, s) + 0.5 * ease(LINE_AT, FREEZE_AT, s);
+    // the eye goes still while the floor comes alive, before they do
+    this.drift = (REDUCED_MOTION ? 0.3 : 0.7) * (1 - ease(MANY_BY, FREEZE_AT, s));
     this.black = s >= CUT_AT ? 1 : 0;
   }
 }

@@ -1003,7 +1003,7 @@ export class TheVoid implements DreamModule {
     this.buildIdol(kit);
     this.buildWater(kit, pools, poolLight);
 
-    kit.poi({ position: giant.imageCenter, radius: dreamConfig.giantPrint.poi.radius, zoom: dreamConfig.giantPrint.poi.zoom, memory: 'giant' });
+    kit.poi({ position: giant.imageCenter, radius: dreamConfig.giantPrint.poi.radius, zoom: dreamConfig.giantPrint.poi.zoom });
   }
 
   // ------------------------------------------------------------------ building

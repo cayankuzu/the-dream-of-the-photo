@@ -68,7 +68,8 @@ export const REGIONS: readonly RegionLook[] = [
     from: LAYOUT.street.from,
     fog: { color: 0x1d1412, density: 0.026 },
     env: 'fire',
-    envIntensity: 0.13,
+    // low: the street is lit by its lamps, and dark between them
+    envIntensity: 0.07,
     sky: 0.85,
     grade: { exposure: 1.06, saturation: 0.74, warmth: 0.04, tint: 0.01, flare: 0.004 },
   },

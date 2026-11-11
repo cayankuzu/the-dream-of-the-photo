@@ -1107,6 +1107,15 @@ Source: [Freesound](https://freesound.org), each sound under [CC0 1.0](http://cr
 
 Total: 624 files, 41,377,772 bytes (39.46 MiB).
 
+### The film: voice and score
+
+| File | Source | License | Made by |
+| --- | --- | --- | --- |
+| `audio/score/theme_1.mp3`, `theme_2.mp3`, `theme_4.mp3`, `theme_6.mp3`, `theme_7.mp3` | The lullaby written for this piece: a synthesized music box over VSCO-2 Community Edition strings and contrabass ([github.com/sgossner/VSCO-2-CE](https://github.com/sgossner/VSCO-2-CE), commit 4403009) | CC0 (samples); the tune and the synthesis are this piece's | `scripts/build-score.py` |
+| `audio/score/card.mp3`, `audio/score/breakoff.mp3` | VSCO-2 Community Edition upright piano, cello section, viola and violin sections | CC0 | `scripts/build-score.py` |
+| `audio/score/cold.mp3`, `audio/score/home.mp3` | The piece's own recordings under `audio/rooms` (cutlery, plates, a chair, steps, a door, night wind; listed above) | CC0 | `scripts/build-score.py` |
+| `audio/voice/tr/*.mp3`, `audio/voice/en/*.mp3` | Synthetic speech: Chatterbox Multilingual (MIT), speakers designed from a description with VoxCPM2 (Apache-2.0); no real voice | MIT / Apache-2.0 tools; the output is this piece's | `scripts/voice/build-voice.py` (lines from `scripts/voice/collect-lines.mjs`) |
+
 ## Credit requests
 
 CC0 requires no attribution; these are courtesies to honor in the notices, as the rest of the manifest already does:
@@ -1198,6 +1207,7 @@ unaccounted for.
 | Eye in a knot | `models/eyeball.glb` (`scripts/build-props.mjs`) | Sphere, lids and knot from code; iris and veins drawn in code. 1952 triangles, 40 KiB. |
 | Paper party hat | `models/party_hat.glb` (`scripts/build-props.mjs`) | A cone and a pompom from code, stripes drawn in code. 192 triangles, 6 KiB. |
 | Balloon | `models/balloon.glb` (`scripts/build-props.mjs`) | Lathe and string from code. 804 triangles, 8 KiB. |
+| Share image | `og.jpg` | The title screen itself, captured at 1200 × 630 with its buttons hidden: the title and the motto broken off, in the piece's own fonts (OFL). 124 KiB. |
 | Birthday candle | `models/candle_party.glb` (`scripts/build-props.mjs`) | Lathe and flame from code, stripes drawn in code. 98 triangles, 7 KiB. |
 | Music box | `models/music_box.glb` (`scripts/build-props.mjs`) | Boxes, comb, cylinder and crank from code. 422 triangles, 11 KiB. |
 | Dental handpiece | `models/dental_drill.glb` (`scripts/build-props.mjs`) | Lathe and swept hose from code. 444 triangles, 6 KiB. |

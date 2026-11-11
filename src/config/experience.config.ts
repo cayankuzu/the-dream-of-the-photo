@@ -4,9 +4,10 @@
  * Progress values are normalized timeline positions in [0, 1].
  */
 
-import { journeySeconds, PROLOGUE_SECONDS, WAKING_SECONDS } from './journey.config';
+import { COLD_SECONDS, CREDITS_SECONDS, journeySeconds, PROLOGUE_SECONDS, STREET_SECONDS, WAKING_SECONDS } from './journey.config';
 
 export const PHASES = [
+  'COLD',
   'INTRO',
   'CAMERA_RAISE',
   'AIM',
@@ -19,6 +20,8 @@ export const PHASES = [
   'PHOTO_ENTRY',
   'WORLD',
   'EXPLORATION',
+  'STREET',
+  'CREDITS',
 ] as const;
 
 export type Phase = (typeof PHASES)[number];
@@ -27,30 +30,38 @@ export type Phase = (typeof PHASES)[number];
 export type Cue = readonly [Phase, number] | readonly ['ROOM', string, number] | readonly ['STEP', number, number];
 
 /** Seconds of the whole piece when nobody touches anything. */
-const RUN_SECONDS = PROLOGUE_SECONDS + journeySeconds + WAKING_SECONDS;
+export const RUN_SECONDS = COLD_SECONDS + PROLOGUE_SECONDS + journeySeconds + WAKING_SECONDS + STREET_SECONDS + CREDITS_SECONDS;
+/** Seconds into the piece at which the journey begins. */
+const JOURNEY_AT = COLD_SECONDS + PROLOGUE_SECONDS;
 /** Second at which something happens (or a stretch of seconds), as a timeline position. */
 export const at = (seconds: number) => seconds / RUN_SECONDS;
 
 export const timelineConfig = {
   /**
-   * Start of every phase (written in seconds of the three-minute run, so progress is proportional to
-   * time). A phase lasts until the next one starts; EXPLORATION ends at 1.
+   * Start of every phase (written in seconds of the run, so progress is proportional to time). A phase
+   * lasts until the next one starts; CREDITS ends at 1.
    */
   phaseStart: {
-    INTRO: 0,
-    CAMERA_RAISE: at(4),
-    AIM: at(9),
-    FOCUS: at(12),
-    CAPTURE: at(15),
-    PHOTO_EJECT: at(17),
-    PHOTO_REVEAL: at(21),
-    PHOTO_APPROACH: at(25.5),
-    PHOTO_DEPTH: at(28.5),
-    PHOTO_ENTRY: at(31),
+    /** Black: the dinner table is only heard. */
+    COLD: 0,
+    INTRO: at(COLD_SECONDS),
+    CAMERA_RAISE: at(COLD_SECONDS + 4),
+    AIM: at(COLD_SECONDS + 9),
+    FOCUS: at(COLD_SECONDS + 12),
+    CAPTURE: at(COLD_SECONDS + 15),
+    PHOTO_EJECT: at(COLD_SECONDS + 17),
+    PHOTO_REVEAL: at(COLD_SECONDS + 21),
+    PHOTO_APPROACH: at(COLD_SECONDS + 25.5),
+    PHOTO_DEPTH: at(COLD_SECONDS + 28.5),
+    PHOTO_ENTRY: at(COLD_SECONDS + 31),
     /** The evenings of the nightmare (see journey.config.ts): most of the piece. */
-    WORLD: at(PROLOGUE_SECONDS),
-    /** The last photograph, and waking up. */
-    EXPLORATION: at(PROLOGUE_SECONDS + journeySeconds),
+    WORLD: at(JOURNEY_AT),
+    /** The last photograph, and the street again. */
+    EXPLORATION: at(JOURNEY_AT + journeySeconds),
+    /** The street as it really is: half past six. */
+    STREET: at(JOURNEY_AT + journeySeconds + WAKING_SECONDS),
+    /** The names. */
+    CREDITS: at(JOURNEY_AT + journeySeconds + WAKING_SECONDS + STREET_SECONDS),
   } satisfies Record<Phase, number>,
   /**
    * The dream does not wait: once begun, the timeline moves on by itself (progress / s), so that the
@@ -188,8 +199,6 @@ export const lookConfig = {
    * that the point leaves the inner `frameShare` of the half-frame.
    */
   attention: { dwellSeconds: 1.1, zoomRate: 0.35, releaseRate: 1.2, frameShare: 0.6, /** m */ reach: 38 },
-  /** Seconds a memory must hold the gaze before it is found. */
-  discoverSeconds: 1.6,
   hintFadeAfterDegrees: 50,
 } as const;
 
@@ -222,7 +231,7 @@ export const photographerConfig = {
   aimRelease: at(1.08),
   /** Shutter button travel around the shutter beat (timeline progress before / release window after). */
   button: { lead: at(0.36), release: [at(0.18), at(0.63)] as const },
-  /** The idle sway of the opening fades over this stretch of the timeline. */
+  /** The idle sway of the opening fades over this stretch of the timeline, from where the street is first seen. */
   introFade: at(10.8),
   envMapIntensity: 0.8,
   /** Where the left elbow points while reaching (m below and to the side of the shoulder). */
@@ -249,16 +258,18 @@ export const photographerConfig = {
   /** The hair goes white: how much at each beat (each dream of the photograph takes more of it). */
   whitening: [
     [['CAPTURE', 1], 0],
-    [['PHOTO_REVEAL', 1], 0.28],
-    [['PHOTO_APPROACH', 1], 0.42],
-    [['EXPLORATION', 0.06], 0.42],
-    [['EXPLORATION', 0.07], 1],
+    [['PHOTO_REVEAL', 1], 0.07],
+    [['PHOTO_APPROACH', 1], 0.12],
+    [['EXPLORATION', 0.022], 0.88],
+    [['EXPLORATION', 0.0257], 1],
   ] as readonly (readonly [Cue, number])[],
   /**
-   * Waking: the head turns all the way round on its neck to look at you, in catches rather than smoothly
-   * (EXPLORATION fractions, number of catches, share of the turn the neck takes, share of the look's pitch).
+   * The ending: from "Saçına bak" on, the head begins to turn round on its neck toward you, in catches rather than
+   * smoothly, and has only come round to profile when the picture goes black: no face is ever seen (EXPLORATION
+   * fractions of its start and end; how far it turns by then, deg to his right: the last camera stands behind his
+   * right shoulder, so this is his profile as it sees him; number of catches; share of the turn the neck takes).
    */
-  stare: { from: 0.42, to: 0.68, catches: 4, neckShare: 0.35, pitch: 0.8 },
+  stare: { from: 0.5, to: 0.95, angle: 70, catches: 4, neckShare: 0.35 },
   /** Mocap time at which the camera grip is calibrated (camera at the eye). */
   calibrateAt: 2.9,
   /** Print hand-off inside PHOTO_REVEAL (fractions of the phase). */

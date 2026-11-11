@@ -1,5 +1,5 @@
 import { PHASES, timelineConfig, type Cue, type Phase } from '../../config/experience.config';
-import { isRoom, JOURNEY, journeySeconds, type JourneyStep } from '../../config/journey.config';
+import { COLD_GLIMPSE, isRoom, isWake, JOURNEY, journeySeconds, scriptAt, shownAt, STEP_IDS, type JourneyStep } from '../../config/journey.config';
 import { clamp, lerp } from '../math';
 
 export interface PhaseInfo {
@@ -42,8 +42,8 @@ export const JOURNEY_STEPS: readonly PlacedStep[] = (() => {
     const from = a + ((b - a) * seconds) / journeySeconds;
     seconds += step.seconds;
     const to = a + ((b - a) * seconds) / journeySeconds;
-    const walkFrom = isRoom(step) ? walk : step.walk[0];
-    walk = isRoom(step) ? walk : step.walk[1];
+    const walkFrom = 'walk' in step ? step.walk[0] : walk;
+    walk = 'walk' in step ? step.walk[1] : walk;
     return { step, index, from, to, walkFrom, walkTo: walk };
   });
 })();
@@ -60,11 +60,36 @@ export function stepAt(p: number): PlacedStep {
   return JOURNEY_STEPS[lo];
 }
 
-/** The room running at `p`, and how far through its time; null on the walk or outside the journey. */
+/** The room running at `p`, and how far through its own script; null on the walk, in a waking or outside the journey. */
 export function roomAt(p: number): { id: string; t: number; step: PlacedStep } | null {
   if (p < phaseStart('WORLD') || p >= phaseStart('EXPLORATION')) return null;
   const s = stepAt(p);
-  return isRoom(s.step) ? { id: s.step.room, t: clamp((p - s.from) / (s.to - s.from), 0, 1), step: s } : null;
+  return isRoom(s.step) ? { id: s.step.room, t: scriptAt(s.step, clamp((p - s.from) / (s.to - s.from), 0, 1)), step: s } : null;
+}
+
+/** The moment of the cold open in which the street is seen as it will be (timeline positions). */
+const GLIMPSE = COLD_GLIMPSE.map((seconds) => seconds * timelineConfig.autoRate);
+
+/**
+ * The street at `p`, seen from outside the dream, and how far through that shot: where an evening broke off
+ * (`n` 1 to 6); as it really is, after the ending (`n` 0); as it will be, for a moment of the cold open (`n` 7).
+ * Null everywhere else. (See WAKES in film.config.ts.)
+ */
+export function wakeAt(p: number): { n: number; t: number } | null {
+  const street = phaseStart('STREET');
+  const credits = phaseStart('CREDITS');
+  if (p >= street && p < credits) return { n: 0, t: clamp((p - street) / (credits - street), 0, 1) };
+  if (p >= GLIMPSE[0] && p < GLIMPSE[1]) return { n: 7, t: (p - GLIMPSE[0]) / (GLIMPSE[1] - GLIMPSE[0]) };
+  if (p < phaseStart('WORLD') || p >= phaseStart('EXPLORATION')) return null;
+  const s = stepAt(p);
+  return isWake(s.step) ? { n: s.step.wake, t: clamp((p - s.from) / (s.to - s.from), 0, 1) } : null;
+}
+
+/** Timeline position `seconds` into the step called `id` (see STEP_IDS), never past its end. */
+export function stepProgress(id: string, seconds: number): number {
+  const placed = JOURNEY_STEPS[STEP_IDS.indexOf(id)];
+  if (!placed) throw new Error(`no such step on the journey: ${id}`);
+  return Math.min(placed.to, placed.from + seconds * timelineConfig.autoRate);
 }
 
 function walkAt(p: number): number {
@@ -104,12 +129,12 @@ export function cueToProgress(cue: Cue): number {
   }
   if (cue[0] === 'ROOM') {
     const placed = JOURNEY_STEPS.find((s) => isRoom(s.step) && s.step.room === cue[1]);
-    if (!placed) throw new Error(`no such room on the journey: ${cue[1]}`);
-    return lerp(placed.from, placed.to, cue[2]);
+    if (!placed || !isRoom(placed.step)) throw new Error(`no such room on the journey: ${cue[1]}`);
+    return lerp(placed.from, placed.to, shownAt(placed.step, cue[2]));
   }
   const [phase, t] = cue;
   if (phase === 'WORLD') {
-    const placed = JOURNEY_STEPS.find((s) => !isRoom(s.step) && t <= s.walkTo && t >= s.walkFrom);
+    const placed = JOURNEY_STEPS.find((s) => 'walk' in s.step && t <= s.walkTo && t >= s.walkFrom);
     if (placed) return lerp(placed.from, placed.to, (t - placed.walkFrom) / (placed.walkTo - placed.walkFrom));
   }
   return phaseStart(phase) + (phaseEnd(phase) - phaseStart(phase)) * t;

@@ -32,7 +32,6 @@ import {
   ZeroFactor,
   type WebGLProgramParametersWithUniforms,
 } from 'three';
-import type { Text } from '../../../config/copy.config';
 import { REDUCED_MOTION } from '../../../config/experience.config';
 import { clamp, range, smootherstep } from '../../math';
 import type { RoomAir, RoomAssets, RoomContext, RoomFrame, RoomKey } from '../Room';
@@ -130,8 +129,6 @@ const CAUSTIC = 0.02;
 
 /** Seconds into the ten-second evening. */
 const TONGS_REST = 2;
-const LINE_AT = 3.5;
-const LINE_HOLD = 5.5;
 const DEVELOP_FROM = 3.9;
 const DEVELOP_TO = 9.7;
 /** The light breathes once at the start: rises so much, and sinks so much (0..1 of its strength). */
@@ -169,16 +166,6 @@ const BEADS = 130;
 const MARKS = { w: 2, d: 1.2 };
 /** The fingerprint, in the picture's own coordinates (0..1): its middle and half its size. A thumb too large for a hand. */
 const PRINTED_AT = { x: 0.63, y: 0.56, w: 0.16, h: 0.2 };
-
-/** What is said over the tray on each evening: the two halves of the motto take turns. */
-const LINES: readonly Text[] = [
-  { tr: 'Bir fotoğrafın rüyası her akşam yarım.', en: 'The dream of a photograph, every evening, half.' },
-  { tr: 'Bir fotoğrafın rüyası saç beyazlatır.', en: 'The dream of a photograph turns hair white.' },
-  { tr: 'Dün gece de buraya kadar gelmiştin.', en: 'You got this far last night too.' },
-  { tr: 'Saçın artık kendi saçın değil.', en: 'Your hair is no longer your own.' },
-  { tr: 'Bu akşam bitecek sandın.', en: 'You thought it would end this evening.' },
-  { tr: 'Son akşam. Yemek soğudu.', en: 'The last evening. Dinner has gone cold.' },
-];
 
 const LIQUID_VERT = /* glsl */ `
 varying vec3 vAt;
@@ -1185,7 +1172,6 @@ export default class Evening extends Room {
     });
     TICK_AT.forEach((at, i) => this.beat(at, () => this.sound.play(i % 2 === 0 ? 'rooms/fluorescent_tick_1.mp3' : 'rooms/fluorescent_tick_3.mp3', { gain: 0.05, pan: -0.4, rate: 0.8, lowpass: 3000 })));
     if (night < 7) this.beat(TONGS_REST, () => this.sound.play('rooms/plate_set_2.mp3', { gain: 0.13, rate: 1.3, lowpass: 2400, reverb: 0.2, pan: night === 6 ? -0.1 : 0.3 }));
-    this.beat(LINE_AT, () => this.say(LINES[night - 2], LINE_HOLD));
     this.beat(DEVELOP_FROM, () => {
       const glassGain = 0.03 + (night - 2) * 0.004;
       this.heard.push({ voice: this.sound.bed('rooms/dream_drone_glass.mp3', { gain: glassGain, fade: 5 }), gain: glassGain });

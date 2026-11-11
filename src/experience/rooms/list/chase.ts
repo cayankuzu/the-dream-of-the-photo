@@ -1263,7 +1263,7 @@ export default class Chase extends Room {
     SQUEALS.forEach(([at, pan], i) => this.beat(at, () => s.play(SQUEAL_FILES[i % 4], { gain: 0.3, pan, reverb: 0.2 })));
     this.beat(14.7, () => s.play('rooms/breath_catch_2.mp3', { gain: 0.3 }));
     this.beat(LEGS_GO - 0.2, () => this.hint(null));
-    this.beat(LEGS_GO, () => this.say({ tr: 'Bacakların dinlemiyor.', en: 'Your legs are not listening.' }, 4.2));
+    this.beat(LEGS_GO, () => this.say({ tr: 'Bacakların söz dinlemiyor.', en: 'Your legs will not obey you.' }, 4.2));
     this.beat(26, () => s.play('rooms/rat_chirp_far_1.mp3', { gain: 0.2, reverb: 0.3, pan: 0.3 }));
     this.beat(27.4, () => s.play('rooms/rat_chirp_far_3.mp3', { gain: 0.16, reverb: 0.3, pan: -0.3 }));
     this.beat(27.7, () => s.play('rooms/breath_catch_4.mp3', { gain: 0.3 }));

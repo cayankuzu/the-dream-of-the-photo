@@ -41,6 +41,11 @@ export class RoomSound {
 
   /** What the room now playing is lifted by in the mix (linear). */
   private trim = 1;
+  /**
+   * The room is being run forward to the moment it is cut into: what would sound once on the way there does not
+   * (what loops starts as it would have).
+   */
+  skipping = false;
 
   constructor(private readonly engine: AudioEngine) {}
 
@@ -72,7 +77,7 @@ export class RoomSound {
   private start(file: string, loop: boolean, o: RoomVoiceOptions): RoomVoice {
     const buffer = this.buffers.get(file);
     const nodes = this.engine.roomOutput();
-    if (!buffer || !nodes) return SILENT_VOICE;
+    if (!buffer || !nodes || (this.skipping && !loop)) return SILENT_VOICE;
     const { ctx, sfx, reverb } = nodes;
     const src = ctx.createBufferSource();
     src.buffer = buffer;

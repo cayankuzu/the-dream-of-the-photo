@@ -26,6 +26,7 @@ import {
   RepeatWrapping,
   ShaderMaterial,
   SRGBColorSpace,
+  Vector2,
   Vector3,
   type AnimationClip,
   type Material,
@@ -52,7 +53,6 @@ export const assets: RoomAssets = {
     'rooms/record_crackle.mp3',
     'rooms/needle_drop.mp3',
     'rooms/fairground_organ_slow.mp3',
-    'rooms/organ_run_down.mp3',
     'rooms/candle_out_1.mp3',
     'rooms/candle_out_2.mp3',
     'rooms/candle_out_3.mp3',
@@ -99,25 +99,38 @@ const CHAIR_NEAR = 0.02;
 /** Where the cake stands and the pendant hangs along the table (m). */
 const CAKE_Z = -4.6;
 const LAMP_Z = -3.4;
-/** Where the eye ends up, the chair beside it. */
+/** Where the eye stands by the last candles, the chair beside it. */
 const EYE_END: V3 = [1.25, 1.5, -2.0];
+/**
+ * Where it stands when the light comes back: at the head of the table, behind your own chair, where it stood
+ * when the room began; and where it has crept to by the cut. How it looks down the table from there (deg).
+ */
+const HOME: V3 = [0, 1.5, 1.25];
+const HOME_END: V3 = [0, 1.48, 1.02];
+const HOME_PITCH = -9;
+const HOME_FOV = 46;
 /** How far the eye turns at the honk (deg of yaw, from looking down the room). */
 const TURN_YAW = REDUCED_MOTION ? 95 : 152;
 
-/** The clock of the room (s). */
+/**
+ * The clock of the room (s of its own script; the journey shows it from 1 to 50 in 40 s). The narrator counts
+ * the candles over the full cake at about 9.6 (7 s on screen): the room keeps still from 7.7 to 11.4, the
+ * first candle goes as he finishes, and the clown first changes chairs after him.
+ */
 const T_NEEDLE = 1.2;
 const T_ORGAN = 2;
-const T_LINE = 3;
 const T_HONK = 20;
 const T_QUIET = 18.4;
 const T_BREATH = 34;
-const T_LAST = 40;
-const T_CROWD = 41;
-const T_LAMP = 44;
-const T_SHUTTER = 44.95;
-const T_CLOSER = 46.9;
-const T_HORNS = 48;
-const T_CUT = 49.5;
+const T_LAST = 38;
+/** After the last candle, in the dark: the party, heard and never seen; it stops dead; the lamp; the picture; the two lines. */
+const T_PARTY = T_LAST + 0.55;
+const T_HUSH = T_PARTY + 3.45;
+const T_LAMP = T_HUSH + 0.8;
+const T_SHUTTER = 43.7;
+const T_CAME = 44.6;
+const T_BUT_YOU = 47.05;
+const T_CUT = 49.9;
 
 const CANDLES = 33;
 /** Seconds a flame takes to die, how fast the room's light falls with the count (power of its share). */
@@ -137,7 +150,7 @@ const FACE_FILL = 0.7;
 /** The room's own lamp: point, spot, the globe's emission. */
 const LAMP_LIGHT = 7;
 const LAMP_SPOT = 26;
-/** A flat fill from the viewer's side under the lamp: the worst light there is. */
+/** A flat fill from your end of the table under the lamp: the worst light there is. */
 const LAMP_FILL = 1.5;
 const LAMP_GLOBE = 2.6;
 /** Picture: exposure with all the candles, with few, under the lamp. */
@@ -153,13 +166,14 @@ const DIP_OUT = 0.34;
 const DIP_DEPTH = REDUCED_MOTION ? 0.75 : 0.97;
 /** How long a breath of the sack lasts (s). */
 const BREATH_CYCLE = 3.4;
-/** Seconds the last wick glows, and the lamp's single sag before the horns. */
+/** Seconds the last wick glows: then he is gone, and so is everything they laid. */
 const EMBER = 1.3;
-const LAMP_SAG = 0.16;
-/** Seconds the record takes to stop turning after the last candle. */
-const RECORD_STOPS = 3.6;
-/** The flash after the shutter: how long our own white takes to clear (s). */
-const FLASH = 0.55;
+const T_GONE = T_LAST + EMBER;
+/** How hard the heart goes while the party is heard in the dark (0..1). */
+const PARTY_FEAR = 0.9;
+/** The lens once it is over: focus (m) and strength. */
+const END_FOCUS = 2.2;
+const END_APERTURE = 1.4;
 
 /** Offsets on the bones (m at scale 1): the sack's center above the head bone, the hat's seat on it, how big the hat is. */
 const HEAD_UP = 0.09;
@@ -167,26 +181,50 @@ const HAT_Y = 0.13;
 const HAT_SCALE = 0.64;
 /** How deep a seated body sits: its feet are on the floor. */
 const SIT_Y = 0;
-/** The horn's height of bounds, so a raised one lies on its axis. */
-const HORN_AXIS = 0.048;
-/** How far every head leans, all the same way, at the lamp's one sag (rad). */
-const COCKED = -0.46;
 
-/** When each candle goes: slow, then the honk, ten behind your back, nine more, the last three slowly. */
+/** What they left behind: the paper hats that came off (besides those of the places), the horns put down. */
+const HATS_DROPPED = 30;
+const HORNS_LEFT = 9;
+/** How far the chairs were pushed back from the table (m, least and most) and turned (rad, either way). */
+const PUSH_BACK: readonly [number, number] = [0.2, 0.48];
+const PUSH_TURN = 0.65;
+/**
+ * The places whose chairs went over backwards (see `places`; the first is his last chair), if nothing lies where
+ * they would fall; those with a hat left on the seat.
+ */
+const FALLEN = [5, 8] as const;
+const SEAT_HATS = [1, 2, 9] as const;
+/** How much of the cake is left (rad round its axis: what was cut away faces you), your slice (rad), how it is turned on your plate (rad). */
+const CAKE_LEFT = 4.2;
+const SLICE = 0.56;
+const SLICE_HEADING = 2.1;
+/** Where your own paper hat still stands, from the middle of your plate (m, x and z). */
+const YOUR_HAT: readonly [number, number] = [0.25, 0.1];
+/** Samples along a cut through the cake, from its axis to its rim. */
+const CUT_SAMPLES = 40;
+/** A paper hat on its side rests on its rim and its pompom: how far its axis then tips past level (rad), how high its middle is at scale 1 (m). */
+const HAT_TIP = 0.267;
+const HAT_LIFT = 0.0723;
+/** Where the uneaten part of the cake begins round its axis (rad), and an angle that keeps all of it. */
+const CAKE_FROM = Math.PI - CAKE_LEFT / 2;
+const WHOLE = Math.PI * 2 + 1;
+
+/** When each candle goes: slowly once he has counted them, then the honk, twelve behind your back, nine more, the last three slowly. */
+const SLOW = 6;
 const DEATHS: readonly number[] = (() => {
   const out: number[] = [];
-  for (let i = 0, s = 8; i < 8; i++, s += 1.85 - i * 0.06) out.push(s);
+  for (let i = 0, s = 12.2; i < SLOW; i++, s += 1.7 - i * 0.1) out.push(s);
   out.push(20.05, 20.12, 20.22);
-  for (let i = 0; i < 10; i++) out.push(20.7 + i * 0.46);
+  for (let i = 0; i < 12; i++) out.push(20.7 + i * 0.38);
   for (let i = 0; i < 9; i++) out.push(25.6 + i * 1.01);
-  out.push(36.4, 38.4, T_LAST);
+  out.push(35, 36.5, T_LAST);
   return out;
 })();
 
 /** The candles he changes chairs under, and the earliest he may take his chance if you look away (s). */
-const HOP_CANDLE = [1, 3, 5, 17, 24, 29] as const;
+const HOP_CANDLE = [1, 3, 4, 17, 24, 29] as const;
 const HOP_AT: readonly number[] = HOP_CANDLE.map((c) => DEATHS[c]);
-const HOP_EARLY = [8.4, 11.2, 14.4, 21.2, 27.6, 31] as const;
+const HOP_EARLY = [13, 15, 16.9, 21.2, 27.6, 31] as const;
 
 /** The chairs he comes through, from the far end to the one beside you. */
 const SEATS = [
@@ -200,12 +238,6 @@ const SEATS = [
 ] as const;
 const LAST_SEAT = SEATS.length - 1;
 
-/** Those standing when the lamp comes on [x, z]: close round you, behind the far row, along the walls. */
-const STANDING: readonly (readonly [number, number])[] = [
-  [1.55, -2.95], [2.02, -2.55], [2.1, -1.75], [1.85, -1.2], [1.25, -1.0], [1.32, -3.75], [1.5, -4.9],
-  [-1.25, -1.6], [-1.32, -2.4], [-1.25, -3.2], [-1.32, -4.0], [-1.25, -4.85], [-0.7, -6.3], [0.7, -6.35], [0.7, 0.75], [-0.55, 1.0],
-];
-
 /** The banner: the half that still reads, the half that fell. */
 const BANNER = { tr: ['İYİ Kİ DOĞ', 'DUN'], en: ['HAPPY BIR', 'THDAY'] } as const;
 /** One flag of it (m). */
@@ -217,7 +249,7 @@ const CREAKS = ['rooms/wood_creak_small_1.mp3', 'rooms/wood_creak_small_2.mp3', 
 
 const UP = new Vector3(0, 1, 0);
 const AXIS_X = new Vector3(1, 0, 0);
-const WHITE = new Color(1, 1, 1);
+const AXIS_Z = new Vector3(0, 0, 1);
 const AVATARS: readonly AvatarKey[] = ['figure_man', 'figure_nurse', 'figure_woman', 'figure_child'];
 const smooth = (t: number): number => t * t * (3 - 2 * t);
 
@@ -245,13 +277,8 @@ function clipNamed(kit: DreamKit, name: string): AnimationClip {
   throw new Error(`no clip ${name}`);
 }
 
-interface Marks {
-  head: Vector3;
-  hand: Vector3;
-}
-
-/** Where head and right hand of a pose lie, in the frame of the crowd baked from it. */
-function marksOf(kit: DreamKit, avatar: AvatarKey, clip: string, time: number): Marks {
+/** Where the head of a pose lies, in the frame of the crowd baked from it. */
+function headOf(kit: DreamKit, avatar: AvatarKey, clip: string, time: number): Vector3 {
   const body = cloneSkinned(kit.model(avatar).scene);
   const mixer = new AnimationMixer(body);
   mixer.clipAction(clipNamed(kit, clip)).play();
@@ -272,35 +299,7 @@ function marksOf(kit: DreamKit, avatar: AvatarKey, clip: string, time: number): 
     }
   });
   const hips = body.getObjectByName('Bip01')!.getWorldPosition(new Vector3());
-  const at = (name: string) => body.getObjectByName(name)!.getWorldPosition(new Vector3()).sub(new Vector3(hips.x, low, hips.z));
-  return { head: at('Bip01_Head'), hand: at('Bip01_R_Hand') };
-}
-
-/** The moment of a clip at which the right hand reaches furthest out and up. */
-function reachOf(kit: DreamKit, avatar: AvatarKey, name: string): number {
-  const body = cloneSkinned(kit.model(avatar).scene);
-  const clip = clipNamed(kit, name);
-  const mixer = new AnimationMixer(body);
-  mixer.clipAction(clip).play();
-  const hand = body.getObjectByName('Bip01_R_Hand')!;
-  const hips = body.getObjectByName('Bip01')!;
-  const a = new Vector3();
-  const b = new Vector3();
-  let best = 0;
-  let score = -Infinity;
-  for (let i = 0; i <= 30; i++) {
-    const t = (clip.duration * i) / 30;
-    mixer.setTime(t);
-    body.updateMatrixWorld(true);
-    hand.getWorldPosition(a);
-    hips.getWorldPosition(b);
-    const s = a.y - b.y + (a.z - b.z) * 0.7;
-    if (s > score) {
-      score = s;
-      best = t;
-    }
-  }
-  return best;
+  return body.getObjectByName('Bip01_Head')!.getWorldPosition(new Vector3()).sub(new Vector3(hips.x, low, hips.z));
 }
 
 /** The painted mouth: how far round the head it reaches either side and how far its corners rise (radians of the head), kept on the face and below the eyes. */
@@ -339,8 +338,8 @@ function sackPoint(th: number, phi: number, suck: number, out: Vector3): Vector3
   return out.set((0.094 * jaw * lump + push) * s * Math.sin(th), (0.142 * lump + push * 0.4) * c + dent, (0.112 * jaw * lump + push) * s * Math.cos(th));
 }
 
-/** The sack as a mesh; `breathes` adds a morph in which its cloth is drawn in over the mouth. */
-function sackGeometry(columns: number, rows: number, breathes: boolean): BufferGeometry {
+/** The sack as a mesh, with a morph in which its cloth is drawn in over the mouth. */
+function sackGeometry(columns: number, rows: number): BufferGeometry {
   const v = new Vector3();
   const build = (suck: number) => {
     const g = new BufferGeometry();
@@ -368,17 +367,15 @@ function sackGeometry(columns: number, rows: number, breathes: boolean): BufferG
     return g;
   };
   const rest = build(0);
-  if (breathes) {
-    const drawn = build(1);
-    rest.morphAttributes.position = [drawn.getAttribute('position')];
-    rest.morphAttributes.normal = [drawn.getAttribute('normal')];
-  }
+  const drawn = build(1);
+  rest.morphAttributes.position = [drawn.getAttribute('position')];
+  rest.morphAttributes.normal = [drawn.getAttribute('normal')];
   return rest;
 }
 
-/** The cloth, the paint, and the lack of eyes: one head's three maps (color, height in red and roughness in green, the paint alone). */
-function sackMaterial(variant: number): MeshStandardMaterial {
-  const random = randomFrom(71 + variant * 13);
+/** The cloth, the paint, and the lack of eyes: the head's three maps (color, height in red and roughness in green, the paint alone). */
+function sackMaterial(): MeshStandardMaterial {
+  const random = randomFrom(71);
   const WIDE = 1024;
   const TALL = 512;
   const color = surfaceCanvas(WIDE, TALL);
@@ -429,7 +426,7 @@ function sackMaterial(variant: number): MeshStandardMaterial {
   const half = (MOUTH_HALF / (Math.PI * 2)) * WIDE;
   const y0 = 330;
   const lift = (MOUTH_LIFT / Math.PI) * TALL;
-  const tilt = variant ? 12 : -10;
+  const tilt = -10;
   const mid = (dx: number) => y0 - lift * Math.pow(Math.abs(dx) / half, 2.4) + (tilt * dx) / half;
   const lip = (dx: number, size: number) => size * Math.pow(Math.max(0, 1 - Math.pow(Math.abs(dx) / half, 1.6)), 0.8);
   const STEPS = 80;
@@ -447,7 +444,7 @@ function sackMaterial(variant: number): MeshStandardMaterial {
     c.closePath();
   };
   // it never ran: the draws its runs once took are still taken, so the rest of the face stays where it was
-  for (let i = 0; i < (variant ? 11 : 8) * 3; i++) random();
+  for (let i = 0; i < 8 * 3; i++) random();
 
   // laid on long ago and dried dark into the cloth: no sheen, no halo, nothing past its edge
   color.c.fillStyle = MOUTH_PAINT;
@@ -502,7 +499,7 @@ function sackMaterial(variant: number): MeshStandardMaterial {
   trace(paint.c, 0.5);
   paint.c.fill();
 
-  // no eyes: two holes, cut by someone in a hurry; on the other face one of them is sewn shut
+  // no eyes: two holes, cut by someone in a hurry
   const hole = (x: number, y: number, rx: number, ry: number) => {
     const rim: number[] = [];
     for (let a = 0; a < 26; a++) rim.push(0.82 + random() * 0.36);
@@ -554,12 +551,7 @@ function sackMaterial(variant: number): MeshStandardMaterial {
     }
   };
   hole(cx - 74, 232, 22, 18);
-  if (variant) {
-    sew(cx + 48, 238, cx + 104, 242, 6, 10);
-    thread(color.c, [cx + 44, 238], [cx + 108, 242], '#14100b', 3);
-  } else {
-    hole(cx + 76, 241, 18, 21);
-  }
+  hole(cx + 76, 241, 18, 21);
   // part of the mouth was sewn up too, badly, at one side
   for (let i = 0; i < 6; i++) {
     const dx = -150 + i * (20 + random() * 8);
@@ -567,19 +559,9 @@ function sackMaterial(variant: number): MeshStandardMaterial {
     thread(color.c, [cx + dx - 2, m0 - 15], [cx + dx + 3, m0 + 19], '#0c0906', 3.2);
     thread(surface.c, [cx + dx - 2, m0 - 15], [cx + dx + 3, m0 + 19], 'rgb(230,220,0)', 3);
   }
-  // the seam over the crown, and a patch on the brow
+  // the seam over the crown, and the one down the back
   sew(cx + 4, 0, cx - 8, 150, 8, 9);
   sew(cx - 505, 40, cx - 505, 420, 20, 8);
-  if (variant) {
-    color.c.fillStyle = 'rgba(46,40,30,0.94)';
-    color.c.save();
-    color.c.translate(cx + 128, 128);
-    color.c.rotate(0.14);
-    color.c.fillRect(-42, -30, 84, 60);
-    color.c.restore();
-    sew(cx + 86, 104, cx + 170, 116, 9, 5);
-    sew(cx + 80, 160, cx + 164, 172, 9, 5);
-  }
 
   const material = new MeshStandardMaterial({
     map: textureOf(color.canvas, true),
@@ -1044,6 +1026,158 @@ function darkened(object: Object3D, k: number): Object3D {
   return object;
 }
 
+/**
+ * The cake's own scan, kept only between two angles round its axis: `wedge` is where that begins and how far
+ * round it goes (rad, atan2(x, z) in the scan's frame). Every piece shares one program.
+ */
+function wedgeMaterial(source: MeshStandardMaterial, wedge: Vector2): MeshStandardMaterial {
+  const material = source.clone();
+  material.onBeforeCompile = (shader) => {
+    shader.uniforms.uWedge = { value: wedge };
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', '#include <common>\nvarying vec2 vRound;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvRound = position.xz;');
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <common>', '#include <common>\nuniform vec2 uWedge;\nvarying vec2 vRound;')
+      .replace('void main() {', 'void main() {\n  if (mod(atan(vRound.x, vRound.y) - uWedge.x, 6.2831853) > uWedge.y) discard;');
+  };
+  material.customProgramCacheKey = () => 'party-cake-wedge';
+  return material;
+}
+
+/**
+ * The faces where a knife went through the cake, in its scan's frame: at angle `a`, facing round toward larger
+ * angles (`side` 1) or smaller (-1), from its bottom up to the top it has there (found by dropping rays on it,
+ * so the face fits the scan). `v` runs down from the top, so the frosting follows it.
+ */
+function cutFaces(mesh: Mesh, cuts: readonly (readonly [number, number])[], ray: Raycaster): { geometry: BufferGeometry; inner: number; outer: number } {
+  if (!mesh.geometry.boundingBox) mesh.geometry.computeBoundingBox();
+  const box = mesh.geometry.boundingBox!;
+  const rim = Math.max(box.max.x, box.max.z, -box.min.x, -box.min.z);
+  const height = box.max.y - box.min.y;
+  const down = new Vector3(0, -1, 0);
+  const p = new Vector3();
+  const positions: number[] = [];
+  const normals: number[] = [];
+  const uvs: number[] = [];
+  const index: number[] = [];
+  let inner = rim;
+  let outer = 0;
+  for (const [a, side] of cuts) {
+    const tops: number[] = [];
+    for (let i = 0; i <= CUT_SAMPLES; i++) {
+      const r = (rim * i) / CUT_SAMPLES;
+      mesh.localToWorld(p.set(Math.sin(a) * r, box.max.y + 0.2, Math.cos(a) * r));
+      ray.set(p, down);
+      const hit = ray.intersectObject(mesh, false)[0];
+      const y = hit ? mesh.worldToLocal(hit.point).y : -Infinity;
+      tops.push(y > box.min.y + height * 0.1 ? y : NaN);
+    }
+    const nx = side * Math.cos(a);
+    const nz = -side * Math.sin(a);
+    for (let i = 0; i < CUT_SAMPLES; i++) {
+      if (Number.isNaN(tops[i]) || Number.isNaN(tops[i + 1])) continue;
+      const r0 = (rim * i) / CUT_SAMPLES;
+      const r1 = (rim * (i + 1)) / CUT_SAMPLES;
+      inner = Math.min(inner, r0);
+      outer = Math.max(outer, r1);
+      const base = positions.length / 3;
+      for (const [r, y, top] of [[r0, box.min.y, tops[i]], [r1, box.min.y, tops[i + 1]], [r1, tops[i + 1], tops[i + 1]], [r0, tops[i], tops[i]]] as const) {
+        positions.push(Math.sin(a) * r, y, Math.cos(a) * r);
+        normals.push(nx, 0, nz);
+        uvs.push(r / rim, 1 - (top - y) / height);
+      }
+      // counter-clockwise from the side that looks toward smaller angles
+      if (side < 0) index.push(base, base + 1, base + 2, base, base + 2, base + 3);
+      else index.push(base, base + 2, base + 1, base, base + 3, base + 2);
+    }
+  }
+  const geometry = new BufferGeometry();
+  geometry.setAttribute('position', new Float32BufferAttribute(positions, 3));
+  geometry.setAttribute('normal', new Float32BufferAttribute(normals, 3));
+  geometry.setAttribute('uv', new Float32BufferAttribute(uvs, 2));
+  geometry.setIndex(index);
+  return { geometry, inner, outer };
+}
+
+/** Inside the cake where it was cut, read from the top down: its frosting, carrot sponge, a line of cream, the darker bottom. */
+function spongeMap(): CanvasTexture {
+  const { canvas, c } = surfaceCanvas(256, 256);
+  const random = randomFrom(61);
+  const g = c.createLinearGradient(0, 0, 0, 256);
+  g.addColorStop(0, '#b47c45');
+  g.addColorStop(0.85, '#a26c3a');
+  g.addColorStop(1, '#6e4626');
+  c.fillStyle = g;
+  c.fillRect(0, 0, 256, 256);
+  // crumb, carrot and nut
+  for (let i = 0; i < 2400; i++) {
+    const k = random();
+    c.fillStyle = k < 0.55 ? `rgba(48,26,12,${0.2 + random() * 0.35})` : k < 0.85 ? `rgba(170,110,60,${0.2 + random() * 0.3})` : `rgba(196,92,30,${0.4 + random() * 0.4})`;
+    c.fillRect(random() * 256, 40 + random() * 216, 1 + random() * 3, 1 + random() * 2.5);
+  }
+  // the cream between the layers, never quite level
+  const band = (y: number, thick: number, fill: string) => {
+    c.fillStyle = fill;
+    c.beginPath();
+    for (let x = 0; x <= 256; x += 8) c.lineTo(x, y + Math.sin(x * 0.05 + y) * 2 + (random() - 0.5) * 2);
+    for (let x = 256; x >= 0; x -= 8) c.lineTo(x, y + thick + Math.sin(x * 0.07 + y) * 2 + (random() - 0.5) * 2);
+    c.closePath();
+    c.fill();
+  };
+  band(-4, 42, '#e6dcc6');
+  band(37, 3, 'rgba(90,52,24,0.6)');
+  band(120, 16, '#ddd2b9');
+  return textureOf(canvas, true);
+}
+
+/** What a fork leaves of a slice on a plate: frosting dragged round, and crumbs. */
+function crumbMap(): CanvasTexture {
+  const { canvas, c } = surfaceCanvas(128, 128);
+  const random = randomFrom(83);
+  c.lineCap = 'round';
+  c.strokeStyle = 'rgba(222,210,186,0.9)';
+  c.lineWidth = 7;
+  c.beginPath();
+  c.arc(62, 70, 28, 3.7, 5.3);
+  c.stroke();
+  c.lineWidth = 3;
+  c.beginPath();
+  c.arc(66, 64, 20, 3.9, 5.0);
+  c.stroke();
+  for (let i = 0; i < 70; i++) {
+    c.fillStyle = `rgba(${110 + Math.floor(random() * 40)},${62 + Math.floor(random() * 25)},${30 + Math.floor(random() * 15)},${0.7 + random() * 0.3})`;
+    c.beginPath();
+    c.arc(64 + (random() - 0.5) * 76, 66 + (random() - 0.5) * 64, 1 + random() * 3.2, 0, 7);
+    c.fill();
+  }
+  return textureOf(canvas, true);
+}
+
+/** Flat pictures laid on things [x, y, z, turn], one mesh. */
+function decalMesh(spots: readonly (readonly [number, number, number, number])[], size: number, material: MeshStandardMaterial): Mesh {
+  const positions: number[] = [];
+  const uvs: number[] = [];
+  const index: number[] = [];
+  const h = size / 2;
+  spots.forEach(([x, y, z, turn], i) => {
+    const c = Math.cos(turn) * h;
+    const s = Math.sin(turn) * h;
+    positions.push(x - c - s, y, z + s - c, x + c - s, y, z - s - c, x + c + s, y, z - s + c, x - c + s, y, z + s + c);
+    uvs.push(0, 1, 1, 1, 1, 0, 0, 0);
+    index.push(i * 4, i * 4 + 2, i * 4 + 1, i * 4, i * 4 + 3, i * 4 + 2);
+  });
+  const geometry = new BufferGeometry();
+  geometry.setAttribute('position', new Float32BufferAttribute(positions, 3));
+  geometry.setAttribute('uv', new Float32BufferAttribute(uvs, 2));
+  geometry.setIndex(index);
+  geometry.computeVertexNormals();
+  const mesh = new Mesh(geometry, material);
+  mesh.frustumCulled = false;
+  mesh.renderOrder = 1;
+  return mesh;
+}
+
 /** Where the fall of the light has got to at second `s`. */
 function dipAt(s: number): number {
   let d = 0;
@@ -1055,7 +1189,7 @@ function dipAt(s: number): number {
 }
 
 /** Lens focus through the room [second, meters]. */
-const FOCUS_AT: readonly (readonly [number, number])[] = [[0, 6.4], [19.6, 4.3], [21.4, 2.6], [26, 3.1], [33.6, 0.84], [44, 0.9], [45.4, 1.5]];
+const FOCUS_AT: readonly (readonly [number, number])[] = [[0, 6.4], [19.6, 4.3], [21.4, 2.6], [26, 3.1], [33.6, 0.84], [T_GONE, 0.84], [T_LAMP - 0.4, END_FOCUS]];
 
 function focusAt(s: number): number {
   for (let i = 1; i < FOCUS_AT.length; i++) {
@@ -1064,24 +1198,26 @@ function focusAt(s: number): number {
   return FOCUS_AT[FOCUS_AT.length - 1][1];
 }
 
+/** Him in one chair: his body, his head, his hat, his horn on the table before him. */
 interface Dress {
-  kind: number;
-  slot: number;
   body: Matrix4;
   head: Matrix4;
   hat: Matrix4;
   horn: Matrix4;
-  foot: readonly [number, number, number] | null;
 }
+
+/** Things of the table, each crowd with a matrix for each of its copies. */
+type Placing = readonly (readonly [PropCrowd, readonly Matrix4[]])[];
 
 const OPEN = { look: true, scroll: true };
 const HELD = { look: true, scroll: false };
 
 /**
- * A birthday no one came to. A long table in a dark living room, thirty-three candles the only light, and at the
- * far end a stitched sack with a painted mouth too wide. It is never seen moving: under each candle that goes out,
- * or the moment you look away, it is in another chair, a chair nearer. When the last candle has gone the room's
- * own lamp comes on, and everyone came.
+ * Your birthday. A long table in a dark living room, thirty-three candles the only light, and at the far end a
+ * stitched sack with a painted mouth too wide. It is never seen moving: under each candle that goes out, or the
+ * moment you look away, it is in another chair, a chair nearer. When the last candle has gone the party happens
+ * in the dark, all round you, and is only heard; and when the room's own lamp comes on it is over. Everyone
+ * came: the chairs pushed back, the hats on the floor, the cake cut. Your slice is on your plate.
  */
 export default class Party extends Room {
   readonly keys: readonly RoomKey[];
@@ -1123,31 +1259,32 @@ export default class Party extends Room {
   private readonly nearHorn: Object3D;
   private readonly motes: { time: { value: number }; color: Color; base: Color };
 
-  private readonly bodies: Crowd[];
-  private readonly headMaterials: MeshStandardMaterial[];
+  private readonly body: Crowd;
+  private readonly headMaterial: MeshStandardMaterial;
   private readonly heroHead: Mesh;
-  private readonly heads: InstancedMesh[];
-  private readonly tufts: InstancedMesh;
   private readonly hats: PropCrowd;
   private readonly horns: PropCrowd;
-  private readonly feet: Mesh[];
   private readonly seatPlans: Dress[];
-  private readonly plans: Dress[][];
-  private readonly used = [0, 0, 0, 0, 0];
   private readonly placesCount: number;
 
+  /** The table laid, and as they left it (see `clear`). */
+  private readonly laid: Placing;
+  private readonly left: Placing;
+  /** What only the end has: the cut cake's faces, your slice, the crumbs, the chairs' new shadows; and the shadows they had. */
+  private readonly aftermath: readonly Object3D[];
+  private readonly laidShadows: Mesh;
+  /** How much of the cake on its stand is still there (see wedgeMaterial). */
+  private readonly cakeWedge: Vector2;
+
   private seat = 0;
-  private stage = -1;
+  private after = false;
   private shadowFrames = 0;
-  private flashPending = false;
-  private flashFrom = -1;
   private creak = 0;
   private organ: RoomVoice | null = null;
   private crackle: RoomVoice | null = null;
   private drone: RoomVoice | null = null;
   private rub: RoomVoice | null = null;
   private breath: RoomVoice | null = null;
-  private runDown: RoomVoice | null = null;
 
   constructor(ctx: RoomContext) {
     super(ctx);
@@ -1165,8 +1302,10 @@ export default class Party extends Room {
       { t: pace(24.7), at: pass, yaw: 20 + TURN_YAW * 0.84, pitch: -13, fov: 46 },
       { t: pace(27), at: [1.25, 1.5, -0.98], yaw: 24, pitch: -6, fov: 46 },
       { t: pace(33.6), at: [ex, ey, ez], yaw: 37, pitch: -11, fov: 48 },
-      { t: pace(40), at: [ex, ey, ez], yaw: 37, pitch: -11, fov: 46 },
-      { t: 1, at: [ex, ey, ez], yaw: 37, pitch: -9, fov: 46 },
+      { t: pace(T_GONE), at: [ex, ey, ez], yaw: 37, pitch: -11, fov: 46 },
+      // in the black the eye goes back to where it came in, so that the lamp finds the first picture emptied
+      { t: pace(T_LAMP - 0.6), at: HOME, yaw: 0, pitch: HOME_PITCH, fov: HOME_FOV },
+      { t: 1, at: HOME_END, yaw: 0, pitch: HOME_PITCH - 1.5, fov: HOME_FOV - 2 },
     ];
     this.fear = 0.3;
 
@@ -1230,45 +1369,47 @@ export default class Party extends Room {
     for (const z of CHAIR_Z) places.push({ x: -0.29, z, side: 1 }, { x: 0.29, z, side: -1 });
     places.push({ x: 0, z: TABLE_FAR + 0.28, side: 0 }, { x: 0, z: TABLE_NEAR - 0.3, side: 2 });
     this.placesCount = places.length;
+    const yours = places.length - 1;
     const plates = kit.props('plate', places.length);
     const forks = kit.props('fork', places.length, { rotation: [90, 0, 0] });
     const spoons = kit.props('spoon', places.length, { rotation: [90, 0, 0] });
-    this.hats = kit.props('party_hat', places.length + 30, { castShadow: true });
+    this.hats = kit.props('party_hat', places.length + 1 + HATS_DROPPED, { castShadow: true });
     const chairs = kit.props('chair_white', places.length, { castShadow: true });
     const chairSpots: [number, number, number][] = [];
     const random = randomFrom(101);
-    const m = new Matrix4();
     const q = new Quaternion();
-    const v = new Vector3();
-    const s3 = new Vector3();
     const euler = new Euler();
-    places.forEach((p, i) => {
+    /** A matrix standing a thing here, turned `heading` about the vertical, as PropCrowd.set does. */
+    const placed = (x: number, y: number, z: number, heading: number, scale = 1) => new Matrix4().compose(new Vector3(x, y, z), new Quaternion().setFromAxisAngle(UP, heading), new Vector3(scale, scale, scale));
+    const laidPlates: Matrix4[] = [];
+    const laidForks: Matrix4[] = [];
+    const laidSpoons: Matrix4[] = [];
+    const laidHats: Matrix4[] = [];
+    const laidChairs: Matrix4[] = [];
+    places.forEach((p) => {
       const along = p.side === 0 || p.side === 2;
       const heading = along ? 0 : Math.PI / 2;
       const utensil = 0.155;
       const toward = p.side === 2 ? 1 : p.side === 0 ? -1 : p.side;
-      plates.set(i, p.x, TABLE_TOP + 0.004, p.z, 0);
+      laidPlates.push(placed(p.x, TABLE_TOP + 0.004, p.z, 0));
       if (along) {
-        forks.set(i, p.x - utensil, TABLE_TOP + 0.004, p.z, heading);
-        spoons.set(i, p.x + utensil, TABLE_TOP + 0.004, p.z, heading);
+        laidForks.push(placed(p.x - utensil, TABLE_TOP + 0.004, p.z, heading));
+        laidSpoons.push(placed(p.x + utensil, TABLE_TOP + 0.004, p.z, heading));
       } else {
-        forks.set(i, p.x, TABLE_TOP + 0.004, p.z - utensil, heading);
-        spoons.set(i, p.x, TABLE_TOP + 0.004, p.z + utensil, heading);
+        laidForks.push(placed(p.x, TABLE_TOP + 0.004, p.z - utensil, heading));
+        laidSpoons.push(placed(p.x, TABLE_TOP + 0.004, p.z + utensil, heading));
       }
       q.setFromEuler(euler.set((random() - 0.5) * 0.1, random() * 6, (random() - 0.5) * 0.1, 'YXZ'));
-      this.hats.setMatrix(i, m.compose(v.set(p.x, TABLE_TOP + 0.016, p.z), q, s3.setScalar(0.9)));
+      laidHats.push(new Matrix4().compose(new Vector3(p.x, TABLE_TOP + 0.016, p.z), q, new Vector3(0.9, 0.9, 0.9)));
       const chairX = along ? 0 : -toward * CHAIR_X;
       const chairZ = p.side === 0 ? CHAIR_FAR : p.side === 2 ? CHAIR_NEAR : p.z;
       const chairHeading = p.side === 0 ? 0 : p.side === 2 ? Math.PI : toward > 0 ? Math.PI / 2 : -Math.PI / 2;
-      chairs.set(i, chairX + (random() - 0.5) * 0.05, 0, chairZ + (random() - 0.5) * 0.05, chairHeading + (random() - 0.5) * 0.09);
+      laidChairs.push(placed(chairX + (random() - 0.5) * 0.05, 0, chairZ + (random() - 0.5) * 0.05, chairHeading + (random() - 0.5) * 0.09));
       chairSpots.push([chairX, chairZ, 0.36]);
     });
-    plates.commit();
-    forks.commit();
-    spoons.commit();
-    chairs.commit();
     darkened(chairs.root, 0.46);
-    root.add(plates.root, forks.root, spoons.root, chairs.root, this.hats.root, discMesh(chairSpots, 0.66));
+    this.laidShadows = discMesh(chairSpots, 0.66);
+    root.add(plates.root, forks.root, spoons.root, chairs.root, this.hats.root, this.laidShadows);
 
     // the cake, thirty-three candles in two rings on its crest
     const stand = kit.prop('cake_stand', [0, TABLE_TOP + 0.004, CAKE_Z], { scale: 1.7 }, root);
@@ -1295,8 +1436,7 @@ export default class Party extends Room {
       wicks.push(new Vector3(x, y - 0.006 + 0.098 * 1.3 + 0.004, z));
     }
     const candles = kit.props('candle_party', CANDLES, { nodes: ['candle'], scale: 1.3 });
-    bases.forEach((p, i) => candles.set(i, p.x, p.y, p.z, i * 2.4));
-    candles.commit();
+    const laidCandles = bases.map((p, i) => placed(p.x, p.y, p.z, i * 2.4));
     root.add(candles.root);
     // which candle goes when: seeded, so that the last three stand on the side toward the viewer
     const order = DEATHS.slice(0, CANDLES - 3);
@@ -1326,7 +1466,7 @@ export default class Party extends Room {
     this.faceFill = this.light([ex - 0.15, 1.12, ez - 0.28], 0xff9a58, 0, 1.4);
     this.reach = this.light([0.2, 1.9, 0.4], 0xffb070, 0, 5.5);
     this.lampLight = this.light([0, 2.0, LAMP_Z], 0xe6dcad, 0, 9);
-    this.lampFill = this.light([ex + 0.15, 1.85, ez + 0.5], 0xe6dcad, 0, 3.4);
+    this.lampFill = this.light([0.3, 1.95, -0.15], 0xe6dcad, 0, 3.2);
     this.cakeSpot = this.spot([0, TABLE_TOP + 0.52, CAKE_Z - 0.02], [0, 0.45, 0.2], 0xffad66, CAKE_SPOT, 68, 0.75);
     this.wallSpot = this.spot([0, TABLE_TOP + 0.5, CAKE_Z - 0.3], [0, 1.5, Z_FAR], 0xffa45c, WALL_SPOT, 46, 1);
     this.lampSpot = this.spot([0.02, 2.16, LAMP_Z], [0.1, 0, LAMP_Z], 0xe6dcad, 0, 74, 0.9);
@@ -1413,86 +1553,45 @@ export default class Party extends Room {
     this.hang.rotation.z = -Math.PI / 2 + 0.05;
     root.add(this.hang);
 
-    // the clown and the others: men in dark suits, with paper hats and a stitched sack for a head
-    const stood = 0.2;
-    const raised = reachOf(kit, 'figure_man', 'm_knock_door');
-    const poses = [
-      { clip: 'm_sit_chair_idle_roll_head', time: 0.5, tint: 0x767a82 },
-      { clip: 'm_idle_roll_head_01', time: stood, tint: 0x565a60 },
-      { clip: 'm_idle_roll_head_01', time: stood, tint: 0x45434a },
-      { clip: 'm_knock_door', time: raised, tint: 0x565a60 },
-      { clip: 'm_knock_door', time: raised, tint: 0x45434a },
-    ];
-    const marks = poses.map((p) => marksOf(kit, 'figure_man', p.clip, p.time));
-    const counts = [14, 11, 5, 8, 5];
-    this.bodies = poses.map((p, i) => {
-      const crowd = kit.figures.crowd({ avatar: 'figure_man', clip: p.clip, time: p.time, face: 'blank', bleach: 0.28, tint: p.tint }, counts[i]);
-      for (const part of crowd.root.children) {
-        const mesh = part as Mesh;
-        mesh.castShadow = true;
-        if (/head|opacity/.test((mesh.material as Material).name)) mesh.visible = false;
-      }
-      crowd.root.visible = false;
-      root.add(crowd.root);
-      return crowd;
-    });
-    this.headMaterials = [sackMaterial(0), sackMaterial(1)];
-    this.heroHead = new Mesh(sackGeometry(96, 72, true), this.headMaterials[0]);
+    // the clown: a man in a dark suit, with a paper hat and a stitched sack for a head
+    const sitting = { clip: 'm_sit_chair_idle_roll_head', time: 0.5 };
+    const headMark = headOf(kit, 'figure_man', sitting.clip, sitting.time);
+    this.body = kit.figures.crowd({ avatar: 'figure_man', clip: sitting.clip, time: sitting.time, face: 'blank', bleach: 0.28, tint: 0x767a82 }, 1);
+    for (const part of this.body.root.children) {
+      const mesh = part as Mesh;
+      mesh.castShadow = true;
+      if (/head|opacity/.test((mesh.material as Material).name)) mesh.visible = false;
+    }
+    root.add(this.body.root);
+    this.headMaterial = sackMaterial();
+    this.heroHead = new Mesh(sackGeometry(96, 72), this.headMaterial);
     this.heroHead.castShadow = true;
     this.heroHead.frustumCulled = false;
     this.heroHead.morphTargetInfluences = [0];
     root.add(this.heroHead);
-    const crowdGeometry = sackGeometry(44, 34, false);
-    this.heads = this.headMaterials.map((material) => {
-      const mesh = new InstancedMesh(crowdGeometry, material, 16);
-      mesh.frustumCulled = false;
-      mesh.castShadow = true;
-      mesh.visible = false;
-      root.add(mesh);
-      return mesh;
-    });
-    this.tufts = new InstancedMesh(tuftGeometry(), new MeshStandardMaterial({ color: 0xd4d0c6, roughness: 0.65, side: DoubleSide }), 30);
-    this.tufts.frustumCulled = false;
-    for (let i = 0; i < 30; i++) this.tufts.setColorAt(i, WHITE);
-    root.add(this.tufts);
-    this.horns = kit.props('horn_bulb', 30);
+    // the white hair through his seams goes where the head goes
+    const tufts = new Mesh(tuftGeometry(), new MeshStandardMaterial({ color: 0xd4d0c6, roughness: 0.65, side: DoubleSide }));
+    tufts.frustumCulled = false;
+    this.heroHead.add(tufts);
+    this.horns = kit.props('horn_bulb', 1 + HORNS_LEFT);
     root.add(this.horns.root);
 
-    const eyeEnd = new Vector3(ex, ey, ez);
-    const rollOf = (seed: number) => {
-      const r = randomFrom(seed * 5 + 3);
-      const roll = (r() - 0.5) * 0.46;
-      return r() < 0.22 ? roll * 2.1 : roll;
-    };
-    type HornAt = readonly [number, number] | 'hand' | 'lifted';
-    const dressOf = (kind: number, slot: number, x: number, z: number, heading: number, scale: number, eye: Vector3, seed: number, roll: number, hornAt: HornAt): Dress => {
-      const mark = marks[kind];
+    const dressOf = (x: number, z: number, heading: number, eye: Vector3, seed: number, roll: number, hornAt: readonly [number, number]): Dress => {
       const tilt = randomFrom(seed * 11 + 17);
       const bodyQ = new Quaternion().setFromAxisAngle(UP, heading);
-      const feetAt = new Vector3(x, kind === 0 ? SIT_Y : 0, z);
-      const one = new Vector3(scale, scale, scale);
+      const feetAt = new Vector3(x, SIT_Y, z);
+      const one = new Vector3(1, 1, 1);
       const body = new Matrix4().compose(feetAt, bodyQ, one);
-      const inRoom = (p: Vector3) => p.clone().multiplyScalar(scale).applyQuaternion(bodyQ).add(feetAt);
-      const headAt = inRoom(mark.head);
-      headAt.y += HEAD_UP * scale;
+      const headAt = headMark.clone().applyQuaternion(bodyQ).add(feetAt);
+      headAt.y += HEAD_UP;
       const headQ = new Quaternion().setFromRotationMatrix(new Matrix4().lookAt(eye, headAt, UP));
       headQ.multiply(new Quaternion().setFromEuler(new Euler(tilt() * 0.12 - 0.04, 0, roll)));
       const head = new Matrix4().compose(headAt, headQ, one);
       const hatQ = headQ.clone().multiply(new Quaternion().setFromEuler(new Euler((tilt() - 0.5) * 0.26, tilt() * 3, (tilt() - 0.5) * 0.3)));
-      const hatAt = headAt.clone().add(new Vector3(0.008, HAT_Y, -0.012).multiplyScalar(scale).applyQuaternion(headQ));
-      const hat = new Matrix4().compose(hatAt, hatQ, new Vector3().setScalar(HAT_SCALE * scale));
-      let horn: Matrix4;
-      if (typeof hornAt !== 'string') {
-        horn = new Matrix4().compose(new Vector3(hornAt[0], TABLE_TOP + 0.003, hornAt[1]), new Quaternion().setFromAxisAngle(UP, x * 1.3 + z), new Vector3(1, 1, 1));
-      } else {
-        const from = hornAt === 'hand' ? inRoom(mark.hand) : headAt.clone().add(new Vector3(0.12, -0.21, 0.24).applyQuaternion(headQ));
-        const up = kind >= 3 || hornAt === 'lifted';
-        const dir = up ? eye.clone().sub(from).normalize() : new Vector3(0, -0.8, 0).add(new Vector3(0, 0, 0.6).applyQuaternion(bodyQ)).normalize();
-        const hornQ = new Quaternion().setFromUnitVectors(AXIS_X, dir);
-        horn = new Matrix4().compose(from.sub(new Vector3(0, HORN_AXIS, 0).applyQuaternion(hornQ)), hornQ, new Vector3(1, 1, 1));
-      }
-      const foot: readonly [number, number, number] | null = kind === 0 ? null : [x, z, 0.48];
-      return { kind, slot, body, head, hat, horn, foot };
+      const hatAt = headAt.clone().add(new Vector3(0.008, HAT_Y, -0.012).applyQuaternion(headQ));
+      const hat = new Matrix4().compose(hatAt, hatQ, new Vector3().setScalar(HAT_SCALE));
+      const horn = new Matrix4().compose(new Vector3(hornAt[0], TABLE_TOP + 0.003, hornAt[1]), new Quaternion().setFromAxisAngle(UP, x * 1.3 + z), one);
+      return { body, head, hat, horn };
     };
 
     // every chair he passes through, looking at where the viewer will be at that moment
@@ -1503,53 +1602,189 @@ export default class Party extends Room {
       const eye = seen.position.clone().sub(this.origin);
       const hornX = s.x === 0 ? 0.25 : s.x * 0.34;
       const hornZ = s.x === 0 ? TABLE_FAR + 0.36 : s.z + 0.2;
-      return dressOf(0, 0, s.x, s.z, s.heading, 1, eye, 90 + i, i === LAST_SEAT ? -0.3 : (i % 2 ? 0.12 : -0.1), [hornX, hornZ]);
+      return dressOf(s.x, s.z, s.heading, eye, 90 + i, i === LAST_SEAT ? -0.3 : (i % 2 ? 0.12 : -0.1), [hornX, hornZ]);
     });
 
-    // the lamp comes on: thirteen more at the table, sixteen standing round you
-    const atTable = (lifted: boolean, cocked: boolean): Dress[] => {
-      const list: Dress[] = [];
-      if (lifted) {
-        const last = SEATS[LAST_SEAT];
-        list.push(dressOf(0, 0, last.x, last.z, last.heading, 1, eyeEnd, 90 + LAST_SEAT, cocked ? COCKED : -0.3, 'lifted'));
-      } else {
-        list.push(this.seatPlans[LAST_SEAT]);
-      }
-      places.forEach((p, i) => {
-        const end = p.side === 0 || p.side === 2;
-        const x = end ? 0 : -p.side * CHAIR_X;
-        const z = p.side === 0 ? CHAIR_FAR : p.side === 2 ? CHAIR_NEAR : p.z;
-        if (Math.abs(x - SEATS[LAST_SEAT].x) < 0.01 && Math.abs(z - SEATS[LAST_SEAT].z) < 0.01) return;
-        const heading = p.side === 0 ? 0 : p.side === 2 ? Math.PI : p.side > 0 ? Math.PI / 2 : -Math.PI / 2;
-        const size = randomFrom(i * 7 + 2);
-        list.push(dressOf(0, list.length, x, z, heading, 0.96 + size() * 0.08, eyeEnd, i, cocked ? COCKED : rollOf(i), lifted ? 'lifted' : [p.x * 0.72, p.z + 0.16]));
-      });
-      return list;
-    };
-    const around = (raisedArms: boolean, cocked: boolean): Dress[] => {
-      const list: Dress[] = [];
-      let plain = 0;
-      let dark = 0;
-      STANDING.forEach(([x, z], i) => {
-        const second = i % 3 === 2;
-        const size = randomFrom(i * 13 + 4);
-        const raises = raisedArms && i > 4;
-        const kind = (raises ? 3 : 1) + (second ? 1 : 0);
-        // turned a little off the lens, so that the arm goes past the face and the horn does not cover it
-        const facing = Math.atan2(ex - x, ez - z) - (raises ? 0.36 : 0);
-        list.push(dressOf(kind, second ? dark++ : plain++, x, z, facing, 0.96 + size() * 0.08, eyeEnd, 40 + i, cocked ? COCKED : rollOf(40 + i), 'hand'));
-      });
-      return list;
-    };
-    this.plans = [[...atTable(false, false), ...around(false, false)], [...atTable(true, false), ...around(true, false)], [...atTable(true, true), ...around(true, true)]];
-    this.feet = this.plans.map((plan) => {
-      const disc = discMesh(plan.flatMap((g) => (g.foot ? [g.foot] : [])), 0.7);
-      disc.visible = false;
-      root.add(disc);
-      return disc;
+    // as they left it. Its own seed: everything before it stays as it was.
+    const strew = randomFrom(131);
+    const spread = (from: number, to: number) => from + strew() * (to - from);
+    const probe = kit.prop('plate', [0, 0, 0]);
+    probe.updateWorldMatrix(true, true);
+    ray.set(new Vector3(0, 1, 0), down);
+    const plateFloor = ray.intersectObject(probe, true)[0]?.point.y ?? 0.006;
+
+    // the cake: cut, the gap toward you; your slice on your plate
+    const scan = cake.getObjectByProperty('isMesh', true) as Mesh;
+    const icing = scan.material as MeshStandardMaterial;
+    this.cakeWedge = new Vector2(0, WHOLE);
+    scan.material = wedgeMaterial(icing, this.cakeWedge);
+    const sponge = new MeshStandardMaterial({ map: spongeMap(), roughness: 0.9 });
+    // the faces take shadow as the cloth does, so that they are drawn with its program
+    const cakeCuts = new Mesh(cutFaces(scan, [[CAKE_FROM, -1], [CAKE_FROM + CAKE_LEFT, 1]], ray).geometry, sponge);
+    cakeCuts.receiveShadow = true;
+    scan.add(cakeCuts);
+    const slice = kit.prop('cake', [0, 0, 0], { scale: 1.7 }, root);
+    const sliceScan = slice.getObjectByProperty('isMesh', true) as Mesh;
+    sliceScan.material = wedgeMaterial(icing, new Vector2(-SLICE / 2, SLICE));
+    const sliceCut = cutFaces(scan, [[-SLICE / 2, -1], [SLICE / 2, 1]], ray);
+    const sliceFaces = new Mesh(sliceCut.geometry, sponge);
+    sliceFaces.receiveShadow = true;
+    sliceScan.add(sliceFaces);
+    // turned on the plate so that its middle sits on the plate's middle
+    const middle = ((sliceCut.inner + sliceCut.outer) / 2) * scan.getWorldScale(new Vector3()).x;
+    const own = places[yours];
+    slice.rotation.y = SLICE_HEADING;
+    slice.position.set(own.x - Math.sin(SLICE_HEADING) * middle, TABLE_TOP + 0.004 + plateFloor, own.z - Math.cos(SLICE_HEADING) * middle);
+    // the candles of the part that is left stay in it; the others were pulled out and laid by the stand
+    const lieDown = new Quaternion().setFromAxisAngle(AXIS_Z, Math.PI / 2);
+    const leftCandles = bases.map((p, i) => {
+      const round = (((Math.atan2(p.x, p.z - CAKE_Z) - CAKE_FROM) % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+      if (round > 0.12 && round < CAKE_LEFT - 0.12) return laidCandles[i];
+      return new Matrix4().compose(new Vector3(spread(0.38, 0.43), TABLE_TOP + 0.009, CAKE_Z + spread(0.04, 0.16)), new Quaternion().setFromAxisAngle(UP, spread(-0.5, 0.5)).multiply(lieDown), new Vector3(1, 1, 1));
     });
-    this.sitAt(0);
-    this.arrange(0);
+
+    // the chairs pushed back and turned as they got up; one or two went over
+    const floorTaken: [number, number, number][] = [[W / 2 - 0.38, -4.2, 0.42]];
+    for (const d of this.balloonData) floorTaken.push([d.x, d.z, 0.2]);
+    const heroHorn = this.seatPlans[LAST_SEAT].horn.elements;
+    const clothTaken: [number, number, number][] = [[heroHorn[12], heroHorn[14], 0.17]];
+    const chairProbe = kit.prop('chair_white', [0, 0, 0]);
+    chairProbe.updateWorldMatrix(true, true);
+    const chairBox = new Box3().setFromObject(chairProbe);
+    // where a hat left on a seat lies: the top of the seat, a little in front of its middle
+    ray.set(new Vector3(0, 2, 0.05), down);
+    const seatTop = ray.intersectObject(chairProbe, true)[0]?.point.y ?? 0.45;
+    const onSeats: Vector3[] = [];
+    const fallBack = new Quaternion().setFromAxisAngle(AXIS_X, -Math.PI / 2);
+    const leftChairs: Matrix4[] = [];
+    const leftShadows: [number, number, number][] = [];
+    const leftPlates: Matrix4[] = [];
+    const leftForks: Matrix4[] = [];
+    const leftSpoons: Matrix4[] = [];
+    const crumbsAt: [number, number, number, number][] = [];
+    places.forEach((p, i) => {
+      const [cx, cz] = chairSpots[i];
+      if (i === yours) {
+        // yours, as it was laid: nobody sat in it
+        leftChairs.push(laidChairs[i]);
+        leftShadows.push(chairSpots[i]);
+        leftPlates.push(laidPlates[i]);
+        leftForks.push(laidForks[i]);
+        leftSpoons.push(laidSpoons[i]);
+        return;
+      }
+      const end = p.side === 0;
+      // one that went over fell straight back, clear of its neighbours
+      const falls = (FALLEN as readonly number[]).includes(i);
+      const push = falls ? PUSH_BACK[0] : spread(PUSH_BACK[0], PUSH_BACK[1]);
+      const x = end ? cx + spread(-0.1, 0.1) : cx - p.side * push;
+      const z = end ? cz - push : cz + spread(-0.06, 0.06);
+      const heading = (end ? 0 : p.side > 0 ? Math.PI / 2 : -Math.PI / 2) + spread(-PUSH_TURN, PUSH_TURN) * (falls ? 0.2 : 1);
+      // lying, it reaches from where its feet stood to the top of its back: clear of that strip by half its width
+      const reach = new Vector3(0, 0, -chairBox.max.y).applyAxisAngle(UP, heading);
+      const clearOf = ([tx, tz, r]: readonly [number, number, number]) => {
+        const u = clamp(((tx - x) * reach.x + (tz - z) * reach.z) / reach.lengthSq(), 0, 1);
+        return Math.hypot(tx - x - u * reach.x, tz - z - u * reach.z) > r + (chairBox.max.x - chairBox.min.x) / 2;
+      };
+      if (falls && floorTaken.every(clearOf)) {
+        // on its back, its legs toward the table
+        leftChairs.push(new Matrix4().compose(new Vector3(x, -chairBox.min.z, z), new Quaternion().setFromAxisAngle(UP, heading).multiply(fallBack), new Vector3(1, 1, 1)));
+        leftShadows.push([x + reach.x * 0.5, z + reach.z * 0.5, 0.55]);
+        floorTaken.push([x + reach.x * 0.25, z + reach.z * 0.25, 0.3], [x + reach.x * 0.75, z + reach.z * 0.75, 0.3]);
+      } else {
+        const chair = placed(x, 0, z, heading);
+        leftChairs.push(chair);
+        leftShadows.push([x, z, 0.36]);
+        floorTaken.push([x, z, 0.34]);
+        if ((SEAT_HATS as readonly number[]).includes(i)) onSeats.push(new Vector3(0, seatTop, 0.05).applyMatrix4(chair));
+      }
+      // the plate where it was pushed, what the fork left on it, the fork and the spoon put down anyhow
+      const along = p.side === 2 || end;
+      const px = p.x + spread(-0.02, 0.02);
+      const pz = p.z + spread(-0.02, 0.02);
+      leftPlates.push(placed(px, TABLE_TOP + 0.004, pz, strew() * 6));
+      crumbsAt.push([px, TABLE_TOP + 0.004 + plateFloor + 0.0012, pz, strew() * 6]);
+      const utensil = (side: number) => {
+        const off = side * (0.165 + spread(0, 0.025));
+        return placed(along ? p.x + off : p.x, TABLE_TOP + 0.004, along ? p.z : p.z + off, (along ? 0 : Math.PI / 2) + spread(-0.35, 0.35));
+      };
+      leftForks.push(utensil(-1));
+      leftSpoons.push(utensil(1));
+    });
+
+    // a free place for something `size` across: on the floor out where the lamp reaches, or on the cloth between two places
+    const free = (taken: [number, number, number][], size: number, pick: () => readonly [number, number]): readonly [number, number] | null => {
+      for (let tries = 0; tries < 60; tries++) {
+        const [x, z] = pick();
+        if (taken.every(([tx, tz, r]) => Math.hypot(x - tx, z - tz) > r + size)) {
+          taken.push([x, z, size]);
+          return [x, z];
+        }
+      }
+      return null;
+    };
+    const floorPick = () => [(strew() < 0.5 ? -1 : 1) * spread(0.95, 2.1), spread(Z_FAR + 0.6, -1.9)] as const;
+    const clothPick = () => {
+      const row = Math.floor(strew() * (CHAIR_Z.length - 2));
+      return [spread(-0.12, 0.12), (CHAIR_Z[row] + CHAIR_Z[row + 1]) / 2 + spread(-0.06, 0.06)] as const;
+    };
+    const lying = (x: number, y: number, z: number, heading: number) =>
+      new Matrix4().compose(new Vector3(x, y + HAT_LIFT * 0.9, z), new Quaternion().setFromAxisAngle(UP, heading).multiply(new Quaternion().setFromAxisAngle(AXIS_X, Math.PI / 2 + HAT_TIP)), new Vector3(0.9, 0.9, 0.9));
+
+    // the hats came off: on the floor, on a seat or two, a couple on the cloth; yours still stands by your plate
+    const leftHats: Matrix4[] = [];
+    for (let i = 0; i < places.length + 1 + HATS_DROPPED; i++) {
+      if (i === yours) {
+        leftHats.push(placed(own.x + YOUR_HAT[0], TABLE_TOP + 0.004, own.z + YOUR_HAT[1], 0.4, 0.9));
+        continue;
+      }
+      const seat = i < places.length ? onSeats.pop() : undefined;
+      if (seat) {
+        leftHats.push(lying(seat.x, seat.y, seat.z, strew() * 6));
+        continue;
+      }
+      // across the table, so that from its head one sees what they are
+      const onCloth = i < places.length && strew() < 0.25 ? free(clothTaken, 0.15, clothPick) : null;
+      if (onCloth) {
+        leftHats.push(lying(onCloth[0], TABLE_TOP + 0.004, onCloth[1], Math.PI / 2 + spread(-0.5, 0.5)));
+        continue;
+      }
+      const [x, z] = free(floorTaken, 0.12, floorPick) ?? floorPick();
+      leftHats.push(strew() < 0.8 ? lying(x, 0, z, strew() * 6) : placed(x, 0, z, strew() * 6, 0.9));
+    }
+    // and the horns were put down: his where he sat, the others on the cloth and the floor
+    const leftHorns = [this.seatPlans[LAST_SEAT].horn];
+    for (let i = 0; i < HORNS_LEFT; i++) {
+      const onCloth = i < 2 ? free(clothTaken, 0.17, clothPick) : null;
+      if (onCloth) leftHorns.push(placed(onCloth[0], TABLE_TOP + 0.003, onCloth[1], spread(-0.4, 0.4)));
+      else {
+        const [x, z] = free(floorTaken, 0.17, floorPick) ?? floorPick();
+        leftHorns.push(placed(x, 0, z, strew() * 6));
+      }
+    }
+
+    const crumbs = decalMesh(crumbsAt, 0.15, new MeshStandardMaterial({ map: crumbMap(), transparent: true, depthWrite: false, roughness: 0.85, polygonOffset: true, polygonOffsetFactor: -2 }));
+    const leftShadowMesh = discMesh(leftShadows, 0.66);
+    root.add(crumbs, leftShadowMesh);
+    this.aftermath = [cakeCuts, slice, crumbs, leftShadowMesh];
+    this.laid = [
+      [plates, laidPlates],
+      [forks, laidForks],
+      [spoons, laidSpoons],
+      [this.hats, laidHats],
+      [chairs, laidChairs],
+      [candles, laidCandles],
+    ];
+    this.left = [
+      [plates, leftPlates],
+      [forks, leftForks],
+      [spoons, leftSpoons],
+      [this.hats, leftHats],
+      [chairs, leftChairs],
+      [candles, leftCandles],
+      [this.horns, leftHorns],
+    ];
+    this.clear(false);
 
     // on the near chair, for as long as your back was turned to it: the horn
     this.nearHorn = kit.prop('horn_bulb', [0.02, 0.49, CHAIR_NEAR], { rotation: [0, 40, 0] }, root);
@@ -1573,13 +1808,13 @@ export default class Party extends Room {
     this.beat(T_ORGAN, () => {
       this.organ = this.sound.bed('rooms/fairground_organ_slow.mp3', { gain: 0.3, offset: 0, reverb: 0.2, lowpass: 3500, pan: 0.4 });
     });
-    this.beat(T_LINE, () => this.say({ tr: 'Herkes geldi.', en: 'Everyone came.' }, 4.5));
     this.beat(9, () => {
       this.rub = this.sound.bed('rooms/balloon_rub.mp3', { gain: 0.09, pan: -0.4, reverb: 0.2, fade: 3 });
     });
     this.beat(14, () => this.organ?.pan(0.55, 3));
     DEATHS.forEach((at, i) => {
-      if (i > 7 && i < 10) return;
+      // the first two at the honk are lost under it
+      if (i === SLOW || i === SLOW + 1) return;
       this.beat(at, () => {
         if (i >= 30) {
           if (i < 32) this.sound.play('rooms/flame_out.mp3', { gain: 0.35, pan: -0.15 });
@@ -1589,7 +1824,7 @@ export default class Party extends Room {
       });
     });
     const squeak = (at: number, n: number, pan: number) => this.beat(at, () => this.sound.play(`rooms/balloon_squeak_${n}.mp3`, { gain: 0.3, reverb: 0.15, pan }));
-    squeak(12.7, 1, -0.3);
+    squeak(15.9, 1, -0.3);
     squeak(16.4, 3, 0.25);
     squeak(28.6, 2, -0.5);
     squeak(31.2, 4, 0.3);
@@ -1622,18 +1857,46 @@ export default class Party extends Room {
       this.organ?.gain(0, 0.1);
       this.drone?.gain(0, 0.4);
       this.rub?.gain(0, 0.4);
-      this.runDown = this.sound.play('rooms/organ_run_down.mp3', { gain: 0.32, reverb: 0.2, offset: 2.2, rate: 1.15, pan: 0.25 });
     });
-    this.beat(43.1, () => {
-      this.runDown?.gain(0, 0.5);
-      this.crackle?.gain(0, 0.5);
+    // in the dark, the party: every horn at once, the record back up to speed, a room full of chairs and breath
+    this.beat(T_PARTY, () => {
+      this.sound.play('rooms/horns_all.mp3', { gain: 0.6 });
+      this.organ?.rate(1.06, 0.25);
+      this.organ?.gain(0.42, 0.2);
+      this.drone?.gain(0.14, 0.4);
+      this.rub?.gain(0.16, 0.3);
+      for (const [pan, rate, offset] of [[-0.7, 0.84, 2.1], [0.15, 1, 7.7], [0.7, 1.17, 12.4]] as const) {
+        this.sound.bed('rooms/breath_sack.mp3', { gain: 0.28, pan, rate, offset, fade: 0.5 });
+      }
     });
-    this.beat(T_LAMP, () => this.sound.play('rooms/wood_block_1.mp3', { gain: 0.32 }));
-    this.beat(T_SHUTTER, () => {
-      this.shutter();
-      this.flashPending = true;
+    // (seconds after the party begins) chairs scraped back all round, creaks, balloons, single horns, and every horn again
+    const crowdNoise = randomFrom(149);
+    for (const [after, pan, rate] of [[0.25, -0.6, 1.2], [0.95, 0.65, 0.9], [1.95, 0.1, 1.35], [2.65, -0.3, 1.05]] as const) {
+      this.beat(T_PARTY + after, () => this.sound.play('rooms/chair_wood_move.mp3', { gain: 0.32, reverb: 0.3, pan, rate }));
+    }
+    for (let k = 0; k < 14; k++) {
+      const at = T_PARTY + 0.2 + k * 0.22 + crowdNoise() * 0.15;
+      const pan = (k % 2 ? 1 : -1) * (0.2 + crowdNoise() * 0.7);
+      const gain = 0.26 + crowdNoise() * 0.08;
+      this.beat(at, () => this.sound.play(CREAKS[k % CREAKS.length], { gain, reverb: 0.2, pan }));
+    }
+    squeak(T_PARTY + 0.55, 1, 0.5);
+    squeak(T_PARTY + 1.25, 3, -0.6);
+    squeak(T_PARTY + 2.05, 2, 0.2);
+    squeak(T_PARTY + 2.85, 4, -0.2);
+    for (const [after, pan, rate, gain] of [[0.75, 0.6, 1.15, 0.45], [1.55, -0.65, 0.86, 0.5], [2.35, 0.2, 1.3, 0.42], [3.0, -0.2, 0.95, 0.48]] as const) {
+      this.beat(T_PARTY + after, () => this.sound.play('rooms/clown_horn_slow.mp3', { gain, reverb: 0.12, pan, rate }));
+    }
+    this.beat(T_PARTY + 2.7, () => this.sound.play('rooms/horns_all.mp3', { gain: 0.55, rate: 0.93 }));
+    // it stops dead: a real silence, then the switch, and only the record going round in its last groove
+    this.beat(T_HUSH, () => this.sound.stopAll(0.04));
+    this.beat(T_LAMP, () => {
+      this.sound.play('rooms/wood_block_1.mp3', { gain: 0.32 });
+      this.sound.bed('rooms/record_crackle.mp3', { gain: 0.11, pan: 0.45, fade: 0.3 });
     });
-    this.beat(T_HORNS, () => this.sound.play('rooms/horns_all.mp3', { gain: 0.6 }));
+    this.beat(T_SHUTTER, () => this.shutter(false));
+    this.beat(T_CAME, () => this.say({ tr: 'Herkes geldi.', en: 'Everyone came.' }, 2));
+    this.beat(T_BUT_YOU, () => this.say({ tr: 'Bir sen yoksun.', en: 'Everyone but you.' }, 2.4));
     this.beat(T_CUT, () => this.sound.stopAll(0.05));
   }
 
@@ -1731,11 +1994,9 @@ export default class Party extends Room {
   private sitAt(seat: number): void {
     this.seat = seat;
     const p = this.seatPlans[seat];
-    this.bodies[0].setMatrix(0, p.body);
-    this.bodies[0].commit();
+    this.body.setMatrix(0, p.body);
+    this.body.commit();
     p.head.decompose(this.heroHead.position, this.heroHead.quaternion, this.heroHead.scale);
-    this.tufts.setMatrixAt(0, p.head);
-    this.tufts.instanceMatrix.needsUpdate = true;
     this.hats.setMatrix(this.placesCount, p.hat);
     this.hats.commit();
     this.horns.setMatrix(0, p.horn);
@@ -1743,54 +2004,21 @@ export default class Party extends Room {
     this.shadowFrames = 3;
   }
 
-  /** Who is in the room: 0 only him; 1 the party when the lamp comes on; 2 horns raised; 3 every head over to one side. */
-  private arrange(stage: number): void {
-    this.stage = stage;
-    for (const c of this.bodies) c.root.visible = false;
-    if (stage === 0) {
-      this.bodies[0].root.visible = true;
-      this.bodies[0].drawn = 1;
-      this.heroHead.visible = true;
-      this.heads[0].visible = this.heads[1].visible = false;
-      this.tufts.count = 1;
-      this.hats.drawn = this.placesCount + 1;
-      this.horns.drawn = 1;
-      for (const disc of this.feet) disc.visible = false;
-      this.shadowFrames = 3;
-      return;
+  /** The table as it was laid, with him at it; or as they left it, with nobody. */
+  private clear(after: boolean): void {
+    this.after = after;
+    for (const [crowd, matrices] of after ? this.left : this.laid) {
+      for (let i = 0; i < matrices.length; i++) crowd.setMatrix(i, matrices[i]);
+      crowd.commit();
     }
-    const plan = this.plans[stage - 1];
-    this.used.fill(0);
-    let first = 0;
-    let second = 0;
-    for (let i = 0; i < plan.length; i++) {
-      const g = plan[i];
-      this.bodies[g.kind].setMatrix(g.slot, g.body);
-      this.used[g.kind] = Math.max(this.used[g.kind], g.slot + 1);
-      this.tufts.setMatrixAt(i, g.head);
-      this.hats.setMatrix(this.placesCount + i, g.hat);
-      this.horns.setMatrix(i, g.horn);
-      if (i === 0) g.head.decompose(this.heroHead.position, this.heroHead.quaternion, this.heroHead.scale);
-      else if (i % 2 === 0) this.heads[0].setMatrixAt(first++, g.head);
-      else this.heads[1].setMatrixAt(second++, g.head);
-    }
-    for (let k = 0; k < this.bodies.length; k++) {
-      if (this.used[k] === 0) continue;
-      this.bodies[k].root.visible = true;
-      this.bodies[k].drawn = this.used[k];
-      this.bodies[k].commit();
-    }
-    this.heads[0].count = first;
-    this.heads[1].count = second;
-    this.heads[0].visible = this.heads[1].visible = true;
-    this.heads[0].instanceMatrix.needsUpdate = this.heads[1].instanceMatrix.needsUpdate = true;
-    this.tufts.count = plan.length;
-    this.tufts.instanceMatrix.needsUpdate = true;
-    this.hats.drawn = this.placesCount + plan.length;
-    this.hats.commit();
-    this.horns.drawn = plan.length;
-    this.horns.commit();
-    for (let k = 0; k < this.feet.length; k++) this.feet[k].visible = k === stage - 1;
+    this.hats.drawn = this.placesCount + 1 + (after ? HATS_DROPPED : 0);
+    this.horns.drawn = 1 + (after ? HORNS_LEFT : 0);
+    this.body.root.visible = !after;
+    this.heroHead.visible = !after;
+    for (const o of this.aftermath) o.visible = after;
+    this.laidShadows.visible = !after;
+    this.cakeWedge.set(after ? CAKE_FROM : 0, after ? CAKE_LEFT : WHOLE);
+    if (!after) this.sitAt(this.seat);
     this.shadowFrames = 3;
   }
 
@@ -1814,17 +2042,10 @@ export default class Party extends Room {
 
   update(frame: RoomFrame): void {
     const s = frame.seconds;
-    if (s < T_CROWD) this.settle(s, frame);
-
-    // the flash: the frame the shutter takes stays clean; from the next one the room is another
-    if (this.flashPending) {
-      this.flashPending = false;
-      this.flashFrom = s;
-    }
-    const flashed = this.flashFrom >= 0 && s > this.flashFrom;
-    const stage = s < T_CROWD ? 0 : !flashed ? 1 : s < T_CLOSER ? 2 : 3;
-    if (stage !== this.stage) this.arrange(stage);
-    this.white = flashed ? Math.max(0, 1 - (s - this.flashFrom) / FLASH) : 0;
+    // once the last wick is out he is gone, and so is the table as it was laid
+    const after = s >= T_GONE;
+    if (after !== this.after) this.clear(after);
+    if (!after) this.settle(s, frame);
 
     let burning = 0;
     for (let i = 0; i < CANDLES; i++) burning += clamp((this.deaths[i] - s) / FLAME_DIES, 0, 1);
@@ -1832,8 +2053,7 @@ export default class Party extends Room {
     const dip = dipAt(s) * DIP_DEPTH;
     const sway = 1 + 0.05 * wobble(frame.time * 1.1, 4);
     const candle = Math.pow(share, CANDLE_CURVE) * (1 - dip) * sway;
-    let lamp = s >= T_LAMP ? 1 : 0;
-    if (s >= T_CLOSER - LAMP_SAG * 0.5 && s < T_CLOSER + LAMP_SAG * 0.5) lamp = 0.03;
+    const lamp = s >= T_LAMP ? 1 : 0;
 
     this.cakeLight.intensity = CAKE_LIGHT * candle;
     this.bounce.intensity = BOUNCE_LIGHT * candle;
@@ -1874,15 +2094,15 @@ export default class Party extends Room {
     this.film.bloom = lerp(0.55, 0.42, fine);
     this.film.grain = lerp(0.42, 0.55, fine);
 
-    this.black = s >= T_CUT ? 1 : s >= T_LAST + EMBER && s < T_LAMP ? 1 : dip * 0.82;
+    this.black = after && s < T_LAMP ? 1 : dip * 0.82;
     this.focus = focusAt(s);
-    this.aperture = s >= T_LAMP ? 2.2 : lerp(6, 7, range(30, 34, s));
+    this.aperture = s >= T_LAMP ? END_APERTURE : lerp(6, 7, range(30, 34, s));
     this.drift = s >= T_BREATH - 0.5 ? 0 : 0.55;
     this.control = s >= T_LAST ? HELD : OPEN;
 
-    // real silence holds its breath; the heart is part of the mix, so it stops too
+    // real silence holds its breath; the heart is part of the mix, so it stops too, except while the party is heard
     const quiet = (s >= T_QUIET && s < T_HONK) || s >= T_LAST;
-    this.fear = quiet ? 0 : lerp(0.28, 0.85, range(6, T_LAST, s));
+    this.fear = s >= T_PARTY && s < T_HUSH ? PARTY_FEAR : quiet ? 0 : lerp(0.28, 0.85, range(6, T_LAST, s));
 
     for (let i = 0; i < this.balloonData.length; i++) {
       const d = this.balloonData[i];
@@ -1894,23 +2114,18 @@ export default class Party extends Room {
     this.balloons.commit();
 
     this.hang.rotation.z = -Math.PI / 2 + 0.05 + 0.014 * Math.sin(frame.time * 0.5);
-    if (this.hub) {
-      const heard = Math.max(0, s - T_NEEDLE);
-      const spin = s < T_LAST ? heard : T_LAST - T_NEEDLE + (1 - (1 - Math.min(1, (s - T_LAST) / RECORD_STOPS)) ** 2) * RECORD_STOPS * 0.5;
-      this.hub.rotation.y = -spin * 2.2;
-    }
+    // the record never stops: after the party it goes round in its last groove
+    if (this.hub) this.hub.rotation.y = -Math.max(0, s - T_NEEDLE) * 2.2;
 
     const rocked = s >= T_HONK && s < 26.5;
     this.nearHorn.visible = rocked;
     if (rocked) this.nearHorn.rotation.z = 0.1 * Math.exp(-(s - T_HONK) * 1.1) * Math.sin((s - T_HONK) * 9);
 
     // the sack draws in over the mouth, and lets go: the first thing it has ever been seen to do
-    const breathing = this.seat === LAST_SEAT && s >= T_BREATH && stage < 2 ? range(T_BREATH, T_BREATH + 1, s) : 0;
+    const breathing = this.seat === LAST_SEAT && s >= T_BREATH ? range(T_BREATH, T_BREATH + 1, s) : 0;
     this.heroHead.morphTargetInfluences![0] = breathing * (0.5 + 0.5 * Math.sin(((s - T_BREATH) / BREATH_CYCLE) * Math.PI * 2 - 1.2));
 
     // the red holds on a little longer than the rest of the room
-    const paint = s >= T_LAMP ? 0.05 : lerp(0.1, 0.42, smooth(range(0.4, 0.05, share)));
-    this.headMaterials[0].emissiveIntensity = paint;
-    this.headMaterials[1].emissiveIntensity = paint;
+    this.headMaterial.emissiveIntensity = lerp(0.1, 0.42, smooth(range(0.4, 0.05, share)));
   }
 }

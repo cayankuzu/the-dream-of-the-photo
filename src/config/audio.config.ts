@@ -1,4 +1,5 @@
-import { isRoom, JOURNEY } from './journey.config';
+import type { VoiceStyle } from './film.config';
+import { JOURNEY } from './journey.config';
 
 /** A span of a recording, in seconds from the start of its file. */
 export type Span = { offset: number; duration: number };
@@ -15,6 +16,23 @@ export type BedConfig = Span & { url: string; level: number; crossfade: number }
 export type SampleKey = 'shutter' | 'eject' | 'paper';
 
 export type BedKey = 'city' | 'wind' | 'buzz';
+
+/** How one voice of the film sounds (who speaks: VoiceStyle in film.config.ts). */
+export interface VoiceStyleConfig {
+  /** Its level against the narrator's (dB). */
+  level: number;
+  /** Where it stands, -1 left to 1 right (a wide voice stands nowhere: it is centred). */
+  pan: number;
+  /** What is left of its lows and its highs (Hz; 0: nothing is taken). */
+  highpass: number;
+  lowpass: number;
+  /** Saturation (dB of drive; 0: clean). */
+  drive: number;
+  /** Share of it sent to the voices' own short room (linear; 0: dry). */
+  wet: number;
+  /** How wide it is: the share of its side signal (linear; 0: a point). */
+  wide: number;
+}
 
 /**
  * Mix and voicing of the real alley (gains are linear, levels in dBFS).
@@ -74,17 +92,6 @@ export const audioConfig = {
   pausedLevel: 0.35,
   /** Last stage on the master, so the blows stay below -1 dBFS: threshold (dB), ratio, attack and release (s). */
   limiter: { threshold: -2.5, ratio: 20, attack: 0.001, release: 0.12 },
-  /** The bell of a found memory: note (Hz), partials (multiple, amplitude), envelope (s). */
-  discover: {
-    note: 783.99,
-    partials: [
-      [1, 0.09],
-      [2.01, 0.035],
-      [3.97, 0.012],
-    ] as [number, number][],
-    attack: 0.008,
-    release: 3.2,
-  },
   /** Story mix: how much the alley ducks while the lens focuses, how fast the beds react (s), how much the muffle opens again inside. */
   mix: { focusDuck: 0.65, react: 0.12, openInside: 0.7 },
   ejectSeconds: 1.45,
@@ -153,6 +160,54 @@ export const audioConfig = {
     pitch: 0.1,
     /** Seconds between drips: the first value plus up to the second, at random. */
     gap: [2.5, 6],
+  },
+  /**
+   * The film's sound (film/Film.ts): one spoken line at a time, one cue of the score at a time, and everything else
+   * making room for them. Voice clips arrive at -19 LUFS with peaks under -1.5 dBFS (scripts/voice/build-voice.py);
+   * score cues at their own loudness (scripts/build-score.py). Both pass the master (pause, a hidden tab, sound
+   * off) but not the cut, the quiet or the duck. Levels in dB, times in seconds.
+   */
+  film: {
+    /**
+     * The voices' bus. Measured at the output: a -19 LUFS narrator comes out at -22.6 LUFS, 9 LU over the kitchen's
+     * beds (-31.8 LUFS) and 18 over them ducked; a line peaking at -1.5 dBFS (the most a clip may) reaches the
+     * limiter at -8 dBFS, and it only starts at -2.5.
+     */
+    voiceLevel: -3,
+    /** The score's bus. A cue's `gain` is a linear share of it (1 by default). */
+    scoreLevel: -4,
+    /** A new line stops the one before it over this long. */
+    handover: 0.012,
+    /** A line or a cue held by the pause menu or a hidden tab fades out, and back in where it was, over this long. */
+    hold: 0.01,
+    /** The voice and the score stop dead over this long: the dream has broken off. */
+    cut: 0.003,
+    /** A new cue comes in over the one before it, and `score(null)` fades it out, over this long unless the cue says otherwise. */
+    scoreFade: 2.5,
+    /** The voices' own short room: its impulse's length (s), and what comes back of it above this is dulled (Hz). */
+    room: { seconds: 1.4, lowpass: 5200 },
+    /** A wide voice: its side signal is the voice itself this much later (s), added to one ear and taken from the other. */
+    wideDelay: 0.009,
+    /**
+     * While a line is said: how far everything else goes down (dB) and the score (dB, less); attack and release are
+     * time constants (s); the duck stays this long after the line's last sound (s), so close lines do not pump.
+     */
+    duck: { world: -9, score: -4, attack: 0.03, release: 0.45, hold: 0.25 },
+    styles: {
+      /** The photograph: dry, close, centred, a little of the room. */
+      narrator: { level: 0, pan: 0, highpass: 70, lowpass: 0, drive: 0, wet: 0.1, wide: 0 },
+      /** The mother, from a window down the street: dull, to one side, quieter, in more of the room. */
+      house: { level: -7, pan: -0.4, highpass: 160, lowpass: 2600, drive: 0, wet: 0.45, wide: 0 },
+      /** Through a receiver or an intercom: 300 to 3400 Hz, a little grit, no room (the clip may already carry the line's own treatment). */
+      phone: { level: -3, pan: 0, highpass: 300, lowpass: 3400, drive: 3, wet: 0, wide: 0 },
+      /** A whisper that belongs to nobody: thin, wide, quieter, in more of the room. */
+      dream: { level: -6, pan: 0, highpass: 420, lowpass: 0, drive: 0, wet: 0.6, wide: 0.7 },
+    } satisfies Record<VoiceStyle, VoiceStyleConfig>,
+    /**
+     * The street between two evenings (AudioEngine.street): the dream's sound (the walk, the rooms, every reverb's
+     * tail) stops dead over `cut`; the street's own air comes up after `silent`, over `in`.
+     */
+    street: { cut: 0.004, silent: 2.5, in: 1.5 },
   },
 } as const;
 
@@ -300,7 +355,7 @@ const SCREENS: Place = { x: 0, z: -123.5, ref: 10 };
 const PROJECTOR: Place = { x: 2.16, z: -130.4, ref: 3.4 };
 
 /** Seconds of the walk at the piece's own pace. */
-const WALK_SECONDS = JOURNEY.reduce((sum, s) => (isRoom(s) ? sum : sum + s.seconds), 0);
+const WALK_SECONDS = JOURNEY.reduce((sum, s) => ('walk' in s ? sum + s.seconds : sum), 0);
 
 /** The teeth close here at the latest (the blow itself may come a little earlier). */
 const TEETH = 0.74;

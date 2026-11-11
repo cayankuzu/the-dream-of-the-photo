@@ -85,6 +85,7 @@ export const assets: RoomAssets = {
     'rooms/tile_drip_3.mp3',
     'rooms/hair_fingers.mp3',
     'rooms/cutlery_far.mp3',
+    'rooms/clock_tock_far.mp3',
   ],
 };
 
@@ -121,10 +122,11 @@ const LAMP_DOWN = 9;
 const LAMP_UP = 6;
 const SHADE_GLOW = 2.3;
 const SPIRAL_GLOW = 3.6;
-/** The cold tube far away: its spot (cd), its point (cd), its reach (m). */
+/** The cold tube far away: its spot (cd), its point (cd), its reach (m), the strength of its halo in the air. */
 const COLD_SPOT = 16;
 const COLD_POINT = 4;
 const COLD_REACH = 10;
+const TUBE_HALO = 0.34;
 /** A faint sourceless light that walks with the eye, so that the dark keeps its shapes: cd, reach (m). */
 const FILL = [1.5, 2.2, 3, 1.2, 2, 1];
 const FILL_REACH = 5;
@@ -191,6 +193,8 @@ const TWO = {
   spiderFace: 0.09,
   swapLatest: 18.6,
   shutter: 19.1,
+  /** How far the far door has opened by the cut (rad): a hand's width. */
+  ajar: 0.5,
   rows: [
     [0, 0.2, -0.8, 0, 0, 50],
     [2.2, 0.2, -0.8, 0, 0, 50],
@@ -201,9 +205,9 @@ const TWO = {
     [16.8, 0, -8.4, 10, 0, 48],
     [17.4, 0.05, -8.7, 8, 0, 48],
     [19, 0.1, -9.1, 134, 0.5, 33],
-    [19.7, 0.11, -9.2, 135, 0.5, 32],
-    [21.4, 0.14, -9.9, 8, 0, 50],
-    [22, 0.14, -10.2, 4, 0, 50],
+    [19.5, 0.11, -9.18, 135, 0.5, 32],
+    [21, 0, -9.8, 6, 0, 44],
+    [22, -0.18, -10.9, 1, 0.5, 36],
   ] as readonly Row[],
   calmRows: [
     [0, 0.2, -0.8, 0, 0, 50],
@@ -212,8 +216,8 @@ const TWO = {
     [11, -0.36, -6.28, 46, 0.5, 45],
     [14, -0.36, -6.34, 47, 0.5, 44],
     [18.6, 0, -9, 134, 0.5, 40],
-    [20, 0.05, -9.2, 136, 0.5, 36],
-    [22, 0.1, -10, 60, 0, 48],
+    [19.3, 0.02, -9.05, 135, 0.5, 38],
+    [22, -0.1, -10.1, 14, 0, 42],
   ] as readonly Row[],
 } as const;
 
@@ -228,6 +232,8 @@ const THREE = {
   shutter: 7.5,
   closeFrom: 7.4,
   closeFor: 9.5,
+  /** How far the far door has opened by the cut (rad): half. */
+  ajar: 0.9,
   rows: [
     [0, 0, -0.9, 0, 0, 50],
     [1.4, 0, -0.9, 0, 0, 50],
@@ -242,8 +248,8 @@ const THREE = {
     [16.8, 0, -10, 0, -1, 50],
     [18.4, -0.04, -11.8, 78, 0, 46],
     [19.1, -0.04, -12.3, 70, 0, 46],
-    [20.6, -0.02, -13.2, 4, -2, 49],
-    [22, 0, -14.3, 0, -4, 50],
+    [20.6, -0.02, -13.2, 4, -2, 48],
+    [22, 0, -14.6, 0, -1, 40],
   ] as readonly Row[],
 } as const;
 
@@ -276,6 +282,8 @@ const FIVE = {
   chairX: -0.34,
   under: [-0.82, -7.5] as readonly [number, number],
   shutter: 17.6,
+  /** How far the far door has opened by the cut (rad): wide. */
+  ajar: 1.45,
   /** Lamplight on the shoes of the one under the water, where they meet the surface: from the feet (m), cd, reach (m). */
   shoes: [0.28, -0.14, 0.42, 1.6, 1.3] as readonly [number, number, number, number, number],
   rows: [
@@ -289,8 +297,8 @@ const FIVE = {
     [14.4, 0.1, -7.1, 0, -8, 54],
     [17, 0.14, -9.2, 153, -52, 44],
     [18.2, 0.14, -9.35, 155, -53, 44],
-    [20.4, 0.14, -9.9, 20, -6, 54],
-    [22, 0.14, -10.4, 2, -5, 54],
+    [20.4, 0.14, -9.9, 20, -6, 52],
+    [22, 0.1, -10.7, 1, -3, 42],
   ] as readonly Row[],
 } as const;
 
@@ -314,13 +322,45 @@ const SIX = {
   ] as readonly Row[],
 } as const;
 
-/** What it says on each visit (seconds into the room, the line). */
-const LINES = [
-  { at: 5, tr: 'Her akşam bu koridor.', en: 'Every evening, this corridor.' },
+/**
+ * The far door on the evenings that break off on it (2, 3 and 5): it opens by itself in the room's last `last` s and
+ * is still moving at the cut, on the warm room of the dinner.
+ */
+const AJAR = {
+  last: 3,
+  /** The dining room's far wall: this many times as bright as its picture. */
+  wall: 1.8,
+  /** The glow of the gap in the dusty air: width and height (m), and its strength with the door wide open. */
+  glowSize: [0.9, 2.6],
+  glow: 0.5,
+  /** The light it lets out into the corridor: cd with the door wide open, reach (m). */
+  spill: 12,
+  spillReach: 9,
+  /** The blade of light on the floor: length (m), how many times wider at its near end than at the door, strength. */
+  bladeLength: 5,
+  bladeSpread: 4,
+  blade: 0.4,
+  /** How much of its light the cold tube by the door has given up by the cut (0..1). */
+  coldGives: 0.93,
+  /** Below this opening at the cut (rad) the door creaks only short. */
+  short: 0.7,
+  /** The dinner as heard through it: low-pass (Hz) through a door that has hardly moved, and how much higher through a wide one. */
+  muffle: [800, 2000],
+  /** Gains with the door wide open: the cutlery, each tock of the clock in there. */
+  cutlery: 0.26,
+  tock: 0.3,
+  /** The first tock after the door starts to move (s), and how often it comes (s). */
+  tockFirst: 0.45,
+  tockEvery: 1.02,
+} as const;
+
+/** What it says on each visit (seconds into the room, the line); on the first the narrator does the talking. */
+const LINES: readonly ({ at: number; tr: string; en: string } | null)[] = [
+  null,
   { at: 6, tr: 'Onu duvara sen astın.', en: 'You hung that on the wall.' },
   { at: 5, tr: 'Kapılar açık. Kimse çıkmadı.', en: 'The doors are open. No one has come out.' },
   { at: 7, tr: 'Hepsi senin çektiklerin.', en: 'All of them, your pictures.' },
-  { at: 6, tr: 'Su ayak bileğinde. Yemek soğuyor.', en: 'The water is at your ankles. Dinner is getting cold.' },
+  { at: 6, tr: 'Su ayak bileğinde.', en: 'The water is at your ankles.' },
   { at: 7, tr: 'Sofra kuruldu. Bir sandalye boş.', en: 'The table is set. One chair is empty.' },
 ];
 
@@ -360,6 +400,15 @@ interface Lamp {
   secondRest: number;
   /** Where it stands in the stereo field. */
   side: Side;
+}
+
+/** A cold tube on the ceiling: what it is lit by and lights, and how strong it was made. */
+interface Tube {
+  glow: MeshBasicMaterial;
+  point: DreamLight;
+  spot: SpotSpec;
+  halo: Mesh;
+  strength: number;
 }
 
 interface Walk {
@@ -816,6 +865,44 @@ function pleats(): CanvasTexture {
   down.addColorStop(1, 'rgba(46,24,8,0.66)');
   g.fillStyle = down;
   g.fillRect(0, 0, 512, 96);
+  return texture(c);
+}
+
+/** The far wall of the dining room as a gap in a door shows it: lamplight, brightest high up where the lamp hangs over the table, the skirting dark. */
+function dinnerWall(): CanvasTexture {
+  const [c, g] = sheet(128, 288);
+  const down = g.createLinearGradient(0, 0, 0, 288);
+  down.addColorStop(0, '#4a3018');
+  down.addColorStop(0.35, '#e0a868');
+  down.addColorStop(0.78, '#c08048');
+  down.addColorStop(0.93, '#6a4024');
+  down.addColorStop(1, '#1c100a');
+  g.fillStyle = down;
+  g.fillRect(0, 0, 128, 288);
+  const lamp = g.createRadialGradient(84, 96, 6, 84, 96, 150);
+  lamp.addColorStop(0, 'rgba(255,226,170,0.9)');
+  lamp.addColorStop(0.4, 'rgba(255,200,130,0.35)');
+  lamp.addColorStop(1, 'rgba(255,200,130,0)');
+  g.fillStyle = lamp;
+  g.fillRect(0, 0, 128, 288);
+  return texture(c);
+}
+
+/** The blade of light a door ajar lays on the floor: narrow at the door (the top row), wider and fainter toward you. */
+function lightBlade(): CanvasTexture {
+  const [c, g] = sheet(64, 256);
+  for (let y = 0; y < 256; y++) {
+    const v = y / 255;
+    const half = 32 * (1 / AJAR.bladeSpread + (1 - 1 / AJAR.bladeSpread) * v);
+    const fade = Math.pow(1 - v, 1.6);
+    const across = g.createLinearGradient(32 - half, 0, 32 + half, 0);
+    across.addColorStop(0, 'rgba(255,255,255,0)');
+    across.addColorStop(0.25, `rgba(255,255,255,${fade})`);
+    across.addColorStop(0.75, `rgba(255,255,255,${fade})`);
+    across.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = across;
+    g.fillRect(32 - half, y, 2 * half, 1);
+  }
   return texture(c);
 }
 
@@ -1465,7 +1552,7 @@ export default class Corridor extends Room {
     this.act = acts[this.visit - 1].call(this);
     this.keys = this.path.keys;
     const line = LINES[this.visit - 1];
-    this.beat(line.at, () => this.say({ tr: line.tr, en: line.en }, 5));
+    if (line) this.beat(line.at, () => this.say({ tr: line.tr, en: line.en }, 5));
     this.clocks.push(this.build.motes(120, { x: [-W / 2, W / 2], y: [0.1, H], z: [-46, 0] }, this.root, { size: 0.006 }).time);
   }
 
@@ -1494,6 +1581,81 @@ export default class Corridor extends Room {
   /** The door at the end coming open as you near it. */
   private endCreak(second: number): void {
     this.beat(second, () => this.sound.play('rooms/door_creak_slow.mp3', { gain: 0.36, reverb: 0.4, lowpass: 2400 }));
+  }
+
+  /**
+   * The last seconds of an evening that breaks off here (2, 3 and 5): the far door opens by itself, `open` rad by
+   * the cut and still moving, on the warm room of the dinner, its cutlery and its clock; the cold tube by the door
+   * gives way to it. Returns what moves it.
+   */
+  private dinnerBehind(end: LiveDoor, far: number, open: number, floor: boolean, cold: Tube): (s: number) => void {
+    const from = this.seconds - AJAR.last;
+    // it gathers way, and is still gathering it when the picture cuts away
+    const angle = (s: number) => {
+      const u = range(from, this.seconds, s);
+      return (open * u * u * (3 - u)) / 2;
+    };
+    // the far wall of the dining room in its lamplight: only ever seen through the gap
+    const wall = new MeshBasicMaterial({ map: dinnerWall(), color: 0x000000, fog: false });
+    const room = new Mesh(new PlaneGeometry(2 * HALF, DOOR_TOP), wall);
+    room.position.set(0, DOOR_TOP / 2, far - RECESS + 0.04);
+    room.frustumCulled = false;
+    this.set.add(room);
+    const halo = this.build.glow(0, DOOR_TOP / 2, far + 0.15, 1, PALETTE.warm, 0, this.root, 2);
+    halo.scale.set(AJAR.glowSize[0], AJAR.glowSize[1], 1);
+    const haze = (halo.material as ShaderMaterial).uniforms.uColor.value as Color;
+    const spill = this.light([SLAB, 0.9, far + 0.45], PALETTE.warm, 0, AJAR.spillReach);
+    const coldHaze = (cold.halo.material as ShaderMaterial).uniforms.uColor.value as Color;
+    let blade: { mesh: Mesh; look: MeshBasicMaterial } | null = null;
+    if (floor) {
+      const look = new MeshBasicMaterial({ map: lightBlade(), color: 0x000000, transparent: true, depthWrite: false, blending: AdditiveBlending, fog: false });
+      const mesh = new Mesh(new PlaneGeometry(1, AJAR.bladeLength), look);
+      mesh.rotation.x = -Math.PI / 2;
+      mesh.position.set(0, 0.014, far + AJAR.bladeLength / 2);
+      mesh.frustumCulled = false;
+      mesh.renderOrder = 2;
+      this.root.add(mesh);
+      blade = { mesh, look };
+    }
+    // a narrow gap lets less of the room through, and less of its highs
+    const muffle = AJAR.muffle[0] + AJAR.muffle[1] * (1 - Math.cos(open));
+    let dinner: RoomVoice | null = null;
+    this.beat(from, () => {
+      this.sound.play(open < AJAR.short ? 'rooms/door_creak_short.mp3' : 'rooms/door_creak_slow.mp3', { gain: 0.36, reverb: 0.4, lowpass: 2400, pan: 0.1 });
+      dinner = this.sound.bed('rooms/cutlery_far.mp3', { gain: 0, lowpass: muffle, reverb: 0.4, pan: 0.12 });
+      // the corridor's own clock and hum give way to what is behind the door
+      this.tick?.gain(0, 1);
+      this.hum?.gain(0.05, 2);
+    });
+    for (let at = from + AJAR.tockFirst; at < this.seconds; at += AJAR.tockEvery) {
+      const heard = Math.sqrt(1 - Math.cos(angle(at)));
+      this.beat(at, () => this.sound.play('rooms/clock_tock_far.mp3', { gain: AJAR.tock * (0.3 + 0.7 * heard), lowpass: muffle, reverb: 0.5, pan: 0.12 }));
+    }
+    return (s) => {
+      const a = angle(s);
+      end.leaf.rotation.y = end.sign * a;
+      // the gap as seen from the front: from the leaf's free edge to the jamb, a share of the doorway
+      const edge = -SLAB + 2 * SLAB * Math.cos(a);
+      const share = 1 - Math.cos(a);
+      const gapX = (edge + SLAB) / 2;
+      const on = smooth(from, from + 0.3, s);
+      wall.color.setScalar(AJAR.wall * on);
+      halo.position.x = gapX;
+      haze.setHex(PALETTE.warm).multiplyScalar(AJAR.glow * Math.sqrt(share));
+      this.world(gapX, 0.9, far + 0.45, spill.position);
+      spill.intensity = AJAR.spill * share;
+      dinner?.gain(AJAR.cutlery * on * (0.25 + 0.75 * Math.sqrt(share)));
+      const left = cold.strength * (1 - AJAR.coldGives * smooth(from, this.seconds, s));
+      cold.glow.color.setHex(PALETTE.cold).multiplyScalar(4 * left);
+      cold.point.intensity = COLD_POINT * left;
+      cold.spot.intensity = COLD_SPOT * left;
+      coldHaze.setHex(PALETTE.cold).multiplyScalar(TUBE_HALO * left);
+      if (blade) {
+        blade.mesh.position.x = gapX;
+        blade.mesh.scale.x = Math.max(0.001, (SLAB - edge) * AJAR.bladeSpread);
+        blade.look.color.setHex(PALETTE.warm).multiplyScalar(AJAR.blade * on);
+      }
+    };
   }
 
   /** Walls with holes in them for the doors, the wainscot, the floor and the dirt on all of it. */
@@ -1784,15 +1946,15 @@ export default class Corridor extends Room {
   }
 
   /** The tube's cold light, far away. */
-  private tube(z: number, parent: Object3D, strength = 1): { glow: MeshBasicMaterial; point: DreamLight; spot: SpotSpec; halo: Mesh } {
+  private tube(z: number, parent: Object3D, strength = 1): Tube {
     const kit = this.kit;
     const fixture = kit.prop('tube_light', [0, H, z], { anchor: 'top' }, parent);
     const glow = new MeshBasicMaterial({ color: new Color(PALETTE.cold).multiplyScalar(4 * strength) });
     (fixture.getObjectByName('tube') as Mesh).material = glow;
     const point = this.light(this.leaned([0, H - 0.3, z]), PALETTE.cold, COLD_POINT * strength, COLD_REACH);
     const spot = this.spot(this.leaned([0, H - 0.08, z]), this.leaned([0, 0, z + 0.8]), PALETTE.cold, COLD_SPOT * strength, 48, 0.62);
-    const halo = this.build.glow(0, H - 0.2, z, 3.4, PALETTE.cold, 0.34 * strength, parent);
-    return { glow, point, spot, halo };
+    const halo = this.build.glow(0, H - 0.2, z, 3.4, PALETTE.cold, TUBE_HALO * strength, parent);
+    return { glow, point, spot, halo, strength };
   }
 
   /** The radiator that ticks, one strip of paper hanging off the wall, a pair of shoes nobody came back for. */
@@ -2116,7 +2278,7 @@ export default class Corridor extends Room {
 
   /** Evening two. The table has changed sides. The first print, alone, lit like a thing in a museum; a spider. */
   private second(): Update {
-    const { far, printZ, printY, printW, spiderIn, spiderStop, spiderFace, swapLatest, shutter } = TWO;
+    const { far, printZ, printY, printW, spiderIn, spiderStop, spiderFace, swapLatest, shutter, ajar } = TWO;
     const b = this.build;
     const kit = this.kit;
     const near = 0.6;
@@ -2131,6 +2293,7 @@ export default class Corridor extends Room {
     const lamp = this.lamp(1, -3.6, this.set);
     this.men([[-0.56, far + 1.05, Math.PI], [0.56, far + 1.15, Math.PI]], this.set);
     const cold = this.tube(far + 0.4, this.set, 0.8);
+    const opening = this.dinnerBehind(end, far, ajar, true, cold);
     this.path = walkAlong(REDUCED_MOTION ? TWO.calmRows : TWO.rows, this.seconds, [], undefined, false);
     const first = this.album.pictures[0]?.canvas ?? null;
     const before = b.print(texture(witness(first, false)), printW);
@@ -2178,7 +2341,6 @@ export default class Corridor extends Room {
     this.someone(13.9);
     this.beat(shutter, () => this.shutter());
     this.beat(19.8, () => this.sound.play('rooms/print_flutter.mp3', { gain: 0.14, pan: 0.4, reverb: 0.3 }));
-    this.endCreak(18.4);
     return (frame) => {
       const s = frame.seconds;
       const walking = s >= spiderIn && s < spiderStop;
@@ -2209,13 +2371,13 @@ export default class Corridor extends Room {
       this.focus = lerp(7, 1.6, smooth(8, 11, s) * (1 - smooth(16.8, 17.4, s)));
       this.fear = 0.42 + 0.3 * smooth(11, 19, s);
       this.control = s > 17 && s < 20 ? HELD : FREE;
-      end.leaf.rotation.y = 0.52 * smooth(18.4, 22, s);
+      opening(s);
     };
   }
 
   /** Evening three. Every door ajar; six men; rats far off along the skirting; a door shuts behind you. */
   private third(): Update {
-    const { far, ratFrom, ratHole, ratStart, ratRun, rats, closeFrom, closeFor, shutter } = THREE;
+    const { far, ratFrom, ratHole, ratStart, ratRun, rats, closeFrom, closeFor, shutter, ajar } = THREE;
     const near = 0.6;
     const nearest: DoorSpec = { side: -1, z: -5, swing: 1.22, hinge: 'near', live: true };
     const doors: DoorSpec[] = [nearest, { side: 1, z: -8.5, swing: 1.2, hinge: 'near' }, { side: -1, z: -12, swing: 1.24, hinge: 'near' }, { side: 1, z: -15.5, swing: 0.92, hinge: 'far' }, { side: -1, z: -17.6, swing: 0.96, hinge: 'far' }, { side: 1, z: -20, swing: 0.88, hinge: 'far' }];
@@ -2239,6 +2401,7 @@ export default class Corridor extends Room {
       0.3,
     );
     const cold = this.tube(far + 1.2, this.set, 0.8);
+    const opening = this.dinnerBehind(end, far, ajar, true, cold);
     this.spots = [lamp.down, lamp.up, cold.spot];
     this.path = walkAlong(THREE.rows, this.seconds);
     // the rats: low dark backs and thin tails, too far away to be anything else
@@ -2302,7 +2465,6 @@ export default class Corridor extends Room {
     this.beat(closeFrom, () => this.sound.play('rooms/door_creak_slow.mp3', { gain: 0.3, reverb: 0.4, lowpass: 1600, pan: -0.5 }));
     this.beat(shutter, () => this.shutter());
     this.someone(16.2);
-    this.endCreak(18.8);
     return (frame) => {
       const s = frame.seconds;
       const u = range(ratStart, ratStart + ratRun, s);
@@ -2327,7 +2489,7 @@ export default class Corridor extends Room {
       tide.scale.y = front - back;
       wet.scale.z = Math.max(0.001, Math.min(ratHole, head) - ratFrom);
       door.leaf.rotation.y = door.sign * lerp(nearest.swing, 0, smooth(closeFrom, closeFrom + closeFor, s));
-      end.leaf.rotation.y = 0.36 * smooth(18.8, 22, s);
+      opening(s);
       this.fear = 0.5 + 0.28 * smooth(7, 15, s);
     };
   }
@@ -2532,7 +2694,7 @@ export default class Corridor extends Room {
 
   /** Evening five. Black water to the ankle; everything on its reflection; in it, one person more. */
   private fifth(): Update {
-    const { far, chairZ, chairX, under, shutter } = FIVE;
+    const { far, chairZ, chairX, under, shutter, ajar } = FIVE;
     const kit = this.kit;
     const near = 0.6;
     const liar: DoorSpec = { side: -1, z: -12, swing: 0, hinge: 'far', live: true, name: 'liar' };
@@ -2549,6 +2711,7 @@ export default class Corridor extends Room {
     this.lampBoost = 1.7;
     kit.paint(kit.prop('chair_ladder', [chairX, 0, chairZ], { rotation: [0, 168, 0], castShadow: false }, this.set), new MeshStandardMaterial({ color: 0x120d0a, roughness: 0.6 }));
     const cold = this.tube(far + 1.4, this.set, 1.25);
+    const opening = this.dinnerBehind(end, far, ajar, false, cold);
     // a copy of the corridor hung upside down under the surface
     const mirror = this.set.clone();
     mirror.scale.y = -1;
@@ -2558,7 +2721,7 @@ export default class Corridor extends Room {
     mirrorLiar.rotation.y = (liar.hinge === 'far' ? -1 : 1) * 0.5;
     const lit: V3 = [lamp.at[0], -lamp.at[1], lamp.at[2]];
     const lampBelow = this.light(lit, PALETTE.warm, LAMP_POINT, LAMP_REACH);
-    this.light([0, -(H - 0.3), far + 1.4], PALETTE.cold, COLD_POINT * 1.25, COLD_REACH);
+    const coldBelow = this.light([0, -(H - 0.3), far + 1.4], PALETTE.cold, COLD_POINT * cold.strength, COLD_REACH);
     const upBelow = this.spot(lit, [lit[0] + 0.02, -H, lit[2]], PALETTE.warm, LAMP_UP, 44, 0.42);
     this.spots = [lamp.up, upBelow, cold.spot];
     // prints that have come off the walls and float: they say where the surface is
@@ -2614,7 +2777,6 @@ export default class Corridor extends Room {
     this.beat(0, () => this.draft?.gain(0.04, 1));
     this.someone(11.6, 0.2);
     this.beat(shutter, () => this.shutter());
-    this.endCreak(19);
     let ring = 0;
     return (frame) => {
       const s = frame.seconds;
@@ -2635,8 +2797,9 @@ export default class Corridor extends Room {
       headTurn.setFromUnitVectors(faceRest, toward);
       worldTurn.premultiply(headTurn);
       head.quaternion.copy(parentTurn).multiply(worldTurn);
-      end.leaf.rotation.y = 0.32 * smooth(19, 22, s);
+      opening(s);
       mirrorEnd.rotation.y = end.leaf.rotation.y;
+      coldBelow.intensity = cold.point.intensity;
       lampBelow.intensity = LAMP_POINT * this.lampBoost * this.lampLevel;
       fillBelow.position.copy(frame.view.position);
       fillBelow.position.y = this.origin.y - EYE;

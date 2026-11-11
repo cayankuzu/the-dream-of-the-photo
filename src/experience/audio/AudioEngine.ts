@@ -20,8 +20,11 @@ import {
   type TrackConfig,
   type TrackKey,
   type TunePlay,
+  type VoiceStyleConfig,
 } from '../../config/audio.config';
+import type { VoiceStyle } from '../../config/film.config';
 import { walkConfig } from '../../config/walk.config';
+import type { FilmSound } from '../film/Film';
 import { clamp, damp, DEG, lerp, range, smootherstep, wobble } from '../math';
 import { GlideTrack } from '../timeline/Track';
 
@@ -169,6 +172,18 @@ type TuneSound = Pick<TunePlay, 'bar' | 'reversed' | 'rate' | 'peak' | 'pan' | '
 /** The tune while it plays. */
 type TuneVoice = { src: AudioBufferSourceNode; gain: GainNode; lowpass: BiquadFilterNode; pan: StereoPannerNode; send: GainNode; level: number; play: TunePlay | null };
 
+/** A clip of the film while it sounds (a line, a cue): its source comes and goes (held while the piece waits), its gain stays. */
+interface FilmClip {
+  buffer: AudioBuffer;
+  gain: GainNode;
+  level: number;
+  src: AudioBufferSourceNode | null;
+  /** Context time at which its beginning sounded (or would have, had it never been held). */
+  from: number;
+  /** Seconds into it at which it is held. */
+  held: number;
+}
+
 /**
  * The real alley is made of CC0 recordings (city air, wind, the lamp's buzz, drips, the shutter, the
  * instant-film motor, paper), each with a synthesized stand-in that plays until its file has loaded and
@@ -181,10 +196,28 @@ type TuneVoice = { src: AudioBufferSourceNode; gain: GainNode; lowpass: BiquadFi
  * Nothing starts before a user gesture (autoplay policy); every promise is handled.
  */
 export class AudioEngine {
+  /** The film's voice and score (see film/Film.ts, and "the film" below). */
+  readonly film: FilmSound = {
+    preload: (files) => this.preloadClips(files),
+    release: (keep) => this.releaseClips(keep),
+    speak: (file, style) => this.speak(file, style),
+    hush: (seconds) => this.hush(seconds),
+    score: (file, options) => this.playScore(file, options),
+    cut: () => this.cutFilm(),
+    quiet: (share, seconds) => this.quiet(share, seconds),
+  };
+
   private ctx: AudioContext | null = null;
   private master!: GainNode;
+  /** Everything that is not the film's voice or score: its share (quiet), then how far it makes room for a line (duck). */
+  private world!: GainNode;
+  private worldDuck!: GainNode;
   /** Everything but the blows: closing it is silence, reverb tails included. */
   private cut!: GainNode;
+  /** The two reverbs' returns, and a room's voices on their way in: closed while the street between two evenings is seen. */
+  private tails!: GainNode;
+  private roomBus!: GainNode;
+  private roomWet!: GainNode;
   private outer!: GainNode;
   private thin!: BiquadFilterNode;
   private music!: GainNode;
@@ -267,6 +300,33 @@ export class AudioEngine {
   private heardPan = 0;
   private heardBehind = 0;
 
+  // the film
+  /** The film's voice and score, past everything else: `cut` closes it. */
+  private filmGate!: GainNode;
+  private voiceBus!: GainNode;
+  private voiceRoom!: ConvolverNode;
+  private scoreBus!: GainNode;
+  private scoreDuck!: GainNode;
+  /** Where a line in each voice goes in. */
+  private readonly styles = new Map<VoiceStyle, AudioNode>();
+  /** The film's files (names under public/audio): those it wants, those decoded, those on their way. */
+  private readonly wanted = new Set<string>();
+  private readonly clips = new Map<string, AudioBuffer>();
+  private readonly loading = new Map<string, Promise<void>>();
+  /** Fetches of the film running, and those waiting for one to end. */
+  private fetching = 0;
+  private readonly fetchQueue: (() => void)[] = [];
+  /** The line being said, the cue playing, and everything of the film still sounding (lines and cues fading out too). */
+  private line: FilmClip | null = null;
+  private cue: FilmClip | null = null;
+  private readonly sounding = new Set<FilmClip>();
+  private filmOpen = true;
+  private filmHeld = false;
+  /** What is left of everything that is not the film (see `quiet`). */
+  private worldShare = 1;
+  /** The street between two evenings is being seen (see `street`). */
+  private inStreet = false;
+
   /**
    * Must be called from a user gesture. Returns the new on/off state. Everything happens synchronously,
    * inside the gesture: the state flips first, and a suspended context is asked to resume right away.
@@ -297,23 +357,25 @@ export class AudioEngine {
 
   /** Where a room's voices go, once sound runs. */
   roomOutput(): { ctx: AudioContext; sfx: AudioNode; reverb: AudioNode } | null {
-    return this.ctx && this.sfx ? { ctx: this.ctx, sfx: this.sfx, reverb: this.reverbSend } : null;
+    return this.ctx && this.roomBus ? { ctx: this.ctx, sfx: this.roomBus, reverb: this.roomWet } : null;
   }
 
   private resume(): void {
     if (this.enabled && this.ctx?.state === 'suspended') this.ctx.resume().catch(() => undefined);
   }
 
-  /** A hidden tab falls silent; sound comes back (if it was on) when the tab returns. */
+  /** A hidden tab falls silent; sound comes back (if it was on) when the tab returns. The film waits for it. */
   setHidden(hidden: boolean): void {
     this.hidden = hidden;
     this.applyMaster(hidden ? audioConfig.hideSeconds : audioConfig.fadeSeconds);
+    this.holdFilm();
   }
 
-  /** The pause menu: the dream goes on, quieter. */
+  /** The pause menu: the dream goes on, quieter; the film's voice and score wait, as the picture does. */
   setPaused(paused: boolean): void {
     this.paused = paused;
     this.applyMaster(audioConfig.fadeSeconds);
+    this.holdFilm();
   }
 
   private applyMaster(timeConstant: number): void {
@@ -357,20 +419,28 @@ export class AudioEngine {
     const trim = this.gainNode(fromDb((threshold - threshold / ratio) * MAKE_UP));
     this.master.connect(comp).connect(limiter).connect(trim).connect(ctx.destination);
 
+    // the film's voice and score reach the master by themselves; everything else makes room for them on the way
+    this.world = this.gainNode(this.worldShare);
+    this.worldDuck = this.gainNode(1);
+    this.world.connect(this.worldDuck).connect(this.master);
     this.cut = this.gainNode(1);
-    this.cut.connect(this.master);
+    this.cut.connect(this.world);
 
     this.muffle = ctx.createBiquadFilter();
     this.muffle.type = 'lowpass';
     this.muffle.frequency.value = audioConfig.openHz;
     this.muffle.Q.value = 0.4;
     this.muffle.connect(this.cut);
+    // what the dream leaves in the air: shut while the street between two evenings is seen
+    const dream = this.inStreet ? 0 : 1;
+    this.tails = this.gainNode(dream);
+    this.tails.connect(this.muffle);
 
     this.reverb = ctx.createConvolver();
     this.reverb.buffer = this.impulse(audioConfig.reverbSeconds);
     this.reverbSend = ctx.createGain();
     this.reverbSend.gain.value = audioConfig.reverbOuter;
-    this.reverbSend.connect(this.reverb).connect(this.muffle);
+    this.reverbSend.connect(this.reverb).connect(this.tails);
 
     // the alley's air can thin out when you wake (at rest this high-pass is below anything it carries)
     this.thin = this.filter('highpass', night.waking.restHz);
@@ -385,6 +455,10 @@ export class AudioEngine {
     this.sfx.gain.value = audioConfig.sfxGain;
     this.sfx.connect(this.cut);
     this.sfx.connect(this.reverbSend);
+    this.roomBus = this.gainNode(dream);
+    this.roomBus.connect(this.sfx);
+    this.roomWet = this.gainNode(dream);
+    this.roomWet.connect(this.reverbSend);
     this.dripFilter = this.filter('lowpass', audioConfig.drips.lowpassHz);
     this.dripFilter.connect(this.outer);
 
@@ -393,6 +467,7 @@ export class AudioEngine {
     this.buildOuterAmbience();
     this.buildPad();
     this.buildNight();
+    this.buildFilm();
     this.loadRecordings().catch(() => undefined);
   }
 
@@ -816,22 +891,23 @@ export class AudioEngine {
   /** All of it exists from the start: only sources come and go. */
   private buildNight(): void {
     const ctx = this.ctx!;
-    this.dryBus = this.gainNode(1);
+    const dream = this.inStreet ? 0 : 1;
+    this.dryBus = this.gainNode(dream);
     this.dryBus.connect(this.muffle);
-    this.wetBus = this.gainNode(1);
+    this.wetBus = this.gainNode(dream);
     this.spaceRoom = this.gainNode(0);
     this.spaceHall = this.gainNode(0);
     this.wetBus.connect(this.spaceRoom).connect(this.reverbSend);
     // the long reverb's impulse is drawn a moment later (see loadRecordings); until then it is silent
     this.cavern = ctx.createConvolver();
     this.wetBus.connect(this.spaceHall).connect(this.cavern);
-    this.cavern.connect(this.muffle);
+    this.cavern.connect(this.tails);
     this.cavernOpen = this.gainNode(0);
-    this.cavern.connect(this.cavernOpen).connect(this.master);
+    this.cavern.connect(this.cavernOpen).connect(this.world);
 
     // the blows land past the cut: they are what is heard when everything else has stopped
     this.impact = this.gainNode(1);
-    this.impact.connect(this.gainNode(0.5)).connect(this.saturator()).connect(this.master);
+    this.impact.connect(this.gainNode(0.5)).connect(this.saturator()).connect(this.world);
     this.impactWet = this.gainNode(0);
     this.impact.connect(this.impactWet).connect(this.cavern);
 
@@ -1242,22 +1318,6 @@ export class AudioEngine {
     this.burst(t + dur - 0.04, 3000, 3, 0.12, 0.03);
   }
 
-  /** A memory found: a small, clear bell, far away. */
-  discover(): void {
-    if (!this.ready()) return;
-    const t = this.ctx!.currentTime;
-    const d = audioConfig.discover;
-    for (const [mul, amp] of d.partials) {
-      const o = this.ctx!.createOscillator();
-      const g = this.gainNode(0);
-      o.frequency.value = d.note * mul;
-      o.connect(g).connect(this.sfx);
-      this.env(g, t, d.attack, amp, d.release);
-      o.start(t);
-      o.stop(t + d.attack + d.release + 0.1);
-    }
-  }
-
   /** Fingers taking the print. */
   paper(): void {
     if (!this.ready()) return;
@@ -1533,17 +1593,11 @@ export class AudioEngine {
 
   /** Close the cut (the blows stay audible). */
   private closeCut(t: number, seconds: number): void {
-    const g = this.cut.gain;
-    g.cancelScheduledValues(t);
-    g.setValueAtTime(g.value, t);
-    g.linearRampToValueAtTime(0, t + seconds);
+    this.ramp(this.cut.gain, 0, t, seconds);
   }
 
   private openCut(t: number, seconds: number): void {
-    const g = this.cut.gain;
-    g.cancelScheduledValues(t);
-    g.setValueAtTime(g.value, t);
-    g.linearRampToValueAtTime(1, t + seconds);
+    this.ramp(this.cut.gain, 1, t, seconds);
   }
 
   /** Silence from `at` for `hold` s, then the world coming back over `back` s. */
@@ -1713,6 +1767,288 @@ export class AudioEngine {
       this.deafened = false;
       this.openCut(t, 0.1);
     }
+  }
+
+  // ---------------------------------------------------------------- the film
+
+  /** The film's buses, and a way in for each voice: all of it exists from the start, only lines and cues come and go. */
+  private buildFilm(): void {
+    const F = audioConfig.film;
+    this.filmGate = this.gainNode(1);
+    this.filmGate.connect(this.master);
+    this.voiceBus = this.gainNode(fromDb(F.voiceLevel));
+    this.voiceBus.connect(this.filmGate);
+    this.voiceRoom = this.ctx!.createConvolver();
+    this.voiceRoom.buffer = this.impulse(F.room.seconds);
+    this.voiceRoom.connect(this.filter('lowpass', F.room.lowpass)).connect(this.voiceBus);
+    this.scoreBus = this.gainNode(fromDb(F.scoreLevel));
+    this.scoreDuck = this.gainNode(1);
+    this.scoreBus.connect(this.scoreDuck).connect(this.filmGate);
+    for (const style of Object.keys(F.styles) as VoiceStyle[]) this.styles.set(style, this.voiceWay(F.styles[style]));
+  }
+
+  /** One voice's way to the ears: filtered, placed (or made wide), with its share of the voices' room. */
+  private voiceWay(s: VoiceStyleConfig): AudioNode {
+    const ctx = this.ctx!;
+    // a stereo clip is folded down: a voice comes from one mouth
+    const entry = this.gainNode(1);
+    entry.channelCount = 1;
+    entry.channelCountMode = 'explicit';
+    let tail: AudioNode = entry;
+    if (s.highpass) tail = tail.connect(this.filter('highpass', s.highpass));
+    if (s.lowpass) tail = tail.connect(this.filter('lowpass', s.lowpass));
+    if (s.drive) tail = tail.connect(this.gainNode(fromDb(s.drive) * 0.5)).connect(this.saturator()).connect(this.gainNode(fromDb(-s.drive)));
+    const out = this.gainNode(fromDb(s.level));
+    if (s.wide) {
+      // the voice in both ears, and itself a moment later added to one and taken from the other: wide, with no
+      // place, whole again in mono; brought down to the loudness of a placed voice
+      const ears = ctx.createChannelMerger(2);
+      const later = ctx.createDelay();
+      later.delayTime.value = audioConfig.film.wideDelay;
+      tail.connect(ears, 0, 0);
+      tail.connect(ears, 0, 1);
+      tail.connect(later);
+      later.connect(this.gainNode(s.wide)).connect(ears, 0, 0);
+      later.connect(this.gainNode(-s.wide)).connect(ears, 0, 1);
+      ears.connect(out);
+      out.gain.value /= Math.sqrt(2 * (1 + s.wide * s.wide));
+    } else {
+      const pan = ctx.createStereoPanner();
+      pan.pan.value = s.pan;
+      tail.connect(pan).connect(out);
+    }
+    out.connect(this.voiceBus);
+    if (s.wet) out.connect(this.gainNode(s.wet)).connect(this.voiceRoom);
+    return entry;
+  }
+
+  /** Fetch and decode the film's files ahead of their time (before the first gesture too), a few at a time. */
+  private preloadClips(files: readonly string[]): Promise<void> {
+    const waits: Promise<void>[] = [];
+    for (const file of files) {
+      this.wanted.add(file);
+      if (this.clips.has(file)) continue;
+      let load = this.loading.get(file);
+      if (!load) {
+        load = this.fetchClip(file);
+        this.loading.set(file, load);
+      }
+      waits.push(load);
+    }
+    return Promise.all(waits).then(() => undefined);
+  }
+
+  private async fetchClip(file: string): Promise<void> {
+    if (this.fetching < FETCHES) this.fetching++;
+    else await new Promise<void>((resolve) => this.fetchQueue.push(resolve));
+    try {
+      const buffer = await this.fetchFile(`audio/${file}`);
+      // let go of while it was on its way: it is not kept
+      if (buffer && this.wanted.has(file)) this.clips.set(file, buffer);
+    } finally {
+      this.loading.delete(file);
+      // the fetch passes straight to the next one waiting
+      const next = this.fetchQueue.shift();
+      if (next) next();
+      else this.fetching--;
+    }
+  }
+
+  /** Forget every file of the film that is not in `keep` (a clip still sounding plays on). */
+  private releaseClips(keep: ReadonlySet<string>): void {
+    for (const file of this.wanted) {
+      if (keep.has(file)) continue;
+      this.wanted.delete(file);
+      this.clips.delete(file);
+    }
+  }
+
+  /** One line now, in its voice; the line before it stops. False when it cannot be heard. */
+  private speak(file: string, style: VoiceStyle): boolean {
+    const buffer = this.clips.get(file);
+    const way = this.styles.get(style);
+    if (!buffer || !way || !this.audible() || this.filmHeld) return false;
+    const F = audioConfig.film;
+    const t = this.ctx!.currentTime;
+    this.openFilm(t);
+    if (this.line) this.fade(this.line, t, F.handover);
+    this.line = this.sound(buffer, way, 1, t, 0);
+    this.duck(t, t + buffer.duration + F.duck.hold);
+    return true;
+  }
+
+  /** The line being said stops over `seconds`. */
+  private hush(seconds: number = audioConfig.film.handover): void {
+    if (!this.ctx || !this.line) return;
+    const t = this.ctx.currentTime;
+    this.fade(this.line, t, seconds);
+    this.line = null;
+    this.duck(t, this.filmHeld ? t : t + seconds);
+  }
+
+  /**
+   * A cue of the score from its beginning: over a cue still playing it comes in, and that one goes, over `fade` s
+   * (alone it starts at once: a cue carries its own attack); null fades the score out. A cue starts with the sound
+   * switched off too, so that it is in step when the sound comes back.
+   */
+  private playScore(file: string | null, options: { gain?: number; fade?: number } = {}): void {
+    if (!this.ctx) return;
+    const F = audioConfig.film;
+    const t = this.ctx.currentTime;
+    const fade = options.fade ?? F.scoreFade;
+    const before = this.cue;
+    this.cue = null;
+    if (before) this.fade(before, t, Math.max(fade, F.cut));
+    const buffer = file ? this.clips.get(file) : undefined;
+    // while the browser holds the context back no time passes in it: the cue would fall out of step with the picture
+    if (!buffer || this.ctx.state !== 'running' || this.filmHeld) return;
+    this.openFilm(t);
+    this.cue = this.sound(buffer, this.scoreBus, options.gain ?? 1, t, before ? fade : 0);
+  }
+
+  /** The dream breaks off: the voice, the room around it and the score stop dead. */
+  private cutFilm(): void {
+    if (!this.ctx) return;
+    const F = audioConfig.film;
+    const t = this.ctx.currentTime;
+    this.filmOpen = false;
+    this.ramp(this.filmGate.gain, 0, t, F.cut);
+    for (const clip of this.sounding) this.fade(clip, t, F.cut);
+    this.line = this.cue = null;
+    this.duck(t, t);
+  }
+
+  /** After a cut the film's bus opens again with the next line or cue. */
+  private openFilm(t: number): void {
+    if (this.filmOpen) return;
+    this.filmOpen = true;
+    this.ramp(this.filmGate.gain, 1, t, audioConfig.film.cut);
+  }
+
+  /** Everything that is not the film's voice or score goes to `share` of itself over `seconds` (kept until sound starts). */
+  private quiet(share: number, seconds: number): void {
+    this.worldShare = clamp(share, 0, 1);
+    if (this.ctx) this.ramp(this.world.gain, this.worldShare, this.ctx.currentTime, Math.max(seconds, audioConfig.film.cut));
+  }
+
+  /** Everything but the voice goes down now (the score less), and comes back from `until` (context time; at once when it is now). */
+  private duck(t: number, until: number): void {
+    const D = audioConfig.film.duck;
+    for (const [node, db] of [
+      [this.worldDuck, D.world],
+      [this.scoreDuck, D.score],
+    ] as const) {
+      const g = node.gain;
+      g.cancelScheduledValues(t);
+      g.setValueAtTime(g.value, t);
+      if (until > t) g.setTargetAtTime(fromDb(db), t, D.attack);
+      g.setTargetAtTime(1, until, D.release);
+    }
+  }
+
+  /**
+   * The pause menu or a hidden tab: the line and the cue wait where they are, as the picture does (time stands still
+   * in it), and go on from there.
+   */
+  private holdFilm(): void {
+    const hold = this.paused || this.hidden;
+    if (hold === this.filmHeld) return;
+    this.filmHeld = hold;
+    if (!this.ctx) return;
+    const F = audioConfig.film;
+    const t = this.ctx.currentTime;
+    for (const clip of [this.line, this.cue]) {
+      if (!clip) continue;
+      if (hold && clip.src) {
+        const src = clip.src;
+        clip.held = t - clip.from;
+        clip.src = null;
+        this.ramp(clip.gain.gain, 0, t, F.hold);
+        src.stop(t + F.hold);
+      } else if (!hold && !clip.src) this.run(clip, t, clip.held, F.hold);
+    }
+    const line = this.line;
+    this.duck(t, line && !hold ? line.from + line.buffer.duration + F.duck.hold : t);
+  }
+
+  /** A clip begins now into `out` at `level`, rising over `rise` s (0: at once). */
+  private sound(buffer: AudioBuffer, out: AudioNode, level: number, t: number, rise: number): FilmClip {
+    const gain = this.gainNode(0);
+    gain.connect(out);
+    const clip: FilmClip = { buffer, gain, level, src: null, from: t, held: 0 };
+    this.sounding.add(clip);
+    this.run(clip, t, 0, rise);
+    return clip;
+  }
+
+  /** A clip's source, from `offset` s into it, its level rising over `rise` s. */
+  private run(clip: FilmClip, t: number, offset: number, rise: number): void {
+    const src = this.ctx!.createBufferSource();
+    src.buffer = clip.buffer;
+    src.connect(clip.gain);
+    const g = clip.gain.gain;
+    g.cancelScheduledValues(t);
+    g.setValueAtTime(rise > 0 ? 0 : clip.level, t);
+    if (rise > 0) g.linearRampToValueAtTime(clip.level, t + rise);
+    src.start(t, offset);
+    // a source held for the pause is followed by another: only the last one's end is the clip's
+    src.addEventListener(
+      'ended',
+      () => {
+        if (clip.src === src) this.drop(clip);
+      },
+      { once: true },
+    );
+    clip.src = src;
+    clip.from = t - offset;
+  }
+
+  /** A clip goes over `seconds` (a held one at once). */
+  private fade(clip: FilmClip, t: number, seconds: number): void {
+    if (!clip.src) {
+      this.drop(clip);
+      return;
+    }
+    this.ramp(clip.gain.gain, 0, t, seconds);
+    clip.src.stop(t + seconds);
+  }
+
+  /** A clip has gone. */
+  private drop(clip: FilmClip): void {
+    clip.src = null;
+    clip.gain.disconnect();
+    this.sounding.delete(clip);
+    if (this.line === clip) this.line = null;
+    if (this.cue === clip) this.cue = null;
+  }
+
+  /** From its value now, in a straight line to `value` over `seconds`. */
+  private ramp(param: AudioParam, value: number, t: number, seconds: number): void {
+    param.cancelScheduledValues(t);
+    param.setValueAtTime(param.value, t);
+    param.linearRampToValueAtTime(value, t + seconds);
+  }
+
+  /**
+   * The street between two evenings (a waking) begins (true): nothing of the dream hangs over into it. The walk's
+   * layers, the tune, a room's voices and every reverb's tail stop dead, and the street's own air (the alley's beds,
+   * the pad) comes up only after the waking's silent first seconds. False: the dream takes over again.
+   */
+  street(on: boolean): void {
+    if (on === this.inStreet) return;
+    this.inStreet = on;
+    if (!this.ctx) return;
+    const S = audioConfig.film.street;
+    const t = this.ctx.currentTime;
+    for (const node of [this.dryBus, this.wetBus, this.roomBus, this.roomWet, this.tails]) this.ramp(node.gain, on ? 0 : 1, t, S.cut);
+    if (!on) {
+      this.openCut(t, S.cut);
+      return;
+    }
+    this.stopTune(t);
+    this.closeCut(t, S.cut);
+    this.cut.gain.setValueAtTime(0, t + S.silent);
+    this.cut.gain.linearRampToValueAtTime(1, t + S.silent + S.in);
   }
 
   // ---------------------------------------------------------------- per frame

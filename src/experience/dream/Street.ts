@@ -1,6 +1,5 @@
 import {
   AdditiveBlending,
-  BoxGeometry,
   CanvasTexture,
   CatmullRomCurve3,
   Color,
@@ -21,6 +20,7 @@ import {
   type Texture,
 } from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import { dreamConfig } from '../../config/dream.config';
 import { LAYOUT, type SpotSpec } from '../../config/nightmare.config';
 import { ALLEY, apt, factory } from '../../config/scene.config';
 import { range, smootherstep } from '../math';
@@ -141,15 +141,16 @@ const SLIT = {
 };
 
 /**
- * The light of the space. The key rakes down from high behind, so that bodies throw long shadows toward the slit (within
+ * The light of the space. The key rakes down from high behind, faint and cold as the night over the roofs: enough
+ * that what stands between the lamps can still be made out, and that bodies throw long shadows toward the slit (within
  * the 40 m of the shadow camera); it comes up as you enter (z). The second comes through the slit along the ground, and
  * lies as a long wet streak on the setts.
  */
 const KEY = {
   position: [0.7, 14, -34] as V3,
   target: [0, 0, -57] as V3,
-  color: 0xffa878,
-  intensity: 450,
+  color: 0x9fb2c2,
+  intensity: 120,
   angle: 33,
   penumbra: 0.6,
   comesUp: [-36.4, -41] as const,
@@ -163,22 +164,25 @@ const THROUGH_SLIT = {
   penumbra: 0.6,
 };
 
-/** The fixtures on the walls: bare tubes and caged lamps, sick cold white, every 5 to 7 m. `node` is the tube's model. */
-const FIXTURES: readonly { kind: 'tube' | 'cage'; side: -1 | 1; z: number; node?: string; every?: readonly [number, number] }[] = [
-  { kind: 'tube', side: -1, z: -38.2, node: 'mounted_fluorescent_lights_d' },
-  { kind: 'cage', side: 1, z: -43.6, every: [5, 13] },
-  { kind: 'tube', side: -1, z: -49, node: 'mounted_fluorescent_lights_f', every: [2.5, 8] },
-  { kind: 'tube', side: 1, z: -54.6, node: 'mounted_fluorescent_lights_b' },
-  { kind: 'cage', side: -1, z: -60.2, every: [3.5, 10] },
+/**
+ * The street's few lamps: warm, each an enamel shade on a chain from a wire strung across the street, over a pool of
+ * its own on the setts, with the dark between one pool and the next. Where along the street (z), how far off the
+ * middle (m), how the shade is turned (deg); `every` makes one fail now and then (s between its dips).
+ */
+const FIXTURES: readonly { z: number; x: number; turn: number; every?: readonly [number, number] }[] = [
+  { z: -40.6, x: 0.22, turn: 20 },
+  { z: -49.6, x: -0.26, turn: -35, every: [6, 14] },
+  { z: -58.6, x: 0.14, turn: 50, every: [3.5, 10] },
 ];
 const FIXTURE = {
-  color: 0xcfead6,
-  /** Tubes: size (times the model), center height (m), brightness of the tube. */
-  tube: { scale: 1.5, y: 3.05, glow: 7, depth: 0.026 },
-  /** Cages: height of the rail they hang from (m), how far it stands off the wall (m), brightness of the tube inside. */
-  cage: { rail: 4.5, out: 0.38, glow: 9, railLength: 1.05, railThick: 0.05, armThick: 0.04, plates: 0.33, iron: 0x17171a, ironRough: 0.6 },
-  /** Their light: how far out from the wall (m), how far below the tube's center or the rail (m), candela and reach (m). */
-  light: { out: 0.9, tubeDrop: 0, cageDrop: 0.75, intensity: 8, distance: 8 },
+  color: 0xffb06e,
+  /** The wire: its height at the walls (m) and how far it sags in the middle (m). The lamp is this tall, chain and all (m, measured on the model). */
+  wire: { y: 4.9, sag: 0.32 },
+  lampHeight: 1.355,
+  /** Brightness of its glass: well under the slit's, which stays the brightest thing in the street. */
+  glow: 2.4,
+  /** Its light: how far above the shade's mouth (m), candela and reach (m). */
+  light: { lift: 0.12, intensity: 12, distance: 4.8 },
   /** A light ahead takes up between these distances (m): the pool picks it up in the dark. One behind you dies between these. */
   ahead: [23, 15] as const,
   behind: [3, 10] as const,
@@ -199,82 +203,49 @@ const TALL_GONE_AT = 1;
 
 interface Role {
   spec: FigureSpec;
-  /** Stands this high (a torso sits on the ground: it ends at its waist). */
-  y?: number;
   /** Turned to the wall, ear against it. */
   toWall?: boolean;
-  /** Cut through from head to foot: turned so that what is gone faces the way you come from. */
-  cut?: boolean;
   /** Height of what decides whether it is seen (m). */
   look: number;
   /** How far its arms reach from its middle, turned any way (m). */
   reach: number;
 }
 
-const BLEACH = 0.62;
-const man = (clip: string, time: number, half?: FigureSpec['half']): FigureSpec => ({ avatar: 'figure_man', clip, time, half, bleach: BLEACH });
-const woman = (clip: string, time: number, half?: FigureSpec['half'], veil?: boolean): FigureSpec => ({ avatar: 'figure_woman', clip, time, half, veil, bleach: BLEACH });
-const LAUGH = 'm_gestic_laugh_extreme';
-const TORSO_Y = -0.95;
+const CAST = dreamConfig.cast;
+/** Where the half of one who waits ends: the waist of a standing body (m above its feet). */
+const WAIST = 0.95;
 
+/** The film's own cast (see dreamConfig.cast), and the half of one of them. */
 const ROLES = {
-  doubled: { spec: man(LAUGH, 0.8), look: 1, reach: 0.33 },
-  flung: { spec: man(LAUGH, 3.2), look: 1.4, reach: 0.58 },
-  broken: { spec: man('m_idle_roll_head_01', 5), look: 1.4, reach: 0.33 },
-  listenerM: { spec: man('m_listen_door', 1.8), toWall: true, look: 1.4, reach: 0.47 },
-  listenerW: { spec: woman('f_listen_door', 1.5), toWall: true, look: 1.3, reach: 0.32 },
-  veiled: { spec: woman('f_idle_touch_hair_01', 1.7, undefined, true), look: 1.3, reach: 0.3 },
-  legsM: { spec: man('m_walk_bruised', 0.7, 'lower'), look: 0.6, reach: 0.25 },
-  legsW: { spec: woman('f_idle_touch_hair_01', 2.9, 'lower'), look: 0.6, reach: 0.25 },
-  torsoM: { spec: man(LAUGH, 3.2, 'upper'), y: TORSO_Y, look: 0.5, reach: 0.58 },
-  torsoW: { spec: woman('f_listen_door', 1.5, 'upper'), y: TORSO_Y, look: 0.45, reach: 0.32 },
-  cutML: { spec: man('m_idle_touch_face_01', 1.8, 'left'), cut: true, look: 1.3, reach: 0.33 },
-  cutMR: { spec: man('m_idle_touch_face_01', 1.8, 'right'), cut: true, look: 1.3, reach: 0.33 },
-  cutWL: { spec: woman('f_idle_touch_hair_01', 0.5, 'left'), cut: true, look: 1.3, reach: 0.3 },
-  cutWR: { spec: woman('f_idle_touch_hair_01', 0.5, 'right'), cut: true, look: 1.3, reach: 0.3 },
+  suit: { spec: CAST.headless, look: 1.2, reach: 0.33 },
+  sack: { spec: CAST.sack, look: 1.4, reach: 0.33 },
+  /** Its ear to the wall of the house, listening. */
+  listener: { spec: { ...CAST.sack, clip: 'm_listen_door', time: 1.8 }, toWall: true, look: 1.4, reach: 0.47 },
+  veiled: { spec: CAST.veiled, look: 1.3, reach: 0.3 },
+  /** A suit's trousers and shoes, standing, nothing above the belt. */
+  legs: { spec: { ...CAST.headless, cutAt: WAIST }, look: 0.6, reach: 0.25 },
 } satisfies Record<string, Role>;
 type RoleName = keyof typeof ROLES;
 
-/** Who stands where along each wall, from the alley's end to the slit: half of them are halves. */
+/** Who stands where along each wall, from the alley's end to the slit: a few, in the lamps' pools and in the dark between. */
 const ON_THE_RIGHT: readonly (readonly [RoleName, number])[] = [
-  ['doubled', -37.4],
-  ['legsM', -38.9],
-  ['cutML', -40.6],
-  ['listenerW', -42.2],
-  ['torsoM', -43.7],
-  ['broken', -45.3],
-  ['legsW', -46.9],
-  ['cutWL', -48.3],
-  ['flung', -50],
-  ['torsoW', -51.5],
-  ['listenerM', -53.1],
-  ['legsM', -54.6],
-  ['cutML', -56.2],
-  ['doubled', -57.7],
-  ['torsoM', -59.2],
-  ['broken', -60.8],
-  ['legsW', -62.2],
+  ['suit', -39.8],
+  ['listener', -44.6],
+  ['veiled', -49],
+  ['legs', -53.2],
+  ['sack', -57.8],
+  ['suit', -61.9],
 ];
 const ON_THE_LEFT: readonly (readonly [RoleName, number])[] = [
-  ['broken', -38.1],
-  ['torsoW', -39.8],
-  ['veiled', -41.4],
-  ['legsM', -43],
-  ['cutMR', -44.5],
-  ['doubled', -46.1],
-  ['listenerW', -47.7],
-  ['legsW', -49.2],
-  ['flung', -50.8],
-  ['cutWR', -52.3],
-  ['torsoM', -53.9],
-  ['veiled', -55.4],
-  ['legsM', -57],
-  ['listenerM', -58.5],
-  ['torsoW', -60.1],
-  ['cutMR', -61.6],
+  ['sack', -41.5],
+  ['suit', -45.4],
+  ['listener', -50.4],
+  ['suit', -54.2],
+  ['veiled', -59],
+  ['legs', -62.4],
 ];
-/** The first vertical half along the walk holds a memory: its place in ON_THE_RIGHT, and how a long look finds it. */
-const FIRST_HALF = { index: 2, height: 1.2, radius: 7, zoom: 0.55 };
+/** The first half along the walk: its place in ON_THE_RIGHT, the height a long look finds it at (m), its angular radius (deg) and how far that look narrows the view. */
+const FIRST_HALF = { index: 3, height: 0.8, radius: 7, zoom: 0.55 };
 
 const PEOPLE = {
   /**
@@ -303,9 +274,9 @@ const PEOPLE = {
   shadowsEvery: 3,
 };
 
-/** The very tall thin one in the middle of the street, its back to you, seen against the slit from the blackout on. */
+/** The very tall thin one in the middle of the street, a dark suit with no head, its back to you, seen against the slit from the blackout on. */
 const TALL = {
-  spec: { avatar: 'figure_man', clip: 'm_idle_roll_head_01', time: 0.2, bleach: BLEACH, tint: 0x20201f } as FigureSpec,
+  spec: { ...CAST.headless, tint: 0x20201f } as FigureSpec,
   z: -61.5,
   scale: [0.84, 1.3, 0.84] as V3,
   /** Gone at the first dip of the lamp nearest to it, once shown this long (s), and in any case before this close (m). */
@@ -557,7 +528,6 @@ interface Body {
   crowd: Crowd;
   index: number;
   x: number;
-  y: number;
   z: number;
   heading: number;
   look: number;
@@ -588,8 +558,10 @@ const UP = new Vector3(0, 1, 0);
 
 /**
  * Chapter III, the street that should have ended. The alley goes on, narrow and enormously tall, its sky a slit; a
- * colossal wall closes it, and a slit of light goes through that. Along both walls stand the ones who stand there,
- * utterly still, half of them halves, each with the long shadow of a whole person. No one has seen them move.
+ * colossal wall closes it, and a slit of light goes through that: the door of the house. A few warm lamps hang over
+ * it, each over its own pool, dark between. Along both walls stand the ones who wait, the film's own cast, utterly
+ * still: suits with no heads, stitched sacks with a hollow for a face, white hair over no face, and a half or two that
+ * throws the long shadow of a whole person. No one has seen them move.
  */
 export class Street implements DreamModule {
   readonly root = new Group();
@@ -647,7 +619,7 @@ export class Street implements DreamModule {
     this.plainPanes = this.buildPanes(windows);
     this.hair = this.buildWindowHair(kit, windows);
     this.built.add(this.hair.mesh);
-    this.buildFixtures(kit);
+    const wires = this.buildFixtures(kit);
 
     const fill = SLIT.fill;
     const light = lightTexture();
@@ -671,7 +643,7 @@ export class Street implements DreamModule {
 
     this.buildPeople(kit);
     this.firstHalf = this.bodies[FIRST_HALF.index];
-    kit.poi({ position: this.halfPoi, radius: FIRST_HALF.radius, zoom: FIRST_HALF.zoom, memory: 'half' });
+    kit.poi({ position: this.halfPoi, radius: FIRST_HALF.radius, zoom: FIRST_HALF.zoom });
 
     this.tall = kit.figures.crowd(TALL.spec, 1);
     matrix.compose(place.set(0, 0, TALL.z), quaternion.setFromAxisAngle(UP, Math.PI), size.set(TALL.scale[0], TALL.scale[1], TALL.scale[2]));
@@ -682,7 +654,7 @@ export class Street implements DreamModule {
 
     this.gnome = kit.prop('gnome', [GNOME.x, 0, GNOME.from], {}, this.built);
 
-    this.ravens = new Ravens(kit, this.buildCables(windows));
+    this.ravens = new Ravens(kit, this.buildCables(windows, wires));
     this.built.add(this.ravens.root);
     this.reset();
   }
@@ -907,44 +879,40 @@ export class Street implements DreamModule {
     return tube!;
   }
 
-  private buildFixtures(kit: DreamKit): void {
+  /** The lamps on their wires, and the wires (for the cables' one draw). */
+  private buildFixtures(kit: DreamKit): BufferGeometry[] {
     const F = FIXTURE;
-    const iron = new MeshStandardMaterial({ color: F.cage.iron, roughness: F.cage.ironRough, metalness: F.cage.ironRough });
+    const R = RAVENS;
+    const wires: BufferGeometry[] = [];
+    // the wire's height across the street (x in m)
+    const wireAt = (x: number) => {
+      const t = (x + HALF_WIDTH) / (2 * HALF_WIDTH);
+      return F.wire.y - F.wire.sag * 4 * t * (1 - t);
+    };
     FIXTURES.forEach((f, i) => {
-      const wallX = f.side * HALF_WIDTH;
-      let glass: MeshStandardMaterial;
-      let glow: number;
-      let y: number;
-      if (f.kind === 'tube') {
-        // the mount against the wall, the tube upright: a row of bars receding
-        const fixture = kit.prop('fluorescent', [wallX - f.side * F.tube.depth, F.tube.y, f.z], { rotation: [0, 0, -f.side * 90], scale: F.tube.scale, anchor: 'center', nodes: [f.node!] }, this.built);
-        glow = F.tube.glow;
-        glass = this.ownTube(fixture, (m) => /glass/.test(m.name), glow);
-        y = F.tube.y - F.light.tubeDrop;
-      } else {
-        const fixture = kit.prop('caged_light', [wallX - f.side * F.cage.out, F.cage.rail, f.z], { rotation: [0, 90, 0], anchor: 'top' }, this.built);
-        glow = F.cage.glow;
-        glass = this.ownTube(fixture, () => true, glow);
-        y = F.cage.rail - F.light.cageDrop;
-        // what it hangs from: a rail on two arms out of the wall
-        const { railThick: thick, armThick: arm } = F.cage;
-        const parts = [new BoxGeometry(thick, thick, F.cage.railLength).translate(wallX - f.side * F.cage.out, F.cage.rail + thick / 2, f.z)];
-        for (const off of [-F.cage.plates, F.cage.plates]) parts.push(new BoxGeometry(F.cage.out, arm, arm).translate(wallX - (f.side * F.cage.out) / 2, F.cage.rail + thick / 2, f.z + off));
-        this.built.add(new Mesh(mergeGeometries(parts), iron));
+      const points: Vector3[] = [];
+      for (let s = 0; s <= R.cableSamples; s++) {
+        const x = -HALF_WIDTH + (2 * HALF_WIDTH * s) / R.cableSamples;
+        points.push(new Vector3(x, wireAt(x), f.z));
       }
-      const light = kit.lights.add([f.side * (HALF_WIDTH - F.light.out), y, f.z], F.color, F.light.intensity, F.light.distance);
+      wires.push(new TubeGeometry(new CatmullRomCurve3(points), R.cableSamples, R.cableRadius, R.cableSides));
+      const top = wireAt(f.x);
+      const fixture = kit.prop('hanging_lamp', [f.x, top, f.z], { rotation: [0, f.turn, 0], anchor: 'top' }, this.built);
+      const glass = this.ownTube(fixture, (m) => /glass/.test(m.name), F.glow);
+      const light = kit.lights.add([f.x, top - F.lampHeight + F.light.lift, f.z], F.color, F.light.intensity, F.light.distance);
       this.fixtures.push({
         light,
         z: f.z,
         glass,
-        glow,
+        glow: F.glow,
         flicker: f.every ? new Flicker(SEED + i, f.every) : null,
         strikes: (FIXTURES.length - 1 - i) * F.strikeGap,
       });
     });
+    return wires;
   }
 
-  /** Everyone along the walls: one instanced draw per pose and per way of being cut, casting the shadow of a whole body. */
+  /** Everyone along the walls: one instanced draw per kind, casting the shadow of a whole body (a half too: its shadow is whole). */
   private buildPeople(kit: DreamKit): void {
     const everyone: { name: RoleName; z: number; wall: -1 | 1 }[] = [
       ...ON_THE_RIGHT.map(([name, z]) => ({ name, z, wall: 1 as const })),
@@ -967,18 +935,18 @@ export class Street implements DreamModule {
       const toMiddle = (-e.wall * Math.PI) / 2;
       const lane = PEOPLE.clear + role.reach;
       const x = e.wall * Math.max(lane, role.toWall ? PEOPLE.listening : PEOPLE.side + (random() - 0.5) * 2 * PEOPLE.sideJitter);
-      const heading = role.toWall ? -toMiddle : role.cut ? toMiddle : toMiddle + (random() - 0.5) * 2 * PEOPLE.jitter;
-      this.bodies.push({ crowd: c.crowd, index: c.next++, x, y: role.y ?? 0, z: e.z, heading, look: role.look, lane, seen: false, home: { x, z: e.z, heading } });
+      const heading = role.toWall ? -toMiddle : toMiddle + (random() - 0.5) * 2 * PEOPLE.jitter;
+      this.bodies.push({ crowd: c.crowd, index: c.next++, x, z: e.z, heading, look: role.look, lane, seen: false, home: { x, z: e.z, heading } });
     }
   }
 
-  /** The cables across the street and the sills: where the birds sit. */
-  private buildCables(windows: readonly Opening[]): Perch[] {
+  /** The cables across the street (drawn with the lamps' wires) and the sills: where the birds sit. */
+  private buildCables(windows: readonly Opening[], wires: readonly BufferGeometry[]): Perch[] {
     const random = randomFrom(SEED + 15);
     const R = RAVENS;
     const perches: Perch[] = [];
     const bigness = () => R.size[0] + random() * (R.size[1] - R.size[0]);
-    const pieces: BufferGeometry[] = [];
+    const pieces: BufferGeometry[] = [...wires];
     for (const [z0, y0, z1, y1, sag, birds] of CABLES) {
       const points: Vector3[] = [];
       for (let i = 0; i <= R.cableSamples; i++) {
@@ -1121,7 +1089,7 @@ export class Street implements DreamModule {
     const wall = Math.sign(body.x);
     body.x = wall * Math.max(body.lane, Math.abs(body.x) - P.aside);
     body.heading = Math.atan2(eye.x - body.x, eye.z - body.z);
-    body.crowd.set(body.index, body.x, body.y, body.z, body.heading);
+    body.crowd.set(body.index, body.x, 0, body.z, body.heading);
   }
 
   /** In the blackout it comes; it is never touched. */
@@ -1176,7 +1144,7 @@ export class Street implements DreamModule {
       body.z = body.home.z;
       body.heading = body.home.heading;
       body.seen = false;
-      body.crowd.set(body.index, body.x, body.y, body.z, body.heading);
+      body.crowd.set(body.index, body.x, 0, body.z, body.heading);
     }
     for (const c of this.crowds) c.commit();
     this.halfPoi.set(this.firstHalf.x, FIRST_HALF.height, this.firstHalf.z);

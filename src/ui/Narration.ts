@@ -1,18 +1,17 @@
-import { narration, type Text } from '../config/copy.config';
+import type { Text } from '../config/copy.config';
 import { REDUCED_MOTION } from '../config/experience.config';
-import { cueToProgress } from '../experience/timeline/Timeline';
+import type { VoiceStyle } from '../config/film.config';
 import { lang, tr } from './i18n';
 
-const lines = narration.map((l) => ({ from: cueToProgress(l.from), to: cueToProgress(l.to), text: l.text }));
-
-/** The typewriter (s): a letter, how late it may come, and the rests it takes after a comma and after a stop. */
+/**
+ * The rhythm of the typewriter (s): a letter, how late it may come, and the rests after a comma and after a stop.
+ * Only its proportions count: a line is stretched or squeezed to be typed in TYPED_BY of the time it stays.
+ */
 const TYPE = { letter: 0.034, late: 0.03, comma: 0.16, stop: 0.36 };
-/** Whatever the pace, the whole line is out by this share of its span: who hurries still reads it. */
+/** Share of the time a line stays by which all of it has been typed. */
 const TYPED_BY = 0.45;
-/** Pixels the line jumps as the carriage takes a space or a stop (it rests at 0 once typed). */
-const JOLT = 1;
 
-/** When each letter of a line strikes (s after the line begins); the same on every visit. */
+/** When each letter of a line strikes, as a share of its typing (the first at 0, the last at 1); the same on every visit. */
 function strikes(text: string): number[] {
   const times: number[] = [];
   let t = 0;
@@ -23,27 +22,27 @@ function strikes(text: string): number[] {
     const c = text[i];
     t += TYPE.letter + TYPE.late * (seed / 100) + (c === ',' ? TYPE.comma : c === '.' ? TYPE.stop : 0);
   }
-  return times;
+  const last = times[times.length - 1] || 1;
+  return times.map((s) => s / last);
 }
 
 /**
- * The dream's voice: one line at a time, placed on the timeline, so it comes and goes with the scroll (and
- * comes back when you scroll back). A line is typed on, letter by letter, hesitating at its stops; it
- * leaves on a hard cut. Screen readers get the whole line at once. A language switch shows at once.
+ * The line at the foot of the picture: what is being said, by whom (the voice shows in how it is set), for as long
+ * as it is said. It is typed on, hesitating at its stops, and leaves on a hard cut; a new line replaces it at once.
+ * Screen readers get the whole line at once. A language switch shows at once.
  */
 export class Narration {
   /** The letters out so far, and the rest (laid out but unseen, so the line never rewraps as it is typed). */
   private readonly typed = document.createTextNode('');
   private readonly rest = document.createTextNode('');
-  private current = -1;
+  private line: Text | null = null;
+  /** How long the line stays, and how long it has been up (s; the time behind the menu does not count). */
+  private seconds = 0;
+  private elapsed = 0;
   private language = lang();
   private text = '';
   private times: number[] = [];
-  /** When the line began (ms), how many letters are out, and where the carriage threw it (px). */
-  private began = 0;
   private shown = -1;
-  private joltX = 0;
-  private joltY = 0;
 
   constructor(
     private readonly el: HTMLElement,
@@ -55,71 +54,62 @@ export class Narration {
     el.append(this.typed, unseen);
   }
 
-  /** A room speaks: from here to there on the timeline. */
-  say(text: Text, from: number, to: number): void {
-    lines.push({ from, to, text });
+  /** A line said now, for `seconds`, in the voice `style`; null takes the one showing away. */
+  show(text: Text | null, seconds: number, style: VoiceStyle): void {
+    if (!text || seconds <= 0) {
+      this.clear();
+      return;
+    }
+    this.line = text;
+    this.seconds = seconds;
+    this.elapsed = 0;
+    this.el.dataset.voice = style;
+    this.el.classList.add('is-speaking');
+    this.write();
   }
 
-  update(progress: number, now: number): void {
-    let i = -1;
-    for (let k = 0; k < lines.length; k++) {
-      if (progress >= lines[k].from && progress <= lines[k].to) {
-        i = k;
-        break;
-      }
+  /** Every frame: `dt` seconds of the film have passed (none while it is paused). */
+  update(dt: number): void {
+    if (!this.line) return;
+    this.elapsed += dt;
+    if (this.elapsed >= this.seconds) {
+      this.clear();
+      return;
     }
-    if (i !== this.current) {
-      this.current = i;
-      this.began = now;
-      this.el.classList.toggle('is-speaking', i >= 0);
-      if (i >= 0) {
-        this.write(i);
-        // it lands with a small blow; the carriage takes over from here
-        if (!REDUCED_MOTION) this.jolt(JOLT, -JOLT);
-      } else {
-        this.voice.textContent = '';
-      }
-    }
-    if (i < 0) return;
-    if (this.language !== lang()) this.write(i);
-    this.type(i, progress, now);
+    if (this.language !== lang()) this.write();
+    this.type();
+  }
+
+  private clear(): void {
+    if (!this.line) return;
+    this.line = null;
+    this.el.classList.remove('is-speaking');
+    this.typed.data = '';
+    this.rest.data = '';
+    this.voice.textContent = '';
   }
 
   /** The line in the language showing now (typed as far as it would be by now). */
-  private write(i: number): void {
+  private write(): void {
     this.language = lang();
-    this.text = tr(lines[i].text);
+    this.text = tr(this.line!);
     this.times = strikes(this.text);
     this.shown = -1;
     this.voice.textContent = this.text;
+    this.type();
   }
 
-  private type(i: number, progress: number, now: number): void {
+  private type(): void {
     const count = this.text.length;
     let n = count;
     if (!REDUCED_MOTION) {
-      const l = lines[i];
-      const elapsed = (now - this.began) / 1000;
-      let byTime = 0;
-      while (byTime < count && this.times[byTime] <= elapsed) byTime++;
-      const byProgress = Math.ceil((((progress - l.from) / (l.to - l.from)) * count) / TYPED_BY);
-      n = Math.min(count, Math.max(byTime, byProgress));
+      const share = this.elapsed / (this.seconds * TYPED_BY);
+      n = 0;
+      while (n < count && this.times[n] <= share) n++;
     }
     if (n === this.shown) return;
     this.shown = n;
     this.typed.data = this.text.slice(0, n);
     this.rest.data = this.text.slice(n);
-    if (REDUCED_MOTION) return;
-    // a hard little jump with each blow of the carriage, none once the line is out
-    const struck = n > 0 ? this.text[n - 1] : ' ';
-    if (n === count) this.jolt(0, 0);
-    else if (struck === ' ' || struck === ',' || struck === '.') this.jolt((((n * 7) % 3) - 1) * JOLT, (((n * 5) % 3) - 1) * JOLT);
-  }
-
-  private jolt(x: number, y: number): void {
-    if (x === this.joltX && y === this.joltY) return;
-    this.joltX = x;
-    this.joltY = y;
-    this.el.style.transform = x === 0 && y === 0 ? '' : `translate(${x}px, ${y}px)`;
   }
 }

@@ -8,3 +8,7 @@ dist
 
 .vercel
 .env*
+
+# the voice builder's working files: its takes, its state and its measurements stay here
+public/audio/voice/.voice-cache
+public/audio/voice/report.json

@@ -6,9 +6,17 @@
     <meta name="theme-color" content="#000000" />
     <meta name="color-scheme" content="dark" />
     <title>The Dream of the Photo</title>
-    <meta name="description" content="The dream of a photograph turns hair white, the dream of a photograph, every evening, half. A three-minute nightmare inside an instant photograph." />
+    <meta name="description" content="The dream of a photograph turns hair white, the dream of a photograph, every evening, half. A narrated nightmare in seven evenings and thirty-three minutes, dreamt by an instant photograph." />
+    <meta property="og:type" content="website" />
     <meta property="og:title" content="The Dream of the Photo" />
     <meta property="og:description" content="The dream of a photograph turns hair white, the dream of a photograph, every evening, half." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta property="og:image" content="https://the-dream-of-the-photo.vercel.app/og.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:image" content="https://the-dream-of-the-photo.vercel.app/og.jpg" />
+    <!-- no icon yet: an empty one, so the browser does not ask for a file that is not there -->
+    <link rel="icon" href="data:," />
     <link rel="preload" href="/fonts/anton-400.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="/fonts/protest-revolution-400.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="/fonts/courier-prime-400.woff2" as="font" type="font/woff2" crossorigin />
@@ -20,13 +28,16 @@
     </style>
   </head>
   <body>
-    <canvas id="stage" aria-label="The Dream of the Photo — interactive scene"></canvas>
+    <canvas id="stage" aria-label="The Dream of the Photo: the picture"></canvas>
 
     <div class="overlay">
+      <!-- the film's frame: two bars that cut a wide screen down to 2.39:1 -->
+      <div class="letterbox" aria-hidden="true"></div>
+
       <!-- the title screen: loads, then waits for the first step -->
       <section class="start" data-ui="start" aria-labelledby="start-title">
         <header class="start__top">
-          <p class="start__kicker" data-i18n="kicker">a three-minute nightmare</p>
+          <p class="start__kicker" data-i18n="kicker">seven evenings, thirty-three minutes</p>
           <div class="seg" role="group" data-ui="lang" data-i18n-label="language">
             <button type="button" data-lang="tr" lang="tr">TR</button>
             <button type="button" data-lang="en" lang="en">EN</button>
@@ -58,7 +69,7 @@
 
       <!-- the HUD while playing -->
       <div class="hud" data-ui="hud">
-        <!-- what leaves when nothing is touched: the screen belongs to the picture -->
+        <!-- there only while the pointer moves: the screen belongs to the picture -->
         <div class="hud__edge" data-ui="hud-edge">
           <div class="hud__top">
             <div class="chip chapter">
@@ -66,13 +77,13 @@
               <span data-ui="chapter-name" aria-live="polite"></span>
             </div>
             <div class="hud__corner">
-              <div class="chip memories" data-ui="memories">
-                <span data-ui="memories-count" aria-live="polite">0/0</span>
-                <span class="memories__label" data-i18n="memories">Memories</span>
-              </div>
               <button class="chip" type="button" data-ui="sound" aria-pressed="false" aria-labelledby="hud-sound-name">
                 <span id="hud-sound-name" data-i18n="sound">Sound</span>
-                <span data-ui="sound-state">Off</span>
+                <span class="chip__state" data-ui="sound-state">Off</span>
+              </button>
+              <button class="chip" type="button" data-ui="voice" aria-pressed="true" aria-labelledby="hud-voice-name">
+                <span id="hud-voice-name" data-i18n="voice">Voice</span>
+                <span class="chip__state" data-ui="voice-state">On</span>
               </button>
               <div class="seg seg--hud" role="group" data-ui="lang" data-i18n-label="language">
                 <button type="button" data-lang="tr" lang="tr">TR</button>
@@ -81,33 +92,20 @@
               <button class="chip" type="button" data-ui="menu-button" data-i18n="menu" data-i18n-label="menuLabel">Menu</button>
             </div>
           </div>
+          <!-- the journey: its evenings, and the year the dream has reached (a minute of the film is a year) -->
           <div class="journey" aria-hidden="true">
             <div class="journey__track">
               <div class="journey__fill" data-ui="journey-fill"></div>
               <div class="journey__ticks" data-ui="journey-ticks"></div>
             </div>
-            <span class="chip journey__percent" data-ui="journey-percent">0%</span>
+            <span class="chip journey__years" data-ui="years"></span>
           </div>
         </div>
 
-        <!-- a chapter begins: stamped on the picture, then gone -->
+        <!-- an evening begins: stamped on the picture, then gone -->
         <div class="stamp" data-ui="stamp" aria-hidden="true">
           <span class="stamp__number" data-ui="stamp-number"></span>
           <span class="stamp__name" data-ui="stamp-name"></span>
-        </div>
-
-        <!-- the gaze: a square closes while a memory holds it -->
-        <div class="reticle" data-ui="reticle" aria-hidden="true">
-          <svg viewBox="0 0 40 40">
-            <rect class="reticle__shade" x="5" y="5" width="30" height="30" />
-            <rect class="reticle__track" x="5" y="5" width="30" height="30" />
-            <rect class="reticle__fill" data-ui="reticle-fill" x="5" y="5" width="30" height="30" pathLength="100" />
-          </svg>
-        </div>
-
-        <div class="toast" data-ui="toast" role="status" aria-hidden="true">
-          <span class="toast__kicker" data-i18n="memoryFound">Memory found</span>
-          <span class="toast__name" data-ui="toast-name"></span>
         </div>
 
         <div class="tutorial" data-ui="tutorial">
@@ -118,26 +116,48 @@
         </div>
       </div>
 
-      <!-- the dream's voice: typed on screen, spoken whole to a screen reader -->
+      <!-- the end: black, the credits rolling up it, and what is left -->
+      <section class="end" data-ui="end" aria-labelledby="end-title">
+        <div class="end__roll" data-ui="end-roll">
+          <div class="end__card credits__opening">
+            <p class="credits__title" lang="en">The Dream of the Photo</p>
+            <p class="motto credits__motto" data-ui="credits-motto"></p>
+          </div>
+          <dl class="end__card credits__entry">
+            <dt data-i18n="creditDirection"></dt>
+            <dd data-ui="credit-director"></dd>
+          </dl>
+          <dl class="end__card credits__entry">
+            <dt data-i18n="creditVoice"></dt>
+            <dd data-ui="credit-engine"></dd>
+          </dl>
+          <dl class="end__card credits__entry">
+            <dt data-i18n="creditScore"></dt>
+            <dd data-i18n="creditScoreText"></dd>
+          </dl>
+          <dl class="end__card credits__entry credits__entry--small">
+            <dt data-i18n="creditAssets"></dt>
+            <dd>
+              <span data-i18n="creditCc0"></span>
+              <span data-i18n="creditCcBy"></span>
+              <span data-i18n="creditOther"></span>
+            </dd>
+          </dl>
+          <div class="end__card end__panel" data-ui="end-panel">
+            <h2 class="end__title" id="end-title" lang="en">The Dream of the Photo</h2>
+            <p class="end__caption" data-i18n="endAlbum" data-ui="end-caption" hidden></p>
+            <div class="end__album" data-ui="end-album"></div>
+            <button class="btn end__replay" type="button" data-ui="replay"><span data-i18n="replay">Dream it again</span></button>
+          </div>
+        </div>
+      </section>
+
+      <!-- what is said, at the foot of the picture: typed on screen, whole to a screen reader -->
       <p class="narration" data-ui="narration" aria-hidden="true"></p>
       <p class="sr-only" data-ui="narration-voice" aria-live="polite"></p>
 
       <!-- what a room lets you do, for as long as it lets you -->
       <p class="room-hint" data-ui="room-hint" aria-live="polite"></p>
-
-      <!-- the last words, over the picture -->
-      <p class="motto finale" data-ui="finale" aria-live="polite"></p>
-
-      <!-- the end: black -->
-      <section class="end" data-ui="end" aria-labelledby="end-title">
-        <div class="end__panel">
-          <h2 class="end__title" id="end-title" lang="en">The Dream of the Photo</h2>
-          <p class="end__caption" data-i18n="endAlbum" data-ui="end-caption" hidden></p>
-          <div class="end__album" data-ui="end-album"></div>
-          <p class="end__memories"><span class="end__count" data-ui="end-count">0 / 0</span> <span data-i18n="endMemories">memories found</span></p>
-          <button class="btn end__replay" type="button" data-ui="replay"><span data-i18n="replay">Dream it again</span></button>
-        </div>
-      </section>
 
       <!-- the pause menu -->
       <section class="menu" data-ui="menu" aria-labelledby="menu-title" hidden>
@@ -164,6 +184,14 @@
                 <dd>
                   <button class="toggle" type="button" data-ui="menu-sound" aria-pressed="false" aria-labelledby="menu-sound-name">
                     <span data-ui="menu-sound-label">Off</span>
+                  </button>
+                </dd>
+              </div>
+              <div>
+                <dt id="menu-voice-name" data-i18n="voice">Voice</dt>
+                <dd>
+                  <button class="toggle" type="button" data-ui="menu-voice" aria-pressed="true" aria-labelledby="menu-voice-name">
+                    <span data-ui="menu-voice-label">On</span>
                   </button>
                 </dd>
               </div>

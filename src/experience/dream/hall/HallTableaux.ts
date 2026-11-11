@@ -1165,7 +1165,7 @@ class Dinner {
     this.shadow.add(this.mother, D.shadowCell).add(clock, D.shadowCell).add(mirror, D.shadowCell).finish();
     this.group.add(this.shadow.mesh);
 
-    kit.poi({ position: new Vector3(tx, D.poi.y, tz), radius: D.poi.radius, zoom: D.poi.zoom, memory: 'dinner' });
+    kit.poi({ position: new Vector3(tx, D.poi.y, tz), radius: D.poi.radius, zoom: D.poi.zoom });
   }
 
   private buildRug(): void {
@@ -1747,7 +1747,7 @@ class Screens {
     this.head?.getWorldQuaternion(this.headRest);
     this.filmLight = kit.lights.add([0, 0, 0], S.filmLight.color, 0, S.filmLight.reach);
 
-    kit.poi({ position: new Vector3(...S.poi.at), radius: S.poi.radius, zoom: S.poi.zoom, memory: 'screens' });
+    kit.poi({ position: new Vector3(...S.poi.at), radius: S.poi.radius, zoom: S.poi.zoom });
   }
 
   /** Stacks each set on whatever already lies under it; then a piece of glass on each. */

@@ -1009,7 +1009,7 @@ export default class Holes extends Room {
     this.beat(SHUTTER_AT, () => this.shutter());
     this.beat(SHUTTER_AT + 0.5, () => this.dense?.gain(0.1, 1.5));
     this.beat(LINE_AT, () => {
-      this.say({ tr: 'Her biri bir akşam.', en: 'Each one, an evening.' }, 3.6);
+      this.say({ tr: 'On iki bin akşam. Her biri bir delik.', en: 'Twelve thousand evenings. Each one a hole.' }, 3.6);
       this.sound.play('rooms/holes_open.mp3', { gain: 0.5 });
       this.dense?.gain(0.3, 2);
     });

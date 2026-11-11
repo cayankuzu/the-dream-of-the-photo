@@ -2264,7 +2264,7 @@ export class Darkroom implements DreamModule {
 
     // a long look finds the last one
     const centerY = L.top[1] - (image.offsetFromTop + image.size / 2) * L.scale;
-    this.kit.poi({ position: new Vector3(L.top[0], centerY, L.top[2]), radius: 10, zoom: 0.82, memory: 'frame', reach: 16 });
+    this.kit.poi({ position: new Vector3(L.top[0], centerY, L.top[2]), radius: 10, zoom: 0.82, reach: 16 });
 
     for (const [x, z] of C.drops.fromCeiling) this.addDrip(x, CEILING - 0.02, z, random);
   }

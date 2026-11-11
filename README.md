@@ -6,36 +6,34 @@
 > *The dream of a photograph turns hair white,*
 > *The dream of a photograph, every evening, half.*
 
-A nightmare in real time, about thirty-three minutes long. A photographer in a wet back alley at dusk takes one
-picture. You go into the print, and for seven evenings the dream carries you through it, whether you want it
-or not (it moves by itself; scrolling only hurries it or holds it back for a moment; dragging looks around).
+A narrated nightmare in real time, thirty-three minutes long, cut like a short film. One evening at half past six
+you got up from the dinner table, said you would be right back, went out into the street and took a photograph of
+the house. The photograph is the narrator. While its image comes up in your hand it dreams that you never go back
+in: thirty-three years in seven evenings, a minute for every year. It moves by itself; scrolling only hurries it
+or holds it back for a moment; dragging looks around.
 
-Each evening is a stretch of the dream's walk (white hair hanging from above the roofs, washing lines of
-scratched-out faces, a concrete hall of beds and halves, a darkroom where every print shows what stands behind
-you, a gullet of meat, an oil sea under a half sun) and a run of small rooms, each a nightmare of its own built
-on a common fear:
+It opens in the dark, on the sound of the table. Each evening is a run of short scenes, each a nightmare built on
+a common fear, between stretches of the dream's walk:
 
-- **The First Evening, Hair:** a corridor that does not end, a waiting room where the hollows turn, birches with eyes, a ceiling of spiders.
-- **The Second Evening, Half:** a family dinner under insects, beds in a field under the moon, a duct that narrows, the dentist's needle.
-- **The Third Evening, Sleep:** sleep paralysis, a mirror that lags behind you, a bus stop watched by dogs, a lift that stops between floors.
-- **The Fourth Evening, Water:** a house going under, the deep, a drained pool of snakes, a hospital ward.
-- **The Fifth Evening, Dark:** the dark and your own flash, washing lines with faces, an attic of dolls, a chase, being buried.
-- **The Sixth Evening, Nothing:** a steel beam over a storm, the fall down a shaft, holes, a beach of teeth, an exam on a stage, a birthday party.
-- **The Last Evening, You:** home and a phone that rings, the stairs, your own funeral, and the album.
+- **The First Evening, Hair:** a corridor that does not end, a barber who cuts your hair white, a waiting room, birches with eyes, a ceiling of spiders.
+- **The Second Evening, Half:** the dinner under insects, a cellar of plates, a duct that narrows, the family portrait without you, the dentist's needle.
+- **The Third Evening, Sleep:** a bus, an aeroplane with your kitchen flying alongside, a telephone in an empty square, a lift that stops, beds in a field, a mirror that lags behind you, sleep paralysis.
+- **The Fourth Evening, Water:** a house going under, the deep, a drained pool of snakes, lost as a child in a market, a hospital ward.
+- **The Fifth Evening, Dark:** the dark and your own flash, washing lines with faces, an attic of dolls, a chase, the birds that bring the news, being buried.
+- **The Sixth Evening, Nothing:** a steel beam over a storm, the fall down a shaft, holes, a beach of teeth, an exam, a birthday party, a car with no one at the wheel, coming home unseen.
+- **The Last Evening, You:** home, the stairs, your own funeral, the corridor, and the table.
 
-The corridor with the clock at half past comes back every evening, each time worse, and each evening opens over
-a tray of developer where the last picture the shutter took of you comes up. The shutter keeps your pictures;
-at the end they hang in a hall that has no top. Then you wake.
+Every evening breaks off in the middle of a word: the narrator begins the motto and is cut dead, a little later
+each evening, and the lullaby with it; you are back in the street for a moment, the print in your hand a little
+further along, your hair a little whiter, the window of the house a little emptier. On the last evening the dream
+reaches its end. Then the street as it really is, and one choice.
 
-Space itself curves through the piece (`src/experience/render/Warp.ts`). Things change only when you are not
-looking. The title screen carries a content warning (adults only; it names the fears), and any part can be
-skipped from the menu.
-
-It plays like a game: a title screen, chapters announced as you reach them, a journey bar, a gaze reticle,
-hidden **memories** that reveal themselves to a long enough look (found ones are remembered between
-visits), a pause menu (Esc or M) and an ending. Every word, the narration included, is in Turkish and English;
-switch at any time from the title screen, the HUD or the menu (the browser's language is the default, the
-choice is remembered, and `?lang=en` / `?lang=tr` force one).
+The narrator, the voice from the house and the people of the dream speak (synthetic voices, made with
+`scripts/voice/`); every spoken line is also shown as a subtitle. The score is the lullaby, written for the piece
+(`scripts/build-score.py`). Space itself curves through the piece (`src/experience/render/Warp.ts`), and things
+change only when you are not looking. The title screen carries a content warning (adults only; it names the
+fears), and any part can be skipped from the menu (Esc or M). Every word is in Turkish and English; switch at any
+time (the browser's language is the default, the choice is remembered, and `?lang=en` / `?lang=tr` force one).
 
 A scroll-driven real-time piece built with three.js, TypeScript and Vite. No framework.
 
@@ -61,8 +59,8 @@ is dropped from memory as soon as it lies behind you.
 | Mouse wheel, trackpad | Move through the moment, forward or back; inside the photograph, walk. Scroll is time: input is damped, speed-limited and slowed down around key beats, so nothing can be skipped. |
 | Touch | Swipe vertically to move through the moment and to walk. Inside the photograph a drag that starts sideways looks around; two fingers always walk. |
 | Keyboard | Arrow Down / W / Space forward, Arrow Up / S back; Page Down / Page Up take three steps; Arrow Left / Right or A / D turn the head inside the photograph (W, A, S and D by their place on the keyboard, whatever the layout); Enter begins; Esc or M opens and closes the menu (M also in full screen, where the browser keeps Esc). |
-| Drag (mouse or touch) | Look around inside the photograph; while you walk the gaze drifts back to the way ahead. Resting your gaze on something draws the view toward it, and fills the reticle's ring when it is a memory. |
-| HUD | Top right: memories found, language (TR / EN), sound, menu. The menu resumes, starts over, switches language, sound and full screen, and lists the controls. |
+| Drag (mouse or touch) | Look around inside the photograph; while you walk the gaze drifts back to the way ahead. Resting your gaze on something draws the view toward it. |
+| HUD | Only while the pointer moves: the evening and the year the dream has reached, sound, voice, language (TR / EN), menu. The menu resumes, skips a part, starts over, switches language, sound, the narrator's voice and full screen, and lists the controls. |
 
 ## Debug overlay
 
@@ -118,9 +116,11 @@ src/
   `scene.config.ts` holds the alley layout, the facades, the lights and the instant camera's dimensions;
   `dream.config.ts` what differs inside the picture and its set pieces; `walk.config.ts` the walk (the
   camera path through the dream, and the waking); `sea.config.ts` the sea behind the giant print;
-  `copy.config.ts` every word in both languages: the narration and when each line appears, the chapters,
-  the memories and the interface; `audio.config.ts` the mix, including each room's level;
-  `journey.config.ts` the seven evenings, the order of their walks and rooms, and how long each lasts.
+  `copy.config.ts` the words of the interface in both languages; `film.config.ts` the narrator's lines and
+  the score's cues and where each falls, and the street between the evenings; `audio.config.ts` the mix,
+  including each room's level and the film's voice and score buses; `journey.config.ts` the seven evenings,
+  the order of their walks, rooms and wakings, how long each lasts on the screen and which part of a room's
+  own script is shown (rooms are cut like shots: entered late, left early, run faster).
 - **One scene, two worlds.** The real alley and the world inside the photograph are the same scene.
   Render layers separate what exists only in the real moment (the photographer, the held camera and
   print) from what exists only in the dream. `DreamDirector.setPass` switches shared objects (puddle
@@ -191,6 +191,11 @@ cleaned and scaled), `node scripts/build-props.mjs` (props assembled or reposed 
 dogs) and `python scripts/build-room-audio.py` (every sound under `public/audio/rooms`, cut, filtered and
 levelled from its CC0 or CC BY source; `--only <names>` rebuilds some, `--check` compares the recipes with
 the shipped files, `--docs` writes the sound index and notices).
+
+The film's own sound comes from two more: `python -I scripts/build-score.py --out public/audio/score` (the
+lullaby and the cues under `public/audio/score`, rendered from CC0 samples and checked by measurement) and the
+voice pipeline in `scripts/voice/` (see its README: gather the lines, speak them locally, write
+`src/config/voice.manifest.ts`).
 
 The generated files in `public/` are part of the source tree, so building and deploying need neither the
 network sources nor the converter.

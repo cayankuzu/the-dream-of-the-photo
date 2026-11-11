@@ -192,7 +192,8 @@ const EARTH_NEAR = 55.3;
 const EARTH_OVER = 57.35;
 const EARTH_TO = 57.7;
 const SILENCE_AT = 58;
-const LAST_LINE_AT = 64;
+/** The last line, in the black; after it the room says nothing more: the narrator's broken-off motto ends it. */
+const LAST_LINE_AT = 57.6;
 /** The sparks of a wheel that does not catch (s). */
 const SPARKS = [5.1, 7.0, 9.1];
 /** Seconds the eye must be on screen before the shutter, and how far inside the view it must be (deg). */

@@ -1606,9 +1606,10 @@ export default class WaitingRoom extends Room {
     this.hallGlow = b.glow(0, H - 0.08, PANEL_Z[ALIVE_ROW], 3.2, 0xc4ead4, 0.42, root);
     this.hallBeam = b.beam(0, H - 0.02, PANEL_Z[ALIVE_ROW], 0.5, 2.2, H - 0.1, 0xc4ead4, 0.06, root);
 
-    this.beat(3, () => this.say({ tr: 'Numaran kaç?', en: 'What is your number?' }, 4.5));
+    // the clerk speaks in the dream's whisper
+    this.beat(3, () => this.say({ tr: 'Numaran kaç?', en: 'What is your number?' }, 4.5, 'dream'));
     this.beat(SHUTTER_AT, () => this.shutter());
-    this.beat(51, () => this.say({ tr: 'Sıra sende.', en: 'You are next.' }, 4));
+    this.beat(51, () => this.say({ tr: 'Sıra sende.', en: 'You are next.' }, 4, 'dream'));
     this.beat(0, () => {
       for (const [file, options] of BEDS) this.beds.push(this.sound.bed(file, { ...options, gain: 0 }));
     });

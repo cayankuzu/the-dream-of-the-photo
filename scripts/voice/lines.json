@@ -1,0 +1,1512 @@
+[
+ {
+  "key": "a6d82bf1",
+  "tr": "Bir fotoğrafın rüyası saç beyazlatır. Bir fotoğrafın rüyası her akşam yarım.",
+  "en": "The dream of a photograph turns hair white. The dream of a photograph, every evening, half.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "a151dfc7",
+  "tr": "Otur artık, yemek soğuyor.",
+  "en": "Sit down now, dinner is getting cold.",
+  "voice": "house",
+  "speaker": "house",
+  "rooms": []
+ },
+ {
+  "key": "0b48c97e",
+  "tr": "Hemen dönerim, dedin.",
+  "en": "I'll be right back, you said.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "1cab7ccd",
+  "tr": "Otuz üç yıl sonra hâlâ sokaktaydın.",
+  "en": "Thirty-three years later you were still in the street.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "67fc1f3b",
+  "tr": "Altı buçuktu. Pencerede üç gölge vardı. Bir de boş sandalye.",
+  "en": "It was half past six. Three shadows in the window. And one empty chair.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "fd0923cd",
+  "tr": "Annen, baban, kardeşin. Boş sandalye senindi.",
+  "en": "Your mother, your father, the little one. The empty chair was yours.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "69cdebdb",
+  "tr": "Sokağa çıktın. Dönüp eve baktın.",
+  "en": "You went out into the street. You turned and looked at the house.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "63226237",
+  "tr": "Ben o fotoğrafım.",
+  "en": "I am that photograph.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "7b4d165e",
+  "tr": "Ben belirirken bir rüya görürüm.",
+  "en": "While my image comes up, I dream.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "fd4ec6e9",
+  "tr": "Rüyamın sonunu ben de bilmiyorum. Her akşam yarıda kesiliyor.",
+  "en": "I do not know how my dream ends either. Every evening it breaks off halfway.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "492658c4",
+  "tr": "Gel. Sonunu birlikte görelim.",
+  "en": "Come. Let us see the end together.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "85e4ee71",
+  "tr": "Yağan, yağmur değil. Saç. Bekleyenlerin saçı.",
+  "en": "That is not rain. It is hair. The hair of those who wait.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "a538face",
+  "tr": "Ben yalnızca bu sokağı gördüm. Gerisini uyduruyorum.",
+  "en": "I only ever saw this street. The rest I am making up.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "2bbba66e",
+  "tr": "Sokağın sonundaki kapı, sizin evin kapısı.",
+  "en": "The door at the end of the street is the door of your house.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "1d3daea9",
+  "tr": "Evin koridoru. Hatırladığından uzun.",
+  "en": "The corridor of the house. Longer than you remember.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "15e16711",
+  "tr": "Kapıların ardını bilmem. Sen bilirsin.",
+  "en": "I do not know what is behind the doors. You do.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "f26a7d0a",
+  "tr": "Sofra, bu koridorun sonunda.",
+  "en": "The table is at the end of this corridor.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "9c4d0834",
+  "tr": "Saçın son kez siyah.",
+  "en": "Your hair is black for the last time.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "95c5dc01",
+  "tr": "Yere düşen her tel, bir akşam.",
+  "en": "Every strand on the floor is an evening.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "48abc7fa",
+  "tr": "Onlar seni bekliyor. Sen sıranı bekliyorsun.",
+  "en": "They are waiting for you. You are waiting for your turn.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "9f185256",
+  "tr": "Giderken arkana bakmadın. Onlar baktı.",
+  "en": "You did not look back as you left. They did.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "c261afa3",
+  "tr": "İlk yalan küçüktü. Hemen dönerim.",
+  "en": "The first lie was small. I'll be right back.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "e7344cc2",
+  "tr": "Bekleyenlerin yarısı burada. Öbür yarısı sofrada, her akşam.",
+  "en": "Half of those who wait are here. The other half is at the table, every evening.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "60c5f5ba",
+  "tr": "Kapıya az kaldı.",
+  "en": "The door is close.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "506568a9",
+  "tr": "Bir fotoğrafın",
+  "en": "The dream",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": [],
+  "cut_from": "a6d82bf1",
+  "cut": {
+   "tr": [
+    2,
+    0
+   ],
+   "en": [
+    2,
+    0
+   ]
+  },
+  "cut_at": {
+   "tr": 0.86,
+   "en": 0.53
+  }
+ },
+ {
+  "key": "76c4717d",
+  "tr": "Yemek soğuyor!",
+  "en": "Dinner is getting cold!",
+  "voice": "house",
+  "speaker": "house",
+  "rooms": []
+ },
+ {
+  "key": "d41acd6c",
+  "tr": "Rüyada dört yıl geçti. Ben hâlâ belirmedim.",
+  "en": "Four years have passed in the dream. My image has still not come up.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "506611d4",
+  "tr": "Tabağın hâlâ sofrada. İçine bakmak ister misin?",
+  "en": "Your plate is still on the table. Do you want to look into it?",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "7120719e",
+  "tr": "İkinci akşam. Sofra seni bekledi. Yemek bekleyemedi.",
+  "en": "The second evening. The table waited for you. The food could not.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "5d866e58",
+  "tr": "Tabağını kaldırmadılar. Yıllarca.",
+  "en": "They did not clear your plate. For years.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "d16af25a",
+  "tr": "Yarım kalan yemeği başkaları bitirir.",
+  "en": "What is left half eaten, others finish.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "c7d405a9",
+  "tr": "Tabağını her akşam ayırdılar. Atmaya kıyamadılar.",
+  "en": "Every evening they set your plate aside. They could not throw it away.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "0dbd5b57",
+  "tr": "Yukarı bakan, annen.",
+  "en": "The one looking up is your mother.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "2b166ede",
+  "tr": "Her yıl bir aile fotoğrafı çektirdiler. Yerini boş bıraktılar.",
+  "en": "Every year they had a family portrait taken. They left your place empty.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "033283bf",
+  "tr": "Mektup yazmadın. Telefon etmedin. Ağzını açmadın.",
+  "en": "You did not write. You did not call. You did not open your mouth.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "d801443c",
+  "tr": "Sokaktan ötesini görmedim. Dünyayı, pencereden gördüğüm eşyadan kurdum.",
+  "en": "I never saw past the street. I built the world from the things I saw through the window.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "1db4108b",
+  "tr": "Çocukken her şey bu kadar büyüktü. Gurbette yine büyür.",
+  "en": "When you were a child everything was this large. Far from home, it grows large again.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "e39fa764",
+  "tr": "Bir fotoğrafın rüyası",
+  "en": "The dream of a photograph",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": [],
+  "cut_from": "a6d82bf1",
+  "cut": {
+   "tr": [
+    3,
+    0
+   ],
+   "en": [
+    5,
+    0
+   ]
+  },
+  "cut_at": {
+   "tr": 1.21,
+   "en": 1.31
+  }
+ },
+ {
+  "key": "dc653e4a",
+  "tr": "Hadi yavrum, yemek soğuyor.",
+  "en": "Come on, my dear, dinner is getting cold.",
+  "voice": "house",
+  "speaker": "house",
+  "rooms": []
+ },
+ {
+  "key": "f44dcdf4",
+  "tr": "Dokuz yıl.",
+  "en": "Nine years.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "943d103d",
+  "tr": "Bu dokuz yıl neredeydin?",
+  "en": "Where were you, these nine years?",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "952d8d4c",
+  "tr": "Üçüncü akşam. Uzaktasın. Uyuyamıyorsun.",
+  "en": "The third evening. You are far away. You cannot sleep.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "9aa102ac",
+  "tr": "O akşam bu otobüse bindin.",
+  "en": "That evening you got on this bus.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "ac1dbbdb",
+  "tr": "Sonra daha uzağa gittin. Denizin ötesine.",
+  "en": "Then you went further. Across the sea.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "2c9e7984",
+  "tr": "Her akşam altı buçukta çaldı. Açmadın.",
+  "en": "It rang every evening at half past six. You did not answer.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "c7b2db23",
+  "tr": "Uyuyamayanlar sabahı böyle bekler.",
+  "en": "This is how the sleepless wait for morning.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "1e8a7078",
+  "tr": "Fotoğraflar burada doğar. Karanlık odada.",
+  "en": "This is where photographs are born. The darkroom.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "3a3200e7",
+  "tr": "Banyodan kimse eskisi gibi çıkmaz.",
+  "en": "No one comes out of the developer the same.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "9ec54635",
+  "tr": "Yüzünü hiç görmedim. Sen hep makinenin arkasındaydın.",
+  "en": "I never saw your face. You were always behind the camera.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "9a2301d0",
+  "tr": "Seni ancak yaşlı düşünebiliyorum.",
+  "en": "I can only picture you old.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "dd77b2e6",
+  "tr": "Bir fotoğrafın rüyası saç",
+  "en": "The dream of a photograph turns",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": [],
+  "cut_from": "a6d82bf1",
+  "cut": {
+   "tr": [
+    4,
+    0
+   ],
+   "en": [
+    6,
+    0
+   ]
+  },
+  "cut_at": {
+   "tr": 1.47,
+   "en": 1.66
+  }
+ },
+ {
+  "key": "d2ed7e9b",
+  "tr": "Seni bekliyoruz. Yemek soğuyor.",
+  "en": "We are waiting for you. Dinner is getting cold.",
+  "voice": "house",
+  "speaker": "house",
+  "rooms": []
+ },
+ {
+  "key": "026db1cf",
+  "tr": "On üç yıl.",
+  "en": "Thirteen years.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "a42d5474",
+  "tr": "Annen artık pencereye gelmiyor.",
+  "en": "Your mother no longer comes to the window.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "274275bc",
+  "tr": "Dördüncü akşam. Aranızda artık bir deniz var.",
+  "en": "The fourth evening. There is a sea between you and them now.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "f8cc8c69",
+  "tr": "Ağlamadılar. Ev ağladı.",
+  "en": "They did not cry. The house did.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "45d57a01",
+  "tr": "Bekleyenler büyür. Uykuda bile.",
+  "en": "Those who wait grow larger. Even asleep.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "68349e14",
+  "tr": "Küçükken bir kere kayboldun.",
+  "en": "Once, when you were small, you got lost.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "145d8688",
+  "tr": "Hastanede herkes kapıya bakar.",
+  "en": "In a hospital everyone watches the door.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "7a4f8a46",
+  "tr": "Gelmedin.",
+  "en": "You did not come.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "c7ade287",
+  "tr": "Söylemediğin her söz burada kaldı.",
+  "en": "Every word you did not say stayed here.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "96b5fbe3",
+  "tr": "İnsanın boğazı, yuttuğu sözlerle dolar.",
+  "en": "A throat fills with the words it swallows.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "ab4c1372",
+  "tr": "Suya bak. Yukarıda artık olmayan biri var.",
+  "en": "Look at the water. Someone is there who is no longer up here.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "00bcf05f",
+  "tr": "Bir fotoğrafın rüyası saç beyazlatır. Bir fotoğrafın",
+  "en": "The dream of a photograph turns hair white. The dream",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": [],
+  "cut_from": "a6d82bf1",
+  "cut": {
+   "tr": [
+    7,
+    0
+   ],
+   "en": [
+    10,
+    0
+   ]
+  },
+  "cut_at": {
+   "tr": 3.28,
+   "en": 3.53
+  }
+ },
+ {
+  "key": "b39a7be3",
+  "tr": "Yemek soğudu.",
+  "en": "Dinner has gone cold.",
+  "voice": "house",
+  "speaker": "house",
+  "rooms": [
+   "kitchen"
+  ]
+ },
+ {
+  "key": "1ccdc245",
+  "tr": "On yedi yıl. Pencereye bak.",
+  "en": "Seventeen years. Look at the window.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "9a8cbd79",
+  "tr": "Sıra kimde?",
+  "en": "Whose turn is next?",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "ac515e5e",
+  "tr": "Beşinci akşam. Işığı söndürdüler. Bekleyen azaldı.",
+  "en": "The fifth evening. They put out the light. Fewer are waiting.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "eb66e1f7",
+  "tr": "Çamaşırı hep dört kişilik astı. Sonuna kadar.",
+  "en": "She always hung out washing for four. To the end.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "35766330",
+  "tr": "Odana dokunmadılar. Oyuncakların seni bekledi.",
+  "en": "They did not touch your room. Your toys waited for you.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "912976b8",
+  "tr": "Fotoğraflar birbirini görür. Seni soruyorlar.",
+  "en": "Photographs can see one another. They are asking about you.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "d8c94803",
+  "tr": "Bir fotoğraftan çıkılmaz. Daha derinine düşülür.",
+  "en": "No one leaves a photograph. You only fall deeper into it.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "4de085c2",
+  "tr": "Haberi kuşlar getirdi. Babanı gömmüşler.",
+  "en": "The birds brought the news. They had already buried your father.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "72adcbcd",
+  "tr": "Bir fotoğrafın rüyası saç beyazlatır. Bir fotoğrafın rüyası her",
+  "en": "The dream of a photograph turns hair white. The dream of a photograph, every",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": [],
+  "cut_from": "a6d82bf1",
+  "cut": {
+   "tr": [
+    9,
+    0
+   ],
+   "en": [
+    14,
+    0
+   ]
+  },
+  "cut_at": {
+   "tr": 3.84,
+   "en": 4.86
+  }
+ },
+ {
+  "key": "163f86c4",
+  "tr": "Soğudu.",
+  "en": "Gone cold.",
+  "voice": "house",
+  "speaker": "house",
+  "rooms": []
+ },
+ {
+  "key": "d1b6981d",
+  "tr": "Yirmi iki yıl. Bir kişi kaldı.",
+  "en": "Twenty-two years. One is left.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "6f60bb40",
+  "tr": "Altıncı akşam. Kardeşin de gitti. Sofra duruyor.",
+  "en": "The sixth evening. The little one has gone too. The table still stands.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "4171ee40",
+  "tr": "Yolun hep buraya kadardı. Yarısına kadar.",
+  "en": "Your road always came this far. Halfway.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "75f8e760",
+  "tr": "Sandalyen kıyıda kaldı.",
+  "en": "Your chair stayed on the shore.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "3b92151c",
+  "tr": "Güneş her akşam yarıda kalır.",
+  "en": "Every evening the sun stops halfway.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "347159ce",
+  "tr": "Suyun üstündekilerin hepsi sensin.",
+  "en": "The ones on the water are all you.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "99e7d598",
+  "tr": "Yüzleri yok. Çünkü unuttun.",
+  "en": "They have no faces. Because you forgot them.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "f211cb0c",
+  "tr": "Doğum günün. Otuz üç mum.",
+  "en": "Your birthday. Thirty-three candles.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "30ca860f",
+  "tr": "Bir kere, dönmek için yola çıktın.",
+  "en": "Once, you set out to go back.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "82b469a6",
+  "tr": "Bir kere kapıya kadar geldin.",
+  "en": "Once, you came as far as the door.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "232dc2cc",
+  "tr": "Bir fotoğrafın rüyası saç beyazlatır. Bir fotoğrafın rüyası her akşam ya-",
+  "en": "The dream of a photograph turns hair white. The dream of a photograph, every evening, ha-",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": [],
+  "cut_from": "a6d82bf1",
+  "cut": {
+   "tr": [
+    10,
+    0.42
+   ],
+   "en": [
+    15,
+    0.5
+   ]
+  },
+  "cut_at": {
+   "tr": 4.35,
+   "en": 5.58
+  }
+ },
+ {
+  "key": "e65018c4",
+  "tr": "Yirmi yedi yıl.",
+  "en": "Twenty-seven years.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "7f746904",
+  "tr": "Son akşam. Bu kez rüya yarıda kalmayacak.",
+  "en": "The last evening. This time the dream will not break off.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "4af17330",
+  "tr": "Döndün. Anahtar hâlâ paspasın altındaydı.",
+  "en": "You came back. The key was still under the mat.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "bd113b27",
+  "tr": "Seni arıyordu. Otuz üç yıldır.",
+  "en": "He was looking for you. For thirty-three years.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "0122ff59",
+  "tr": "Bir ömür.",
+  "en": "A life.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "9b9ed3f1",
+  "tr": "Bu cenazeye geldin. Gelmemek elinde değildi.",
+  "en": "You came to this funeral. It was not in your hands to stay away.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "b4e1dbe2",
+  "tr": "Saçları sofradan buraya kadar uzadı. Beklerken.",
+  "en": "Their hair grew from the table all the way here. While they waited.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "1fc3632d",
+  "tr": "Altı buçuğu bir geçiyor. Otuz üç yıldır ilk kez.",
+  "en": "Six thirty-one. For the first time in thirty-three years.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "c0b70636",
+  "tr": "Şimdi o seni çekiyor.",
+  "en": "Now he is taking your picture.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "085b7716",
+  "tr": "Belirdim. Artık tamamım.",
+  "en": "My image has come up. I am whole now.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "5aeacdba",
+  "tr": "Otuz üç dakika mı sürdü, otuz üç yıl mı?",
+  "en": "Did it take thirty-three minutes, or thirty-three years?",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "fbe47407",
+  "tr": "Saçına bak.",
+  "en": "Look at your hair.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "83eb541d",
+  "tr": "Saat hâlâ altı buçuk. Daha belirmedim bile.",
+  "en": "It is still half past six. My image has not even begun to come up.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "59533965",
+  "tr": "Bunların hiçbiri olmadı. Henüz.",
+  "en": "None of this has happened. Yet.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": []
+ },
+ {
+  "key": "fd82474e",
+  "tr": "Nerede kaldın?",
+  "en": "Where have you been?",
+  "voice": "house",
+  "speaker": "house",
+  "rooms": []
+ },
+ {
+  "key": "d28881e2",
+  "tr": "Geç kaldın.",
+  "en": "You are late.",
+  "voice": "house",
+  "speaker": "house",
+  "rooms": [
+   "album"
+  ]
+ },
+ {
+  "key": "9381e095",
+  "tr": "Otur.",
+  "en": "Sit.",
+  "voice": "house",
+  "speaker": "house",
+  "rooms": [
+   "album"
+  ]
+ },
+ {
+  "key": "b4915272",
+  "tr": "Ye. Daha soğumadı.",
+  "en": "Eat. It has not gone cold yet.",
+  "voice": "house",
+  "speaker": "house",
+  "rooms": [
+   "album"
+  ]
+ },
+ {
+  "key": "8a7c024a",
+  "tr": "Sıhhatler olsun.",
+  "en": "There. All done.",
+  "voice": "dream",
+  "speaker": "dream",
+  "rooms": [
+   "barber"
+  ]
+ },
+ {
+  "key": "36e24a51",
+  "tr": "Aşağı bakma.",
+  "en": "Do not look down.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": [
+   "beam"
+  ]
+ },
+ {
+  "key": "3c85a894",
+  "tr": "Hemen dönerim.",
+  "en": "I'll be right back.",
+  "voice": "phone",
+  "speaker": "narrator",
+  "rooms": [
+   "beam"
+  ]
+ },
+ {
+  "key": "66f0656c",
+  "tr": "Sesini duyamıyorlar.",
+  "en": "They cannot hear you.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": [
+   "buried"
+  ]
+ },
+ {
+  "key": "3d16fa48",
+  "tr": "Üstünde iki metre var.",
+  "en": "There are two meters above you.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": [
+   "buried"
+  ]
+ },
+ {
+  "key": "460c46cd",
+  "tr": "Kimse gelmedi.",
+  "en": "No one came.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": [
+   "buried"
+  ]
+ },
+ {
+  "key": "9148e9b3",
+  "tr": "Fren senin elinde değil.",
+  "en": "The brake is not in your hands.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": [
+   "car"
+  ]
+ },
+ {
+  "key": "7dd09f57",
+  "tr": "Koş.",
+  "en": "Run.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": [
+   "chase"
+  ]
+ },
+ {
+  "key": "543eae89",
+  "tr": "Bacakların söz dinlemiyor.",
+  "en": "Your legs will not obey you.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": [
+   "chase"
+  ]
+ },
+ {
+  "key": "91873e23",
+  "tr": "Onu duvara sen astın.",
+  "en": "You hung that on the wall.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": [
+   "corridor"
+  ]
+ },
+ {
+  "key": "8290a3c0",
+  "tr": "Kapılar açık. Kimse çıkmadı.",
+  "en": "The doors are open. No one has come out.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": [
+   "corridor"
+  ]
+ },
+ {
+  "key": "95631813",
+  "tr": "Hepsi senin çektiklerin.",
+  "en": "All of them, your pictures.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": [
+   "corridor"
+  ]
+ },
+ {
+  "key": "35429586",
+  "tr": "Su ayak bileğinde.",
+  "en": "The water is at your ankles.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": [
+   "corridor"
+  ]
+ },
+ {
+  "key": "570b3bdd",
+  "tr": "Sofra kuruldu. Bir sandalye boş.",
+  "en": "The table is set. One chair is empty.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": [
+   "corridor"
+  ]
+ },
+ {
+  "key": "81939cd0",
+  "tr": "Geri dönemezsin.",
+  "en": "You cannot turn back.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": [
+   "crawl"
+  ]
+ },
+ {
+  "key": "23476e45",
+  "tr": "Dönecek yer yok.",
+  "en": "There is no room to turn.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": [
+   "crawl"
+  ]
+ },
+ {
+  "key": "08e33beb",
+  "tr": "Işık yok. Sekiz karen var.",
+  "en": "There is no light. You have eight frames.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": [
+   "darkness"
+  ]
+ },
+ {
+  "key": "382e08de",
+  "tr": "Yavrum?",
+  "en": "My dear?",
+  "voice": "house",
+  "speaker": "house",
+  "rooms": [
+   "darkness"
+  ]
+ },
+ {
+  "key": "c29c235a",
+  "tr": "Annen seni çağırıyor. Cevap verme.",
+  "en": "Your mother is calling you. Do not answer.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": [
+   "darkness"
+  ]
+ },
+ {
+  "key": "046ba68c",
+  "tr": "Dokuzuncuyu sen çekmedin.",
+  "en": "You did not take the ninth.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": [
+   "darkness"
+  ]
+ },
+ {
+  "key": "3ba54c66",
+  "tr": "Aşağısı yok.",
+  "en": "There is no bottom.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": [
+   "deep"
+  ]
+ },
+ {
+  "key": "703d475d",
+  "tr": "Yıllardır seni bekliyor.",
+  "en": "It has waited for you for years.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": [
+   "deep"
+  ]
+ },
+ {
+  "key": "a64aa849",
+  "tr": "Açık tut. Birazdan geçer.",
+  "en": "Keep it open. It will pass.",
+  "voice": "dream",
+  "speaker": "dream",
+  "rooms": [
+   "dentist"
+  ]
+ },
+ {
+  "key": "a997be8a",
+  "tr": "Bir tane daha.",
+  "en": "One more.",
+  "voice": "dream",
+  "speaker": "dream",
+  "rooms": [
+   "dentist"
+  ]
+ },
+ {
+  "key": "ba81b341",
+  "tr": "Bakmadığın zaman.",
+  "en": "When you are not looking.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": [
+   "dolls"
+  ]
+ },
+ {
+  "key": "18adfde4",
+  "tr": "Sana benziyor.",
+  "en": "It looks like you.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": [
+   "dolls"
+  ]
+ },
+ {
+  "key": "16e400c8",
+  "tr": "Hangi kata?",
+  "en": "Which floor?",
+  "voice": "dream",
+  "speaker": "dream",
+  "rooms": [
+   "elevator"
+  ]
+ },
+ {
+  "key": "a82d9b72",
+  "tr": "Tabağın hâlâ burada.",
+  "en": "Your plate is still here.",
+  "voice": "phone",
+  "speaker": "house",
+  "rooms": [
+   "elevator"
+  ]
+ },
+ {
+  "key": "e6611f04",
+  "tr": "Süren doldu.",
+  "en": "Your time is up.",
+  "voice": "dream",
+  "speaker": "dream",
+  "rooms": [
+   "exam"
+  ]
+ },
+ {
+  "key": "3b48f889",
+  "tr": "Ev dolarken kimse kalkmadı.",
+  "en": "No one got up while the house filled.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": [
+   "flood"
+  ]
+ },
+ {
+  "key": "18baa50a",
+  "tr": "Geç kalmadın. Tam vaktinde.",
+  "en": "You are not late. You are right on time.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": [
+   "funeral"
+  ]
+ },
+ {
+  "key": "de80ab96",
+  "tr": "Bugün.",
+  "en": "Today.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": [
+   "funeral"
+  ]
+ },
+ {
+  "key": "94b72073",
+  "tr": "On iki bin akşam. Her biri bir delik.",
+  "en": "Twelve thousand evenings. Each one a hole.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": [
+   "holes"
+  ]
+ },
+ {
+  "key": "ee712588",
+  "tr": "Evde yalnızsın.",
+  "en": "You are alone in the house.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": [
+   "home"
+  ]
+ },
+ {
+  "key": "1e73b109",
+  "tr": "Üst kattayım.",
+  "en": "I am upstairs.",
+  "voice": "dream",
+  "speaker": "dream",
+  "rooms": [
+   "home"
+  ]
+ },
+ {
+  "key": "a1884716",
+  "tr": "Arkandayım.",
+  "en": "I am behind you.",
+  "voice": "dream",
+  "speaker": "dream",
+  "rooms": [
+   "home"
+  ]
+ },
+ {
+  "key": "5e0f7153",
+  "tr": "Uyandın.",
+  "en": "You are awake.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": [
+   "karabasan"
+  ]
+ },
+ {
+  "key": "14464ff5",
+  "tr": "Kıpırdayamıyorsun.",
+  "en": "You cannot move.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": [
+   "karabasan"
+  ]
+ },
+ {
+  "key": "67c459e0",
+  "tr": "Yemek soğuyor.",
+  "en": "Dinner is getting cold.",
+  "voice": "house",
+  "speaker": "house",
+  "rooms": [
+   "karabasan"
+  ]
+ },
+ {
+  "key": "f0a49637",
+  "tr": "Ye.",
+  "en": "Eat.",
+  "voice": "house",
+  "speaker": "house",
+  "rooms": [
+   "kitchen"
+  ]
+ },
+ {
+  "key": "81f06bc5",
+  "tr": "O gün annen seni buldu. Sen onu hiç aramadın.",
+  "en": "That day your mother found you. You never went looking for her.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": [
+   "lost"
+  ]
+ },
+ {
+  "key": "37414a23",
+  "tr": "Bu sen misin?",
+  "en": "Is that you?",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": [
+   "mirror"
+  ]
+ },
+ {
+  "key": "0794c2b0",
+  "tr": "Dişlerin.",
+  "en": "Your teeth.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": [
+   "mirror"
+  ]
+ },
+ {
+  "key": "ef269974",
+  "tr": "Arkana bakma. Orada değil. Burada.",
+  "en": "Do not look behind you. It is not there. It is here.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": [
+   "mirror"
+  ]
+ },
+ {
+  "key": "c49b21d8",
+  "tr": "Herkes geldi.",
+  "en": "Everyone came.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": [
+   "party"
+  ]
+ },
+ {
+  "key": "f6d3063d",
+  "tr": "Bir sen yoksun.",
+  "en": "Everyone but you.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": [
+   "party"
+  ]
+ },
+ {
+  "key": "e7533ff1",
+  "tr": "Alo? Yavrum, sen misin?",
+  "en": "Hello? Is that you, my dear?",
+  "voice": "phone",
+  "speaker": "house",
+  "rooms": [
+   "payphone"
+  ]
+ },
+ {
+  "key": "18e3d4fe",
+  "tr": "Aşağıdaki ışık, sizin mutfak.",
+  "en": "The light down there is your kitchen.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": [
+   "plane"
+  ]
+ },
+ {
+  "key": "5b4f4ca7",
+  "tr": "Hepsi senin.",
+  "en": "All of them yours.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": [
+   "shaft"
+  ]
+ },
+ {
+  "key": "ebae1ce7",
+  "tr": "Sadece bir tane.",
+  "en": "Only one.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": [
+   "spiders"
+  ]
+ },
+ {
+  "key": "3a4ea75f",
+  "tr": "Nerede?",
+  "en": "Where is it?",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": [
+   "spiders"
+  ]
+ },
+ {
+  "key": "dcfec89a",
+  "tr": "Bir tane demiştin.",
+  "en": "You said only one.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": [
+   "spiders"
+  ]
+ },
+ {
+  "key": "5f62205d",
+  "tr": "Gülümseyin.",
+  "en": "Smile.",
+  "voice": "dream",
+  "speaker": "dream",
+  "rooms": [
+   "studio"
+  ]
+ },
+ {
+  "key": "3b892e0b",
+  "tr": "Tabağını yıllar önce kaldırmışlardı.",
+  "en": "They had cleared your plate years ago.",
+  "voice": "narrator",
+  "speaker": "narrator",
+  "rooms": [
+   "unseen"
+  ]
+ },
+ {
+  "key": "02184018",
+  "tr": "Numaran kaç?",
+  "en": "What is your number?",
+  "voice": "dream",
+  "speaker": "dream",
+  "rooms": [
+   "waitingroom"
+  ]
+ },
+ {
+  "key": "e45bebdd",
+  "tr": "Sıra sende.",
+  "en": "You are next.",
+  "voice": "dream",
+  "speaker": "dream",
+  "rooms": [
+   "waitingroom"
+  ]
+ },
+ {
+  "key": "d6113f85",
+  "tr": "Geldin mi?",
+  "en": "Have you come?",
+  "voice": "house",
+  "speaker": "house",
+  "rooms": [
+   "ward"
+  ]
+ },
+ {
+  "key": "15ff021b",
+  "tr": "Annen seni sordu.",
+  "en": "Your mother was asking for you.",
+  "voice": "dream",
+  "speaker": "dream",
+  "rooms": [
+   "ward"
+  ]
+ }
+]

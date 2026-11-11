@@ -1,11 +1,13 @@
 import { Euler, MathUtils, Matrix4, PerspectiveCamera, Quaternion, Vector3 } from 'three';
-import { directorConfig, REDUCED_MOTION, renderConfig, shotsConfig, transitionConfig } from '../../config/experience.config';
-import { walkConfig } from '../../config/walk.config';
+import { directorConfig, photoConfig, REDUCED_MOTION, renderConfig, shotsConfig, transitionConfig } from '../../config/experience.config';
+import { WAKES, type WakeTarget } from '../../config/film.config';
+import { walkConfig, type EndingShot } from '../../config/walk.config';
 import type { Photographer } from '../character/Photographer';
 import { range, smootherstep, wobble } from '../math';
 import type { Photograph } from '../photograph/Photograph';
 import { PhotoPortal } from '../transition/PhotoPortal';
 import { cueToProgress, phaseProgress } from '../timeline/Timeline';
+import { HOME } from '../world/Alley';
 
 export interface ShotState {
   focus: number;
@@ -14,10 +16,14 @@ export interface ShotState {
   photoDistance: number;
 }
 
+/** A held camera breathes its full breath from this far from what it looks at (m); nearer, less. */
+const BREATHE_FULL = 1;
 const shots = shotsConfig.map((s) => ({ ...s, p: cueToProgress(s.at) }));
 const v1 = new Vector3();
 const v2 = new Vector3();
 const v3 = new Vector3();
+const v4 = new Vector3();
+const v5 = new Vector3();
 const q1 = new Quaternion();
 const m1 = new Matrix4();
 const m2 = new Matrix4();
@@ -70,20 +76,53 @@ export class CameraDirector {
     return { focus, aperture: MathUtils.lerp(a.aperture, b.aperture, t) };
   }
 
+  /** The window of the house as it lies in the picture on the print in his hand: where the lens that took it saw it (world space). */
+  private windowOnPrint(out: Vector3): Vector3 {
+    const seen = v3.copy(this.homeWindow).project(this.portal.capture);
+    const half = photoConfig.image.size / 2;
+    this.print.image.updateMatrixWorld(true);
+    return this.print.image.localToWorld(out.set(seen.x * half, seen.y * half, 0));
+  }
+
+  /** Where a key of the ending puts the camera, and what it looks at. */
+  private endingKey(key: EndingShot, position: Vector3, target: Vector3): void {
+    if ('onPrint' in key) {
+      this.windowOnPrint(target);
+      position.copy(target).addScaledVector(v3.set(0, 0, 1).transformDirection(this.print.image.matrixWorld), key.onPrint);
+      return;
+    }
+    position.set(...key.position);
+    if (key.target === 'print') target.copy(this.photographer.printPosition);
+    else target.set(...key.target);
+  }
+
   /**
-   * Awake again, after the last photograph (`e` = EXPLORATION progress): over the photographer's
-   * shoulder onto the print in their hand, then slowly drawing away. The print stays in focus.
+   * Awake again, after the last photograph (`e` = EXPLORATION progress): over his shoulder onto the print in his
+   * hand; in, close over the picture coming up on it, to the window of the house in it; out again round his head
+   * and away (see walkConfig.ending.shots). The print stays in focus.
    */
   poseEnding(cam: PerspectiveCamera, e: number, time: number, aspect: number): ShotState {
-    const [a, b] = walkConfig.ending.shots;
+    const keys = walkConfig.ending.shots;
+    let i = 0;
+    while (i < keys.length - 2 && e > keys[i + 1].at) i++;
+    const a = keys[i];
+    const b = keys[i + 1];
     const t = smootherstep(range(a.at, b.at, e));
-    cam.position.set(...a.position).lerp(v1.set(...b.position), t);
-    const target = this.resolve(a.target, new Vector3()).lerp(this.resolve(b.target, v2), t);
+    this.endingKey(a, cam.position, v2);
+    this.endingKey(b, v1, v4);
+    if (b.via) {
+      // a quadratic curve through the bend
+      v5.set(...b.via);
+      const s = 1 - t;
+      cam.position.multiplyScalar(s * s).addScaledVector(v5, 2 * s * t).addScaledVector(v1, t * t);
+    } else cam.position.lerp(v1, t);
+    v2.lerp(v4, t);
     cam.up.copy(up);
-    cam.lookAt(target);
+    cam.lookAt(v2);
+    // a held camera breathes; this close to the print its breath is as small as the distance
     const breathe = directorConfig.breathe;
     const bt = time * breathe.speed;
-    const still = REDUCED_MOTION ? 0 : 1;
+    const still = (REDUCED_MOTION ? 0 : 1) * Math.min(1, cam.position.distanceTo(v2) / BREATHE_FULL);
     cam.position.x += wobble(bt, 1) * breathe.position * still;
     cam.position.y += wobble(bt * 0.8, 2) * breathe.position * still;
     cam.fov = PhotoPortal.fitFov(MathUtils.lerp(a.fov, b.fov, t), aspect);
@@ -91,7 +130,42 @@ export class CameraDirector {
     cam.aspect = aspect;
     cam.updateProjectionMatrix();
     cam.updateMatrixWorld(true);
-    return { focus: cam.position.distanceTo(this.photographer.printPosition), aperture: walkConfig.ending.aperture, photoDistance: Infinity };
+    return { focus: cam.position.distanceTo(v2), aperture: walkConfig.ending.aperture, photoDistance: Infinity };
+  }
+
+  /** Where the window of the house is (world space). */
+  readonly homeWindow = new Vector3(...HOME.center);
+
+  /** Where a waking's camera looks or focuses: the print in the hand, the head, the window of the house, or a point. */
+  private wakePoint(target: WakeTarget, out: Vector3): Vector3 {
+    if (target === 'print') return out.copy(this.photographer.printPosition);
+    if (target === 'head') return this.photographer.headPosition(out);
+    if (target === 'window') return out.copy(this.homeWindow);
+    return out.set(...target);
+  }
+
+  /**
+   * The street again, where an evening broke off (`n`: which waking, `t`: how far through it): one slow move,
+   * held like a breath, on the hair, the print or the lit window (see WAKES in film.config.ts).
+   */
+  poseWake(cam: PerspectiveCamera, n: number, t: number, time: number, aspect: number): ShotState {
+    const shot = WAKES[n].shot;
+    cam.position.set(...shot.from).lerp(v1.set(...shot.to), t);
+    cam.up.copy(up);
+    this.wakePoint(shot.target, v2);
+    if (shot.targetTo) v2.lerp(this.wakePoint(shot.targetTo, v4), t);
+    cam.lookAt(v2);
+    const breathe = directorConfig.breathe;
+    const bt = time * breathe.speed;
+    const still = REDUCED_MOTION ? 0 : 1;
+    cam.position.x += wobble(bt, 1) * breathe.position * still;
+    cam.position.y += wobble(bt * 0.8, 2) * breathe.position * still;
+    cam.fov = PhotoPortal.fitFov(MathUtils.lerp(shot.fov[0], shot.fov[1], t), aspect);
+    cam.near = renderConfig.near;
+    cam.aspect = aspect;
+    cam.updateProjectionMatrix();
+    cam.updateMatrixWorld(true);
+    return { focus: cam.position.distanceTo(this.wakePoint(shot.focus, v3)), aperture: shot.aperture, photoDistance: Infinity };
   }
 
   /** Pose the viewer camera for everything seen from outside the picture. */

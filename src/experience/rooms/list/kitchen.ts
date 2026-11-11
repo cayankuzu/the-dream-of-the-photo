@@ -1745,7 +1745,7 @@ export default class Kitchen extends Room {
       this.droneBed = s.bed('rooms/dream_drone_low.mp3', { gain: 0.09, fade: 2 });
       this.insectsBed = s.bed('rooms/insects_contact.mp3', { gain: 0.05, pan: 0.1, fade: 2.4, lowpass: 5600 });
     });
-    this.beat(LINE_AT, () => this.say({ tr: 'Yemek soğudu.', en: 'Dinner has gone cold.' }, 3.4));
+    this.beat(LINE_AT, () => this.say({ tr: 'Yemek soğudu.', en: 'Dinner has gone cold.' }, 3.4, 'house'));
     this.beat(3.4, () => s.play('rooms/roach_hiss_2.mp3', { gain: 0.09, pan: 0.15, reverb: 0.1 }));
     TICKS.forEach((at, i) =>
       this.beat(at, () => {
@@ -1809,7 +1809,7 @@ export default class Kitchen extends Room {
       for (let i = 0; i < this.endBeds.length - 1; i++) this.endBeds[i].gain(0.012, 0.35);
     });
     this.beat(LAST_LINE - 0.3, () => s.play('rooms/mouth_wet_2.mp3', { gain: 0.3 }));
-    this.beat(LAST_LINE, () => this.say({ tr: 'Ye.', en: 'Eat.' }, 2.8));
+    this.beat(LAST_LINE, () => this.say({ tr: 'Ye.', en: 'Eat.' }, 2.8, 'house'));
     this.beat(LAST_LINE + 2.3, () => s.play('rooms/fork_down_1.mp3', { gain: 0.45, reverb: 0.2 }));
     this.beat(CUT_AT, () => s.stopAll(0.03));
   }

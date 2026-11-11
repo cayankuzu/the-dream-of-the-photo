@@ -2115,7 +2115,7 @@ export class HallShell implements DreamModule {
     this.headYawGroup.position.set(at[0], at[1], at[2]);
     this.headYawGroup.name = 'TheHead';
     this.detail.add(this.headYawGroup);
-    kit.poi({ position: new Vector3(...HEAD.poi.position), radius: HEAD.poi.radius, zoom: HEAD.poi.zoom, reach: HEAD.poi.reach, memory: 'head' });
+    kit.poi({ position: new Vector3(...HEAD.poi.position), radius: HEAD.poi.radius, zoom: HEAD.poi.zoom, reach: HEAD.poi.reach });
 
     // the floor it came up through, lifted and thrown back
     const slabs = new Pour();

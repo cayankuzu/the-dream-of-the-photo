@@ -125,6 +125,20 @@
   }
 }
 
+/*
+ * The film's frame: on a screen wider than about 16:10 the picture is cut to 2.39:1 by a black bar above and
+ * one below, each `--bar` high. None on a phone held upright or in a narrow window.
+ */
+:root {
+  --bar: 0px;
+}
+
+@media (min-aspect-ratio: 161/100) and (min-width: 40rem) {
+  :root {
+    --bar: max(0px, (var(--vh) * 100 - 100vw / 2.39) / 2);
+  }
+}
+
 *,
 *::before,
 *::after {
@@ -184,6 +198,25 @@ body.is-exploring #stage.is-grabbing {
 .overlay button,
 .overlay a {
   pointer-events: auto;
+}
+
+/* drawn first in the overlay: everything written on the picture lies over the bars */
+.letterbox::before,
+.letterbox::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: var(--bar);
+  background: #000;
+}
+
+.letterbox::before {
+  top: 0;
+}
+
+.letterbox::after {
+  bottom: 0;
 }
 
 .sr-only {
@@ -709,23 +742,7 @@ body.hud-asleep .hud__edge button {
   border-left: 0;
 }
 
-/* a memory found: the count turns over once */
-.memories.is-pulsing {
-  animation: turn-over 0.6s steps(1);
-}
-
-@keyframes turn-over {
-  0% {
-    background: var(--ink);
-    color: #000;
-  }
-  100% {
-    background: #000;
-    color: var(--ink);
-  }
-}
-
-/* the journey: a hard line along the bottom edge, its chapters marked */
+/* the journey: a hard line along the bottom edge, its evenings marked */
 .journey {
   position: absolute;
   left: var(--edge-x);
@@ -766,10 +783,15 @@ body.hud-asleep .hud__edge button {
   background: var(--ink);
 }
 
-.journey__percent {
-  min-width: 2.9rem;
+/* the year the dream has reached, of thirty-three: nothing before the journey begins */
+.journey__years {
+  min-width: 4.4rem;
   min-height: 1.3rem;
   justify-content: flex-end;
+}
+
+.journey__years:empty {
+  visibility: hidden;
 }
 
 /* a chapter begins: big, pasted on, gone in moments */
@@ -831,101 +853,6 @@ html[lang='tr'] .stamp {
   }
 }
 
-/* for anything else that lands all at once */
-@keyframes land {
-  0% {
-    transform: scale(1.05);
-  }
-  45% {
-    transform: translate(1px, -1px) scale(1.012);
-  }
-  100% {
-    transform: none;
-  }
-}
-
-/* the gaze: appears only when something holds it, and closes */
-.reticle {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 3.25rem;
-  height: 3.25rem;
-  margin: -1.625rem 0 0 -1.625rem;
-  visibility: hidden;
-}
-
-.reticle.is-focusing {
-  visibility: visible;
-}
-
-.reticle svg {
-  display: block;
-  width: 100%;
-  height: 100%;
-  overflow: visible;
-  fill: none;
-  shape-rendering: crispEdges;
-}
-
-.reticle__shade {
-  stroke: #000;
-  stroke-width: 3.4;
-}
-
-.reticle__track {
-  stroke: var(--ink);
-  stroke-width: 1.5;
-  stroke-opacity: 0.42;
-}
-
-.reticle__fill {
-  stroke: var(--ink);
-  stroke-width: 1.5;
-  stroke-dasharray: 100;
-  stroke-dashoffset: 100;
-}
-
-.reticle.is-known .reticle__fill {
-  stroke-opacity: 0.55;
-}
-
-/* a memory found */
-.toast {
-  position: absolute;
-  left: var(--edge-x);
-  right: var(--edge-x);
-  top: calc(var(--edge-top) + var(--hud-row) + 0.6rem);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  opacity: 0;
-}
-
-.toast.is-visible {
-  opacity: 1;
-  animation: land 0.13s steps(1) both;
-}
-
-.toast__kicker {
-  padding: 0.14rem 0.5rem;
-  background: var(--blood);
-  color: var(--ink);
-  font-size: 0.75rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
-.toast__name {
-  padding: 0.2rem 0.65rem 0.1rem;
-  background: #000;
-  color: var(--ink);
-  font-family: var(--type);
-  font-size: clamp(1.25rem, 0.6vw + 0.95rem, 1.5rem);
-  line-height: 1.25;
-}
-
 /* a word of help: plain, once */
 .tutorial {
   position: absolute;
@@ -952,7 +879,7 @@ html[lang='tr'] .stamp {
   line-height: 1.3;
 }
 
-/* the dream's voice: typed on nothing, low in the picture */
+/* what is said: typed on nothing at the foot of the picture, on or just above the lower bar */
 .narration {
   position: absolute;
   left: var(--edge-x);
@@ -972,6 +899,27 @@ html[lang='tr'] .stamp {
 
 .narration.is-speaking {
   visibility: visible;
+}
+
+/* the voice from the house, a mother's: slanted and a little warm, as if from another room */
+.narration[data-voice='house'],
+.narration[data-voice='phone'] {
+  font-style: italic;
+  font-synthesis: style;
+}
+
+.narration[data-voice='house'] {
+  color: #eedcbf;
+}
+
+/* the same voice through a receiver, and a whisper that belongs to nobody: dimmer */
+.narration[data-voice='phone'],
+.narration[data-voice='dream'] {
+  color: var(--ink-dim);
+}
+
+.narration[data-voice='dream'] {
+  letter-spacing: 0.05em;
 }
 
 /* what a room lets you do: small, at the very foot of the picture */
@@ -1002,50 +950,86 @@ html[lang='tr'] .stamp {
 
 /* ------------------------------------------------------------------ the end */
 
-/* the motto, painted over the last picture: four lines (`--fit` is the longest of them in em) */
-.finale {
-  --fit: 12;
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  margin: 0;
-  padding: var(--edge-top) var(--edge-x) var(--edge-bottom);
-  font-size: min(calc((100vw - 2 * var(--edge-x)) / var(--fit)), calc(var(--vh) * 20));
-  line-height: 1.04;
-  text-shadow: 0.02em 0.02em 0 #000, 0.045em 0.032em 0 var(--blood);
-  transform-origin: 0 50%;
-  visibility: hidden;
-}
-
-html[lang='tr'] .finale {
-  --fit: 8.8;
-}
-
-body.is-ending .finale {
-  visibility: visible;
-  animation: land 0.14s steps(1) both;
-}
-
-/* it goes with the picture, in the slam to black */
-body.is-black .finale {
-  visibility: hidden;
-}
-
-/* black, and what is left */
+/* black from the credits on (the last street before it is the film's own), and the names rolling up it */
 .end {
   position: absolute;
   inset: 0;
-  display: grid;
-  place-items: center;
-  padding: var(--edge-top) var(--edge-x) var(--edge-bottom);
+  overflow: hidden;
   background: #000;
   visibility: hidden;
 }
 
-body.is-over .end {
+body.is-black .end {
   visibility: visible;
+}
+
+/* moved up by the timeline (see Overlay.updateCredits): from under the foot of the screen until the last panel rests in its middle */
+.end__roll {
+  position: absolute;
+  top: 0;
+  left: var(--edge-x);
+  right: var(--edge-x);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(var(--vh) * 17);
+  will-change: transform;
+}
+
+.credits__opening {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(var(--vh) * 6);
+  text-align: center;
+}
+
+.credits__title {
+  margin: 0;
+  font-family: var(--display);
+  font-size: clamp(2.2rem, 6.5vw, 4.4rem);
+  line-height: 1.05;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  text-shadow: var(--ghost);
+  text-wrap: balance;
+}
+
+.credits__motto {
+  margin: 0;
+  font-size: clamp(1.3rem, 2.6vw, 2.1rem);
+}
+
+.credits__entry {
+  display: grid;
+  gap: 0.6rem;
+  width: min(100%, 40rem);
+  margin: 0;
+  text-align: center;
+}
+
+.credits__entry dt {
+  font-size: 0.78rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+
+.credits__entry dd {
+  margin: 0;
+  font-family: var(--type);
+  font-size: clamp(1.2rem, 0.8vw + 0.95rem, 1.7rem);
+  line-height: 1.35;
+  text-wrap: balance;
+}
+
+/* the assets: a few short lines, smaller */
+.credits__entry--small dd {
+  display: grid;
+  gap: 0.5rem;
+  font-family: var(--mono);
+  font-size: 0.82rem;
+  line-height: 1.5;
 }
 
 .end__panel {
@@ -1053,6 +1037,24 @@ body.is-over .end {
   flex-direction: column;
   gap: clamp(0.7rem, calc(var(--vh) * 2.6), 1.5rem);
   width: min(100%, 30rem);
+}
+
+/* with less motion the credits do not move: one card at a time, in the middle of the black */
+@media (prefers-reduced-motion: reduce) {
+  .end__roll {
+    inset: var(--edge-top) var(--edge-x) var(--edge-bottom);
+    display: grid;
+    place-items: center;
+  }
+
+  .end__card {
+    grid-area: 1 / 1;
+    visibility: hidden;
+  }
+
+  .end__card.is-shown {
+    visibility: visible;
+  }
 }
 
 .end__title {
@@ -1088,25 +1090,6 @@ body.is-over .end {
   height: auto;
   border: 0.18rem solid #d9d5c8;
   border-bottom-width: 0.5rem;
-}
-
-.end__memories {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 0 0.8rem;
-  margin: 0;
-  font-size: 0.9rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.end__count {
-  font-family: var(--display);
-  font-size: clamp(2.6rem, calc(var(--vh) * 11), 4.5rem);
-  line-height: 1.1;
-  letter-spacing: 0.01em;
-  white-space: nowrap;
 }
 
 .end__replay {
@@ -1293,10 +1276,18 @@ body.is-over .end {
   }
 }
 
-/* the corner is short of room: the label of the count goes, the voice stays clear of a longer hint */
+/*
+ * The corner is short of room: a switch says only its name, filled while it is on; the voice stays clear of
+ * a longer hint.
+ */
 @media (max-width: 34rem) {
-  .memories__label {
+  .chip__state {
     display: none;
+  }
+
+  button.chip[aria-pressed='true'] {
+    background: var(--ink);
+    color: #000;
   }
 
   .narration {
@@ -1425,10 +1416,7 @@ body.has-failed .overlay {
 
 @media (prefers-reduced-motion: reduce) {
   .title__photo::after,
-  .memories.is-pulsing,
-  .stamp.is-on,
-  .toast.is-visible,
-  body.is-ending .finale {
+  .stamp.is-on {
     animation: none;
   }
 }

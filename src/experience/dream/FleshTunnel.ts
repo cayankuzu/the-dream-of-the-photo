@@ -238,7 +238,7 @@ const EYES = {
   /** How the pupil answers the viewer's lamp (light of its tapetum), from what distance on (m): near ones have black pupils, far ones glint. */
   shine: 2.1,
   shineFrom: [3.5, 11] as Pair,
-  /** Looking for the memory. */
+  /** What draws the gaze: angular radius (deg), how far a long look narrows the view, and from how far (m). */
   poi: { radius: 9, zoom: 0.6, reach: 16 },
 } as const;
 
@@ -1645,8 +1645,8 @@ export class FleshTunnel implements DreamModule {
     }
 
     const biggest = this.eyeSizes.indexOf(Math.max(...this.eyeSizes));
-    kit.poi({ position: this.eyeCenters[biggest].clone(), radius: EYES.poi.radius, zoom: EYES.poi.zoom, reach: EYES.poi.reach, memory: 'eye' });
-    kit.poi({ position: new Vector3(0, BITE_Y, MOUTH.frontUpper), radius: 11, zoom: 0.78, reach: 22, memory: 'teeth' });
+    kit.poi({ position: this.eyeCenters[biggest].clone(), radius: EYES.poi.radius, zoom: EYES.poi.zoom, reach: EYES.poi.reach });
+    kit.poi({ position: new Vector3(0, BITE_Y, MOUTH.frontUpper), radius: 11, zoom: 0.78, reach: 22 });
 
     this.eyeCount = this.plannedEyes.length;
     this.lookAttribute = (this.root.getObjectByName('EyeBalls') as InstancedMesh).geometry.getAttribute('aLook') as InstancedBufferAttribute;

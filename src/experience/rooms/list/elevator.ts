@@ -930,7 +930,8 @@ export default class Elevator extends Room {
       s.play('rooms/lift_doors_close.mp3', { gain: 0.5, reverb: 0.1 });
       this.tune = s.bed('rooms/lift_tune_loop.mp3', { gain: 0.2, offset: 0 });
     });
-    this.beat(6, () => this.say({ tr: 'Hangi kata?', en: 'Which floor?' }, 3.2));
+    // the lift asks in the dream's whisper; the intercom later is the voice from the house, through its speaker
+    this.beat(6, () => this.say({ tr: 'Hangi kata?', en: 'Which floor?' }, 3.2, 'dream'));
     this.beat(RIDE[0] - 0.7, () => s.play('rooms/lift_ding.mp3', { gain: 0.25 }));
     this.beat(RIDE[0], () => {
       this.motor = s.bed('rooms/lift_motor.mp3', { gain: 0.2, fade: 0.6 });
@@ -970,7 +971,7 @@ export default class Elevator extends Room {
       this.static = s.bed('rooms/intercom_static.mp3', { gain: 0.14, pan: 0.45 });
     });
     this.beat(35.6, () => s.play('rooms/intercom_crackle_1.mp3', { gain: 0.25, pan: 0.45 }));
-    this.beat(36, () => this.say({ tr: 'Yemek soğuyor. Neredesin?', en: 'Dinner is getting cold. Where are you?' }, 3.4));
+    this.beat(36, () => this.say({ tr: 'Tabağın hâlâ burada.', en: 'Your plate is still here.' }, 3.4, 'phone'));
     this.beat(37.4, () => s.play('rooms/intercom_crackle_3.mp3', { gain: 0.25, pan: 0.45 }));
     this.beat(38.6, () => s.play('rooms/intercom_crackle_1.mp3', { gain: 0.22, pan: 0.45 }));
     this.beat(39.6, () => {

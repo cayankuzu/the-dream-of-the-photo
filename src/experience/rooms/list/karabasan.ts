@@ -1132,7 +1132,8 @@ export default class Karabasan extends Room {
       s.bed('rooms/throat_crackle.mp3', { gain: 0.45, fade: 1.5 });
     });
     this.beat(FACE_AT - 0.5, () => s.play('rooms/mouth_wet_1.mp3', { gain: 0.3 }));
-    this.beat(FACE_AT, () => this.say({ tr: 'Yemek soğuyor.', en: 'Dinner is getting cold.' }, 5));
+    // whispered at the ear, in the voice from the house
+    this.beat(FACE_AT, () => this.say({ tr: 'Yemek soğuyor.', en: 'Dinner is getting cold.' }, 5, 'house'));
     this.beat(FACE_AT + 0.9, () => s.play('rooms/mouth_click_2.mp3', { gain: 0.5 }));
     this.beat(FACE_AT + 1.5, () => s.play('rooms/mouth_click_4.mp3', { gain: 0.5 }));
     this.beat(SHUTTER_AT, () => this.shutter());

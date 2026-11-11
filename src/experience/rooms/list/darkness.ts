@@ -16,6 +16,7 @@ import {
   PlaneGeometry,
   RepeatWrapping,
   SRGBColorSpace,
+  ShaderMaterial,
   Vector2,
   Vector3,
   type InstancedMesh,
@@ -24,12 +25,13 @@ import {
   type Texture,
 } from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import { REDUCED_MOTION } from '../../../config/experience.config';
+import { REDUCED_MOTION, timelineConfig } from '../../../config/experience.config';
 import type { SpotSpec } from '../../../config/nightmare.config';
 import { rigClock, setClock } from '../../dream/ClockRig';
 import { headMap, randomFrom, type Crowd, type FigureSpec } from '../../dream/FigureKit';
 import { meterUVs } from '../../dream/DreamKit';
 import { clamp, range, smootherstep } from '../../math';
+import { WARP_GLSL, warpUniforms } from '../../render/Warp';
 import type { RoomAir, RoomAssets, RoomContext, RoomFrame, RoomKey } from '../Room';
 import { Room } from '../Room';
 import { PALETTE } from '../RoomKit';
@@ -64,19 +66,12 @@ export const assets: RoomAssets = {
     'rooms/step_wood_4.mp3',
     'rooms/floor_step_near_1.mp3',
     'rooms/floor_step_near_2.mp3',
-    'rooms/floor_step_near_3.mp3',
-    'rooms/crawl_wood_3.mp3',
     'rooms/breath_beside.mp3',
-    'rooms/breath_other.mp3',
     'rooms/sniff_1.mp3',
     'rooms/sniff_2.mp3',
     'rooms/coat_move.mp3',
     'rooms/heart_beat.mp3',
-    'rooms/chair_scrape_floor.mp3',
     'rooms/cutlery_far.mp3',
-    'rooms/fork_plate_2.mp3',
-    'rooms/fork_down_1.mp3',
-    'rooms/whisper_gabble.mp3',
   ],
 };
 
@@ -145,13 +140,27 @@ const CHAIR_CREPT = 0.5;
 const FACE_AT = 0.235;
 const FACE_LIFT = 0.03;
 
-/** Seconds into the room at which the camera fires by itself if the viewer has not got that far. */
-const FALLBACK = [12, 22, 31, 40, 48, 56, 63, 70];
-/** Seconds the flash takes to charge again after each shot: its battery is dying. */
-const RECHARGE = [2.5, 2.5, 2.5, 2.5, 3.2, 5.1, 2.5, 0];
-/** Second of the room at which the one behind you fires, and at which everything is cut. */
-const NINTH = 76;
+/** Seconds of the room's script at which the camera fires by itself if the viewer has not got that far. */
+const FALLBACK = [9, 17, 25, 33, 41, 49, 56, 63];
+/** Seconds on the screen the flash takes to charge again after a shot: its battery is dying, and eight presses cannot be spent early. */
+const RECHARGE = 5;
+/** The first charge: the second of the script its whine is heard from (just after the room is cut into), and how long it still takes on the screen. */
+const FIRST_CHARGE = { at: 2.6, seconds: 1.4 };
+/** Length of the short whine (climbing to 4 kHz) and of the long one (to 7 kHz), in seconds. */
+const WHINE = { short: 2.6, long: 5.1 };
+/**
+ * After the eighth, whenever it fell (seconds on the screen): another flash starts charging behind you, every sound
+ * stops, and it fires; `latest` is the second of the script by which it has fired, whatever the viewer did.
+ */
+const THEIRS = { charge: 0.7, hush: 3.4, fire: 4, latest: 78 };
+/** After the ninth (seconds on the screen): its print comes out; the last line; a dinner, far off, for what is left. */
+const AFTER_NINTH = { print: 1.4, line: 3, dinner: 6 };
+/** What is left after the last line goes as fast as the viewer can scroll it: the fastest the timeline moves at all. */
+const HURRY_OUT = timelineConfig.maxSpeed / timelineConfig.autoRate;
+/** Second of the script at which everything is cut. */
 const CUT = 84;
+/** The house calls you once, about a second on the screen before the line that tells you not to answer (second of the script). */
+const CALL = 38.5;
 /** What the room's own air gives (env intensity); in the ninth more, so that the paper can be made out inside the shadows: it is that which makes them shadows. */
 const AIR = 0.012;
 const IN_THE_SHADOWS = 0.05;
@@ -181,27 +190,55 @@ const WHINE_AFTER = 0.4;
 /** How long after a shot the room's tone starts to come back (s), and how long it takes. */
 const TONE_BACK = 1.5;
 const TONE_FADE = 3;
-/** Seconds before a shot that fires by itself that every sound in the room stops. */
+/** Seconds of the script before a shot that fires by itself that every sound in the room stops, and nothing more is heard until it fires. */
 const HUSH = 0.9;
-/** The last stretch, to the second of the room: another flash charging behind you, the silence, the pop (`NINTH`), its print coming out. */
-const THEIR_CHARGE = 70.25;
-const THEIR_HUSH = 75.4;
-const THEIR_PRINT = 78;
-/** How long after the last frame the dinner can be heard, and after which second of the room nothing of it goes on. */
-const DINNER_FROM = 8;
-const DINNER_ENDS = 69.2;
 
 /** The counter on the camera's back: how fast its wheel steps (1/s), how bright it is, its size and place (shares of the picture's height), and how long after a shot the wheel moves on and the number can be seen again (s). */
 const DIAL = { rate: 16, glow: 0.42, size: 0.05, margin: 0.06, depth: 0.16, tick: 1.9, back: [2.3, 3.8] };
 /** The little neon lamp beside it: how bright when the flash is ready, and how bright it creeps up while charging. */
 const NEON = { ready: 2.4, charging: 0.12 };
 /** Seconds after these shots that something stands between you and your own camera, and its lights go out (shot, from, to). */
-const COVERED: readonly (readonly [number, number, number])[] = [
-  [5, 5.1, 6.5],
-  [8, 15, 17],
-];
+const COVERED: readonly (readonly [number, number, number])[] = [[5, 3, 4.4]];
 /** Dust caught in the flash right before the lens: how many specks, and how strong. */
 const SPECKS = { count: 16, strength: 0.34 };
+/**
+ * Between flashes the eye keeps the nearest sheet as a faint cold outline, so that the picture is never empty: its
+ * color (linear) and strength, how sharp the edge is (a power of how far the cloth turns from the eye), between which
+ * cosines to the vertical a surface counts as lying flat (a seat, a hem on the floor, a table top: seen from above at a
+ * slant they would glow whole), what share of the picture's half width a sheet must lie in to count as in the
+ * picture, how fast one outline gives way to another (1/s), and when it comes up: over these seconds of the script
+ * before the first flash, and over these seconds on the screen after each (twice as long after the ninth, whose
+ * afterimage holds twice as long).
+ */
+const OUTLINE = { color: [0.55, 0.7, 0.9], strength: 0.13, power: 3, flat: [0.72, 0.96], frame: 0.85, ease: 1.2, first: [5.5, 8.5], after: [1.1, 3.2] } as const;
+/** A sheet out of the picture scores this (m) and its angle off the gaze: any sheet in the picture comes first. */
+const OUT_OF_PICTURE = 100;
+const OUTLINE_VERT = /* glsl */ `
+${WARP_GLSL}
+varying vec3 vNormalV;
+varying vec3 vView;
+varying vec3 vUp;
+void main() {
+  vec4 mv = modelViewMatrix * vec4(position, 1.0);
+  vNormalV = normalize(normalMatrix * normal);
+  vView = normalize(-mv.xyz);
+  vUp = normalize(mat3(viewMatrix) * vec3(0.0, 1.0, 0.0));
+  gl_Position = projectionMatrix * dreamWarp(mv);
+}
+`;
+/** Only where the cloth turns away from the eye and does not lie flat: its edges, and the folds that stand against the dark. */
+const OUTLINE_FRAG = /* glsl */ `
+uniform vec3 uColor;
+varying vec3 vNormalV;
+varying vec3 vView;
+varying vec3 vUp;
+void main() {
+  vec3 n = normalize(vNormalV);
+  float edge = pow(1.0 - abs(dot(n, normalize(vView))), ${OUTLINE.power.toFixed(2)});
+  float lying = smoothstep(${OUTLINE.flat[0].toFixed(2)}, ${OUTLINE.flat[1].toFixed(2)}, abs(dot(n, vUp)));
+  gl_FragColor = vec4(uColor * edge * (1.0 - lying), 1.0);
+}
+`;
 
 /** One sound that comes out of the dark: seconds after the shot before it, the file, where it is in the room (x, z), its gain, and a far one is dulled. */
 interface Cue {
@@ -213,52 +250,47 @@ interface Cue {
   far?: boolean;
   reverb?: number;
 }
-/** What comes between the shots (the first row before the first, in seconds of the room): far, nearer, here, and each time it stops before you know. */
+/**
+ * What comes between the shots (the first row before the first, in seconds of the script; the others in seconds on
+ * the screen after each shot, inside the five a charge takes): far, nearer, here, and each time it stops before you know.
+ */
 const BETWEEN: readonly (readonly Cue[])[] = [
-  [{ at: 8.6, file: 'rooms/floor_creak_2.mp3', x: -3.5, z: -4.6, gain: 0.22, far: true, reverb: 0.25 }],
+  [{ at: 7, file: 'rooms/floor_creak_2.mp3', x: -3.5, z: -4.6, gain: 0.22, far: true, reverb: 0.25 }],
   [
-    { at: 3.3, file: 'rooms/sheet_slide_floor.mp3', x: 0, z: -3.1, gain: 0.42, far: true, reverb: 0.3 },
-    { at: 5.9, file: 'rooms/floor_creak_3.mp3', x: -1.6, z: -3.9, gain: 0.2, far: true, reverb: 0.2 },
-    { at: 7.7, file: 'rooms/floor_creak_1.mp3', x: -3.0, z: -4.6, gain: 0.2, far: true, reverb: 0.2 },
+    { at: 2, file: 'rooms/sheet_slide_floor.mp3', x: 0, z: -3.1, gain: 0.42, far: true, reverb: 0.3 },
+    { at: 3.3, file: 'rooms/floor_creak_3.mp3', x: -1.6, z: -3.9, gain: 0.2, far: true, reverb: 0.2 },
+    { at: 4.3, file: 'rooms/floor_creak_1.mp3', x: -3.0, z: -4.6, gain: 0.2, far: true, reverb: 0.2 },
   ],
   [
-    { at: 3.1, file: 'rooms/floor_creak_4.mp3', x: -2.4, z: -5.0, gain: 0.22, far: true, reverb: 0.2 },
-    { at: 5.2, file: 'rooms/door_creak_short.mp3', x: 0, z: -5.6, gain: 0.34, far: true, reverb: 0.3 },
-    { at: 7.2, file: 'rooms/step_wood_1.mp3', x: 0, z: -5.2, gain: 0.26, far: true, reverb: 0.2 },
+    { at: 1.9, file: 'rooms/floor_creak_4.mp3', x: -2.4, z: -5.0, gain: 0.22, far: true, reverb: 0.2 },
+    { at: 2.9, file: 'rooms/door_creak_short.mp3', x: 0, z: -5.6, gain: 0.34, far: true, reverb: 0.3 },
+    { at: 4.3, file: 'rooms/step_wood_1.mp3', x: 0, z: -5.2, gain: 0.26, far: true, reverb: 0.2 },
   ],
   [
-    { at: 2.9, file: 'rooms/step_wood_2.mp3', x: 0.2, z: -4.9, gain: 0.26, far: true, reverb: 0.2 },
-    { at: 4.2, file: 'rooms/step_wood_3.mp3', x: -1.1, z: -4.6, gain: 0.28, far: true, reverb: 0.2 },
-    { at: 5.5, file: 'rooms/step_wood_4.mp3', x: 1.3, z: -4.4, gain: 0.28, far: true, reverb: 0.2 },
-    { at: 7.1, file: 'rooms/step_wood_1.mp3', x: 0.3, z: -4.0, gain: 0.3, reverb: 0.15 },
+    { at: 1.9, file: 'rooms/step_wood_2.mp3', x: 0.2, z: -4.9, gain: 0.26, far: true, reverb: 0.2 },
+    { at: 2.7, file: 'rooms/step_wood_3.mp3', x: -1.1, z: -4.6, gain: 0.28, far: true, reverb: 0.2 },
+    { at: 3.5, file: 'rooms/step_wood_4.mp3', x: 1.3, z: -4.4, gain: 0.28, far: true, reverb: 0.2 },
+    { at: 4.4, file: 'rooms/step_wood_1.mp3', x: 0.3, z: -4.0, gain: 0.3, reverb: 0.15 },
   ],
   [
-    { at: 3.4, file: 'rooms/floor_step_near_1.mp3', x: -1.4, z: -2.1, gain: 0.26, reverb: 0.1 },
-    { at: 5.1, file: 'rooms/floor_step_near_2.mp3', x: 1.5, z: -1.8, gain: 0.28, reverb: 0.1 },
-    { at: 6.4, file: 'rooms/floor_creak_long.mp3', x: 1.2, z: 1.6, gain: 0.2, reverb: 0.15 },
+    { at: 2.2, file: 'rooms/floor_step_near_1.mp3', x: -1.4, z: -2.1, gain: 0.26, reverb: 0.1 },
+    { at: 3.4, file: 'rooms/floor_step_near_2.mp3', x: 1.5, z: -1.8, gain: 0.28, reverb: 0.1 },
+    { at: 4.3, file: 'rooms/floor_creak_long.mp3', x: 1.2, z: 1.6, gain: 0.2, reverb: 0.15 },
   ],
   // the worst: nothing, for a long time, and then someone is breathing
   [
-    { at: 6.2, file: 'rooms/sniff_2.mp3', x: 0.8, z: 0.5, gain: 0.2 },
+    { at: 4, file: 'rooms/sniff_2.mp3', x: 0.8, z: 0.5, gain: 0.2 },
   ],
   [
-    { at: 2.4, file: 'rooms/coat_move.mp3', x: -0.5, z: -0.6, gain: 0.36, reverb: 0.1 },
-    { at: 4.3, file: 'rooms/sniff_1.mp3', x: 0.7, z: -0.3, gain: 0.26 },
+    { at: 2, file: 'rooms/coat_move.mp3', x: -0.5, z: -0.6, gain: 0.36, reverb: 0.1 },
+    { at: 3.4, file: 'rooms/sniff_1.mp3', x: 0.7, z: -0.3, gain: 0.26 },
   ],
   // every sheet in the room comes down in the dark
   [
-    { at: 1.3, file: 'rooms/heart_beat.mp3', x: 0, z: 0, gain: 0.4 },
-    { at: 3.1, file: 'rooms/sheet_drop_long.mp3', x: -3.6, z: -2, gain: 0.34, reverb: 0.25 },
-    { at: 3.7, file: 'rooms/sheet_drop_long.mp3', x: 3.6, z: 0.5, gain: 0.3, reverb: 0.25 },
-    { at: 4.5, file: 'rooms/sheet_slide_floor.mp3', x: 0.6, z: 3.5, gain: 0.34, reverb: 0.3 },
-  ],
-  // after the last frame: someone sits down to dinner
-  [
-    { at: 4.5, file: 'rooms/chair_scrape_floor.mp3', x: -1.2, z: -4.2, gain: 0.2, far: true, reverb: 0.3 },
-    { at: 12, file: 'rooms/fork_plate_2.mp3', x: 0.4, z: -4.2, gain: 0.26, far: true, reverb: 0.2 },
-    { at: 17, file: 'rooms/chair_scrape_floor.mp3', x: 1.3, z: -4.3, gain: 0.2, reverb: 0.3 },
-    { at: 22.5, file: 'rooms/crawl_wood_3.mp3', x: -1.8, z: 0.5, gain: 0.3 },
-    { at: 28, file: 'rooms/floor_step_near_3.mp3', x: 1.0, z: 0.8, gain: 0.26, reverb: 0.1 },
+    { at: 1, file: 'rooms/heart_beat.mp3', x: 0, z: 0, gain: 0.4 },
+    { at: 2, file: 'rooms/sheet_drop_long.mp3', x: -3.6, z: -2, gain: 0.34, reverb: 0.25 },
+    { at: 2.6, file: 'rooms/sheet_drop_long.mp3', x: 3.6, z: 0.5, gain: 0.3, reverb: 0.25 },
+    { at: 3.4, file: 'rooms/sheet_slide_floor.mp3', x: 0.6, z: 3.5, gain: 0.34, reverb: 0.3 },
   ],
 ];
 /** Each pop is one of these in turn. */
@@ -721,6 +753,19 @@ interface Solid {
   r: number;
 }
 
+/** A thing the eye can keep in the dark: what says whether the last flash found it there, what marks its place, its meshes and their outlines. */
+interface Outline {
+  shown: Object3D;
+  anchor: Object3D;
+  sources: Mesh[];
+  copies: Mesh[];
+  color: Color;
+  /** Its place in the room's frame (m), as the last flash found it. */
+  center: Vector3;
+  /** 0..1 how much it is the one the eye keeps. */
+  level: number;
+}
+
 /**
  * The dark. A large room in the house, its furniture under sheets, every light off. The only light there is
  * is the viewer's own flash: eight frames. Each shows what has happened while it was dark, and what it shows
@@ -785,17 +830,23 @@ export default class Darkness extends Room {
   private shutterDue = false;
   private whineDue = false;
 
+  // what the eye keeps between flashes
+  private readonly outlines: Outline[] = [];
+  private readonly outlined = new Group();
+  private readonly unroot = new Matrix4();
+
   // what is heard
   private readonly voice: RoomVoiceOptions = {};
   private toneOn = false;
   private cue = 0;
-  private dinnerOn = false;
   private hushed = false;
+  /** How far the end has got: their whine, their silence, (the ninth), its print, the last line, the dinner. */
+  private ending = 0;
 
   // the viewer's camera
   private fired = 0;
   private since = Infinity;
-  private charge = 2.5;
+  private charge = FIRST_CHARGE.seconds;
   private ninthDone = false;
 
   constructor(ctx: RoomContext) {
@@ -828,6 +879,11 @@ export default class Darkness extends Room {
     this.actors.add(this.trio, this.row, this.gazeRig, this.table, this.behind);
     this.stage.add(this.atDoor);
     this.mote = b.motes(150, { x: [-R, R], y: [0.1, H], z: [-R, R] }, this.stage, { strength: 0.8, size: 0.009 }).time;
+    // before the first flash the room is as the first will find it: that is what the eye half makes out
+    this.tallSheet.visible = false;
+    this.table.visible = false;
+    this.root.add(this.outlined);
+    this.placeOutlines();
 
     this.gun = this.spot([0, 0, 0], [0, 0, -1], 0xfff3e4, 0, 48, 0.78);
     this.fillLight = this.spot([0, 0, 0], [0, 0, -1], 0xd5e6e2, 0, 40, 0.9);
@@ -877,20 +933,16 @@ export default class Darkness extends Room {
     this.lens.add(this.specks);
 
     this.beat(0, () => this.toneUp());
-    this.beat(2.4, () => this.play('rooms/flash_charge.mp3', 0.14));
+    // the whine of the first charge, from where it has got to when the room is cut into
+    this.beat(FIRST_CHARGE.at, () => this.play('rooms/flash_charge.mp3', 0.14, 0, 0, 0, 1, WHINE.short - FIRST_CHARGE.seconds));
     this.beat(3, () => this.say({ tr: 'Işık yok. Sekiz karen var.', en: 'There is no light. You have eight frames.' }, 5));
     this.beat(4.6, () => (this.control.press = true));
     this.beat(5, () => {
       if (this.fired === 0) this.hint({ tr: 'Bas: flaş', en: 'Press: flash' });
     });
+    // from far off in the house, to one side (the house's own voice), once
+    this.beat(CALL, () => this.say({ tr: 'Yavrum?', en: 'My dear?' }, 2, 'house'));
     this.beat(40, () => this.say({ tr: 'Annen seni çağırıyor. Cevap verme.', en: 'Your mother is calling you. Do not answer.' }, 5.5));
-    // not words: only the shape of someone calling from the far end of a house, once the silence after a flash at 40 is over
-    this.beat(41.2, () => this.loop('rooms/whisper_gabble.mp3', 0.1, 2.5, -0.2, 0.45, 900));
-    this.beat(DINNER_ENDS, () => this.endDinner());
-    this.beat(THEIR_CHARGE, () => this.theirCharge());
-    this.beat(THEIR_HUSH, () => this.sound.stopAll(0.12));
-    this.beat(THEIR_PRINT, () => this.play('rooms/polaroid_motor.mp3', 0.3, 0, 0.15));
-    this.beat(80, () => this.say({ tr: 'Dokuzuncuyu sen çekmedin.', en: 'You did not take the ninth.' }, 4));
   }
 
   /** The walls, the floor and the ceiling; a door in every wall and the corridor of the house behind each. */
@@ -1085,8 +1137,48 @@ export default class Darkness extends Room {
       stainCloth(mesh);
       mesh.material = material;
     });
+    this.keep(o, o, [o]);
     this.build.contactShadow(0, 0, spread, o, 0.72, ON_RUG);
     return o;
+  }
+
+  /** Something the eye can keep in the dark as an outline: `shown` says whether the last flash found it, `anchor` marks its place. */
+  private keep(shown: Object3D, anchor: Object3D, parts: readonly Object3D[]): void {
+    const color = new Color(0, 0, 0);
+    const material = new ShaderMaterial({
+      vertexShader: OUTLINE_VERT,
+      fragmentShader: OUTLINE_FRAG,
+      uniforms: { ...warpUniforms, uColor: { value: color } },
+      transparent: true,
+      depthWrite: false,
+      blending: AdditiveBlending,
+    });
+    const sources: Mesh[] = [];
+    const copies: Mesh[] = [];
+    for (const part of parts) {
+      part.traverse((o) => {
+        const mesh = o as Mesh;
+        if (!mesh.isMesh) return;
+        const copy = new Mesh(mesh.geometry, material);
+        copy.matrixAutoUpdate = false;
+        copy.visible = false;
+        copy.renderOrder = 2;
+        this.outlined.add(copy);
+        sources.push(mesh);
+        copies.push(copy);
+      });
+    }
+    this.outlines.push({ shown, anchor, sources, copies, color, center: new Vector3(), level: 0 });
+  }
+
+  /** The outlines stand where what they outline stood in the last flash (the table goes where that flash was aimed). */
+  private placeOutlines(): void {
+    this.root.updateMatrixWorld(true);
+    this.unroot.copy(this.root.matrixWorld).invert();
+    for (const o of this.outlines) {
+      for (let i = 0; i < o.sources.length; i++) o.copies[i].matrix.multiplyMatrices(this.unroot, o.sources[i].matrixWorld);
+      o.anchor.getWorldPosition(o.center).sub(this.origin);
+    }
   }
 
   /** Furniture as it is; `shade` darkens what the file paints too bright for this room. */
@@ -1288,8 +1380,10 @@ export default class Darkness extends Room {
       crowd.commit();
       this.table.add(crowd.root);
     }
-    k.prop('bread_half', [-0.28, top, TABLE_Z - 0.04], { rotation: [0, 30, 0], castShadow: true }, this.table);
-    k.prop('pot_enamel', [0.26, top, TABLE_Z + 0.02], { castShadow: true }, this.table);
+    const bread = k.prop('bread_half', [-0.28, top, TABLE_Z - 0.04], { rotation: [0, 30, 0], castShadow: true }, this.table);
+    const pot = k.prop('pot_enamel', [0.26, top, TABLE_Z + 0.02], { castShadow: true }, this.table);
+    // once no sheet is left, the eye keeps the table
+    this.keep(this.table, board, [board, bread, pot]);
     this.build.contactShadow(0, TABLE_Z, 1.9, this.table, 0.72, ON_RUG);
     this.build.contactShadow(0, CHAIR_Z, 0.5, this.table, 0.72, ON_RUG);
   }
@@ -1416,25 +1510,15 @@ export default class Darkness extends Room {
     const shot = this.fired;
     this.loop('rooms/house_tone.mp3', 0.16 + shot * 0.012, TONE_FADE);
     if (shot >= 2) this.loop('rooms/dream_drone_low.mp3', 0.05 + shot * 0.012, TONE_FADE);
-    if (shot >= 5 && shot < 8) this.loop('rooms/dream_drone_glass.mp3', 0.035, TONE_FADE);
+    if (shot >= 5) this.loop('rooms/dream_drone_glass.mp3', 0.035, TONE_FADE);
     // someone stands by you from the worst one on, and is still there after each flash
     if (shot >= 5 && shot < 7) this.loop('rooms/breath_beside.mp3', 0.1 + (shot - 5) * 0.09, TONE_FADE + 2, shot === 5 ? -0.9 : 0.9);
-    if (shot === 8) this.loop('rooms/breath_other.mp3', 0.14, 7, 0.9);
   }
 
-  /** All of it stops at once: the forks too. */
-  private endDinner(): void {
-    if (!this.dinnerOn) return;
-    this.dinnerOn = false;
-    this.sound.stopAll(0.06);
-    this.play('rooms/fork_down_1.mp3', 0.3, 0, 0.25, 1600);
-  }
-
-  /** The whine they know, but this one is not theirs: their lamp is dark, and it does not stop where it stopped. */
+  /** The whine they know, but this one is not theirs: their lamp is dark, and it is already high when it is heard. */
   private theirCharge(): void {
     this.sound.stopAll(0.2);
-    this.toneOn = true;
-    this.play('rooms/flash_charge_long.mp3', 0.12, 0, 0.2, 7000);
+    this.play('rooms/flash_charge_long.mp3', 0.12, 0, 0.2, 7000, 1, WHINE.long - (THEIRS.hush - THEIRS.charge));
   }
 
   /** A sound from a place in the room: its side goes by where the viewer is looking now. */
@@ -1553,15 +1637,15 @@ export default class Darkness extends Room {
   private fire(shot: number, frame: RoomFrame): void {
     this.fired = shot;
     this.since = 0;
-    this.charge = RECHARGE[shot - 1];
+    this.charge = RECHARGE;
     this.cue = 0;
     this.aim(frame.view, shot);
     this.arrange(shot, frame);
+    this.placeOutlines();
     this.movingShadows = true;
     this.hint(null);
     this.toneOn = false;
     this.hushed = false;
-    this.dinnerOn = false;
     this.sound.stopAll(0.05);
     this.play(POPS[shot % POPS.length], 0.6);
     this.fear = FEAR[shot];
@@ -1577,8 +1661,8 @@ export default class Darkness extends Room {
     for (const leaf of this.leaves) ((leaf.children[0] as Mesh).material as MeshStandardMaterial).color.setScalar(DOOR_NINTH);
     this.aim(frame.view, 0);
     this.arrange(0, frame);
+    this.placeOutlines();
     this.movingShadows = true;
-    this.toneOn = false;
     this.fear = FEAR[0];
     this.sound.stopAll(0.03);
     this.play('rooms/flash_powder.mp3', 0.6, 0, 0.3);
@@ -1611,7 +1695,8 @@ export default class Darkness extends Room {
     let due = 0;
     while (due < FALLBACK.length && FALLBACK[due] <= seconds) due++;
     if (due > this.fired) this.fire(due, frame);
-    if (!this.ninthDone && seconds >= NINTH) this.fireNinth(frame);
+    // the last frame is spent, by the viewer or by the room: theirs follows
+    if (!this.ninthDone && this.fired === 8 && (this.since >= THEIRS.fire || seconds >= THEIRS.latest)) this.fireNinth(frame);
 
     // the picture
     const shot = this.ninthDone ? 0 : this.fired;
@@ -1640,6 +1725,7 @@ export default class Darkness extends Room {
     const cooling = smootherstep(range(0.4, 2.6, this.since));
     this.air.grade.warmth = -0.1 * cooling;
     this.air.grade.tint = -0.02 + 0.14 * cooling;
+    this.keepInTheDark(frame, seconds, dt, hold);
 
     // the camera's own small lights
     if (this.since >= DIAL.tick) {
@@ -1655,35 +1741,86 @@ export default class Darkness extends Room {
     const glow = open * DIAL.glow * smootherstep(range(0.3, 2.2, seconds)) * (this.since === Infinity ? 1 : smootherstep(range(DIAL.back[0], DIAL.back[1], this.since)));
     this.dialLight.color.setRGB(glow, glow * 0.86, glow * 0.62);
     const armed = seconds >= 5 && this.fired < 8 && !this.ninthDone;
-    const neon = open * (!armed ? 0 : this.charge <= 0 ? NEON.ready : NEON.charging * (1 - this.charge / Math.max(RECHARGE[Math.max(0, this.fired - 1)], 0.1)));
+    const neon = open * (!armed ? 0 : this.charge <= 0 ? NEON.ready : NEON.charging * (1 - this.charge / (this.fired === 0 ? FIRST_CHARGE.seconds : RECHARGE)));
     this.neon.color.setRGB(neon, neon * 0.3, neon * 0.06);
 
     // what is heard between the shots
     if (this.whineDue && this.since >= WHINE_AFTER) {
       this.whineDue = false;
-      // the battery is dying: the last ones take longer, and the whine has dropped with it
-      const whole = RECHARGE[this.fired - 1];
-      if (whole > 4) this.play('rooms/flash_charge_long.mp3', 0.1, 0, 0, 0, 1, WHINE_AFTER);
-      else this.play('rooms/flash_charge.mp3', 0.14, 0, 0, 0, 2.6 / whole, (WHINE_AFTER * 2.6) / whole);
+      // the battery is dying: every charge now takes the whole of the long whine
+      const rate = WHINE.long / RECHARGE;
+      this.play('rooms/flash_charge_long.mp3', 0.1, 0, 0, 0, rate, WHINE_AFTER * rate);
     }
-    if (!this.ninthDone) {
+    if (this.fired < 8) {
       if (!this.toneOn && this.since > TONE_BACK) this.toneUp();
       const row = BETWEEN[this.fired];
       const clockOf = this.fired === 0 ? seconds : this.since;
-      while (this.cue < row.length && row[this.cue].at <= clockOf) {
-        if (seconds < DINNER_ENDS || this.fired < 8) this.heard(row[this.cue], frame);
-        this.cue++;
-      }
-      // the last frame spent early, and time left: someone has started on the dinner
-      if (this.fired === 8 && !this.dinnerOn && this.since > DINNER_FROM && seconds < DINNER_ENDS - 6) {
-        this.dinnerOn = true;
-        this.loop('rooms/cutlery_far.mp3', 0.13, 5, 0, 0.35, 1000);
-      }
-      // silence the instant before one that fires by itself
-      if (this.fired < 8 && !this.hushed && FALLBACK[this.fired] - seconds < HUSH && FALLBACK[this.fired] - seconds > 0) {
+      // silence the instant before one that fires by itself, and nothing breaks it
+      if (!this.hushed && FALLBACK[this.fired] - seconds < HUSH) {
         this.hushed = true;
         this.sound.stopAll(0.5);
       }
+      while (this.cue < row.length && row[this.cue].at <= clockOf) {
+        if (!this.hushed) this.heard(row[this.cue], frame);
+        this.cue++;
+      }
+    } else if (!this.ninthDone) {
+      if (this.ending === 0 && this.since >= THEIRS.charge) {
+        this.ending = 1;
+        this.theirCharge();
+      }
+      if (this.ending === 1 && this.since >= THEIRS.hush) {
+        this.ending = 2;
+        this.sound.stopAll(0.12);
+      }
+    } else {
+      if (this.ending < 3 && this.since >= AFTER_NINTH.print) {
+        this.ending = 3;
+        this.play('rooms/polaroid_motor.mp3', 0.3, 0, 0.15);
+      }
+      if (this.ending === 3 && this.since >= AFTER_NINTH.line) {
+        this.ending = 4;
+        this.say({ tr: 'Dokuzuncuyu sen çekmedin.', en: 'You did not take the ninth.' }, 4);
+        // nothing is left to happen: the room cannot end itself, but it lets the viewer run it out
+        this.control.hurry = HURRY_OUT;
+      }
+      // someone has sat down to the dinner you saw, somewhere in the dark
+      if (this.ending === 4 && this.since >= AFTER_NINTH.dinner) {
+        this.ending = 5;
+        this.loop('rooms/cutlery_far.mp3', 0.13, 4, 0, 0.35, 1000);
+      }
+    }
+  }
+
+  /** Between flashes the eye keeps one thing of the last picture: the sheet nearest to it in the picture, as a faint cold outline. */
+  private keepInTheDark(frame: RoomFrame, seconds: number, dt: number, hold: number): void {
+    const O = OUTLINE;
+    const dark = this.since === Infinity ? smootherstep(range(O.first[0], O.first[1], seconds)) : smootherstep(range(O.after[0] * hold, O.after[1] * hold, this.since));
+    const view = frame.view;
+    const half = Math.atan(Math.tan((view.fov * Math.PI) / 360) * view.aspect) * O.frame;
+    const yaw = this.gazeOf(view);
+    const e = frame.eye;
+    let pick: Outline | null = null;
+    let best = Infinity;
+    for (const o of this.outlines) {
+      if (!o.shown.visible) continue;
+      const dx = o.center.x - e.x;
+      const dz = o.center.z - e.z;
+      const turn = Math.atan2(-dx, -dz) - yaw;
+      const off = Math.abs(Math.atan2(Math.sin(turn), Math.cos(turn)));
+      // in the picture the nearest; out of it, the one nearest to coming into it
+      const score = off < half ? Math.hypot(dx, dz) : OUT_OF_PICTURE + off;
+      if (score < best) {
+        best = score;
+        pick = o;
+      }
+    }
+    const step = dt * O.ease;
+    for (const o of this.outlines) {
+      o.level = !o.shown.visible ? 0 : o === pick ? Math.min(1, o.level + step) : Math.max(0, o.level - step);
+      const v = o.level * dark * O.strength;
+      o.color.setRGB(O.color[0] * v, O.color[1] * v, O.color[2] * v);
+      for (const copy of o.copies) copy.visible = v > 0;
     }
   }
 }

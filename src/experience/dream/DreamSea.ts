@@ -1173,7 +1173,7 @@ export class DreamSea {
 
     const P = SUN.poi;
     const [x, y, z] = inSea(SUN.at);
-    kit.poi({ position: new Vector3(x, y + P.lift, z), radius: P.radius, zoom: P.zoom, reach: P.reach, memory: 'sun' });
+    kit.poi({ position: new Vector3(x, y + P.lift, z), radius: P.radius, zoom: P.zoom, reach: P.reach });
   }
 
   /** Lamp posts standing in the oil, a little sunk and leaning, flickering; a halo around each lamp. Returns their halos. */
@@ -1275,7 +1275,7 @@ export class DreamSea {
 
     const P = M.poi;
     const [x, y, z] = inSea(M.at);
-    kit.poi({ position: new Vector3(x, y + P.lift, z), radius: P.radius, zoom: P.zoom, reach: P.reach, memory: 'moon' });
+    kit.poi({ position: new Vector3(x, y + P.lift, z), radius: P.radius, zoom: P.zoom, reach: P.reach });
   }
 
   /**
@@ -1383,7 +1383,7 @@ export class DreamSea {
     this.root.add(figure);
     const P = F.poi;
     const [x, y, z] = inSea(walkConfig.ending.lens.position);
-    kit.poi({ position: new Vector3(x, y, z), radius: P.radius, zoom: P.zoom, reach: P.reach, active: () => figure.visible, memory: 'photographer' });
+    kit.poi({ position: new Vector3(x, y, z), radius: P.radius, zoom: P.zoom, reach: P.reach, active: () => figure.visible });
     return figure;
   }
 

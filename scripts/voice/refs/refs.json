@@ -1,0 +1,32 @@
+{
+ "narrator_tr": {
+  "file": "narrator_tr.wav",
+  "text": "Ben hep buradaydım, çekmecede, mektupların altında. Sofrayı, penceredeki ışığı ve sana dönen her yüzü hatırlıyorum. Otur. Sana nasıl bittiğini anlatacağım.",
+  "designed_from": "A mature woman in her fifties, low warm alto voice, calm, unhurried, intimate, soft-spoken, close to the microphone, telling a bedtime story"
+ },
+ "narrator_en": {
+  "file": "narrator_en.wav",
+  "text": "I have been here all along, in the drawer, under the letters. I remember the table, the light in the window, and every face that turned to look at you. Sit down. I will tell you how it ends.",
+  "designed_from": "A mature woman in her fifties, low warm alto voice, calm, unhurried, intimate, soft-spoken, close to the microphone, telling a bedtime story"
+ },
+ "house_tr": {
+  "file": "house_tr.wav",
+  "text": "Ben hep buradaydım, çekmecede, mektupların altında. Sofrayı, penceredeki ışığı ve sana dönen her yüzü hatırlıyorum. Otur. Sana nasıl bittiğini anlatacağım.",
+  "designed_from": "A mature woman in her fifties, low warm alto voice, calm, unhurried, intimate, soft-spoken, close to the microphone, telling a bedtime story"
+ },
+ "house_en": {
+  "file": "house_en.wav",
+  "text": "I have been here all along, in the drawer, under the letters. I remember the table, the light in the window, and every face that turned to look at you. Sit down. I will tell you how it ends.",
+  "designed_from": "A mature woman in her fifties, low warm alto voice, calm, unhurried, intimate, soft-spoken, close to the microphone, telling a bedtime story"
+ },
+ "dream_tr": {
+  "file": "dream_tr.wav",
+  "text": "Ben hep buradaydım, çekmecede, mektupların altında. Sofrayı, penceredeki ışığı ve sana dönen her yüzü hatırlıyorum. Otur. Sana nasıl bittiğini anlatacağım.",
+  "designed_from": "A middle-aged man with a warm, deep baritone voice, calm, slow, intimate, telling a bedtime story"
+ },
+ "dream_en": {
+  "file": "dream_en.wav",
+  "text": "I have been here all along, in the drawer, under the letters. I remember the table, the light in the window, and every face that turned to look at you. Sit down. I will tell you how it ends.",
+  "designed_from": "A middle-aged man with a warm, deep baritone voice, calm, slow, intimate, telling a bedtime story"
+ }
+}

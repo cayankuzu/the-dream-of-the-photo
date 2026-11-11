@@ -151,6 +151,24 @@ Freesound uploaders who ask for or welcome a credit, in the rooms: 20108 (air ov
 
 CC0 needs no credit; these are courtesies. Some uploaders only ask to hear where a sound went, by a comment on its page (it takes a Freesound login, so nobody has done it yet): 828623 (c64cosmin), 417537 (danthaiwang), 320913 (mickdow), 634746 (TravieDoodle), 696021 (Funky_Audio), 547976 (trijohnstone), 524807 (SamuelGremaud), 172411 (EagleStealthTeam), 459970 (florianreichelt), 574752 (ericnorcross81), 418487 (dersinnsspace), 719430 (BaggoNotes). felix.blume (684518, 447375, 639332, 217884, 146436) and klankbeeld (611197) invite comments and ratings. Worth keeping a copy of the page: 639332 and 509477 mention faint voices or sparse people outside the stretches used (the spans used were checked by spectrogram, not by ear); 848923 says it was composed of its uploader's recordings in a shopping mall, pitched down, with reverb; 451914 mentions distant noises, of which only the bass under 350 Hz is used; 185059 (whisper_gabble): its uploader does not consent to training generative models; playing it is fine, do not feed it to any such pipeline. RutgerMuller (51153, 104013, 104016, 104019, 104351, 484307) asks that his unedited sounds are not sold on, and that a credit does not read as a collaboration: everything here is cut and filtered.
 
+## The score: VSCO-2 Community Edition (CC0)
+
+The lullaby, the low note under each evening's title and the strings that break off (`public/audio/score/theme_*.mp3`,
+`card.mp3`, `breakoff.mp3`) are rendered by `scripts/build-score.py` from string, contrabass and upright piano samples of
+the VSCO-2 Community Edition by Versilian Studios (Sam Gossner) and Ivy Audio (Simon Dalzell),
+https://github.com/sgossner/VSCO-2-CE (commit 440300901dfe9275fd84e0b7763af1f8443ae62e), dedicated to the public domain
+under CC0 1.0. Its readme asks, as a courtesy and not a condition, for this credit and that the raw samples are not sold;
+they are not shipped. The music box is synthesized; the tune was written for this piece. `cold.mp3` and `home.mp3` are
+put together from the piece's own CC0 recordings under `public/audio/rooms`.
+
+## The voices: synthetic speech
+
+Every spoken line (`public/audio/voice/`) is synthetic: rendered on this machine by `scripts/voice/build-voice.py` with
+Resemble AI's Chatterbox Multilingual (MIT, https://github.com/resemble-ai/chatterbox; its output carries Resemble's
+inaudible Perth watermark), checked by Whisper large-v3 through faster-whisper (MIT). The three speakers are voices
+designed from a written description with OpenBMB's VoxCPM2 (Apache-2.0, https://huggingface.co/openbmb/VoxCPM2): no
+real person's voice was recorded or copied (`scripts/voice/refs/refs.json` keeps the descriptions).
+
 ## CC0 assets: Poly Haven, ambientCG, Freesound
 
 Every model, material and HDRI not covered by the sections above, and not made for this piece, comes from

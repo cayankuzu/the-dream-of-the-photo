@@ -53,7 +53,6 @@ export const assets: RoomAssets = {
     'rooms/bus_idle.mp3',
     'rooms/bus_door_open.mp3',
     'rooms/dog_growl_nearer.mp3',
-    'rooms/coat_move.mp3',
   ],
 };
 
@@ -61,18 +60,35 @@ type V3 = readonly [number, number, number];
 
 const TAU = Math.PI * 2;
 
-/** The beats (s into the room). */
-const HEADLIGHTS_FROM = 3.8;
-const BUS_STOPS = 8;
-const DOOR_OPENS = 10;
+/**
+ * The beats (s into the room). The narrator speaks at 8.5 while the door stands open: nothing loud starts
+ * between 7 and 10.
+ */
+const HEADLIGHTS_FROM = 1.8;
+const BUS_STOPS = 6;
+const DOOR_OPENS = 6.5;
 const DOOR_TAKES = 1.15;
-const TURN_AT = 12;
-const TURN_TAKES = REDUCED_MOTION ? 1.1 : 0.72;
-const SHUTTER_AT = 13;
-/** If the viewer is looking elsewhere at 13, the picture waits for them until this second. */
-const SHUTTER_LATEST = 14.1;
-const LIGHTS_OUT = 13.5;
-const CUT = 15;
+const DOOR_CLOSES = 10.9;
+const DOOR_SHUTS = 0.6;
+/** It pulls away along the road to the right: when, how hard (m/s/s: its rear has passed the last dog's place by GROWL_BEHIND), and how far it is drawn (m). */
+const LEAVE_FROM = 11.1;
+const LEAVE_PULL = 6.2;
+const LEAVE_FAR = 40;
+/** How much of the headlights' glow in the fog comes back while it goes (share). */
+const LEAVE_GLOW = 0.6;
+/** The growl is behind you, close; the kerb across the road is empty. */
+const GROWL_BEHIND = 13;
+/** The growl coming nearer: where its one-shot is started (s into the file), and where in the file its whole chest is (s). */
+const NEARER_FROM = 2.5;
+const NEARER_CHEST = 5.5;
+/** Where in its file the far engine arrives (s). */
+const APPROACH_ARRIVES = 7;
+/** Where the door is, left to right in the sound (-1..1). */
+const DOOR_PAN = 0.12;
+const SHUTTER_AT = 14.2;
+/** If the viewer is looking elsewhere then, the picture waits for them until this second. */
+const SHUTTER_LATEST = 15.2;
+const CUT = 15.9;
 
 /** The eye: last in the line and a little to its left (m); where it is along +Z at each moment; its height; lens width (deg). */
 const EYE_X = -1.3;
@@ -116,16 +132,11 @@ const CLIP_AT = 0.2;
 const COAT_TINT = 0x3b4046;
 const COAT_BLEACH = 0.1;
 const SACK_TINT = 0xd3cab8;
-/** The sacks hold a little light of their own, so that a hole in one always reads. */
+/** The sacks hold a little light of their own, so that the backs of the heads read against the fog. */
 const SACK_GLOW = 0.2;
-/** What a sack's hole for a face holds once it turns to you: dim cloth inside (linear), lighter where its sides fall away, and how dark it is straight in, as a share of that. */
-const HOLLOW_FILL: readonly [number, number, number] = [0.034, 0.03, 0.026];
-const HOLLOW_DEEP = 0.35;
 /** The skirt of the coats (m above the feet, before scale). */
 const COAT_TOP = 0.92;
 const COAT_HEM = 0.46;
-/** Where the heads come to rest: a very small tilt, the same on all of them (rad). */
-const HEAD_ROLL = 0.07;
 
 /** The shelter and the empty bench behind the queue (m). */
 const SHELTER: V3 = [3.3, 0, 1.4];
@@ -149,8 +160,8 @@ const FAR_LOOKS_FROM_Z = 8.4;
 const NEAR_DOG_X = [-5.5, -4.1, -2.7, -1.3, 0.1, 1.5, 2.9];
 const NEAR_DOG_Z = 14.4;
 const NEAR_LOOKS_FROM_Z = 8.2;
-/** Behind you they do not come; they are only nearer each time (s, m further than NEAR_DOG_Z). */
-const NEAR_STEPS: readonly (readonly [number, number])[] = [[9, 9], [9.5, 4.5], [10, 0], [LIGHTS_OUT, -0.75]];
+/** Behind you they do not come; they are only nearer each time (s, m further than NEAR_DOG_Z). They are there once the bus hides the kerb. */
+const NEAR_STEPS: readonly (readonly [number, number])[] = [[BUS_STOPS + 1, 9], [9.5, 4.5], [11.5, 0], [GROWL_BEHIND, -0.75]];
 const EYE_SIZE = 0.13;
 const EYE_LIGHT: V3 = [1.7, 1.45, 0.62];
 
@@ -174,7 +185,7 @@ const BUS_SKEW = 0.0255;
 const BUS_HILL = 7;
 const BUS_DIM = 0.08;
 /** Its way along a curve, as (s, share of the curve), and the curve in plan. */
-const BUS_S = [HEADLIGHTS_FROM, 5, 5.8, 6.4, 7, 7.6, BUS_STOPS];
+const BUS_S = [HEADLIGHTS_FROM, 3, 3.8, 4.4, 5, 5.6, BUS_STOPS];
 const BUS_U = [0, 0.2, 0.42, 0.72, 0.9, 0.985, 1];
 const BUS_P0 = [-7, -36] as const;
 const BUS_P1 = [-13, -12] as const;
@@ -185,8 +196,6 @@ const HEAD_SPOT = 95;
 const HEAD_ANGLE = 22;
 const BUS_LIGHT = 0xbde8cf;
 const BUS_LIGHT_POWER = 2.6;
-/** What is left of the light in it after it goes out. */
-const BUS_DARK = 0.035;
 
 /** Inside the bus, in the model's meters: its cabin, the band of windows that is cut open, the seats. */
 const CABIN_FLOOR = 0.74;
@@ -538,15 +547,15 @@ function deadTree(): BufferGeometry {
 /**
  * The bus stop. A rank of people with sacks for heads stands with its back to you, facing the road, under the
  * one lamp, where white hair is coming down. Between their coats, across the road, seven dogs sit in a row and
- * look at you. The bus that comes has the same person in every window, and it stops and nobody gets on. All the
- * heads come round on bodies that stay as they are. Then it is dark behind the windows, and the dogs are not
- * across the road anymore.
+ * look at you. The bus that comes has the same person in every window; it stops in front of them, its door stands
+ * open, and nobody gets on. Nobody turns. It leaves, and where the dogs sat there is nothing: the growl is behind
+ * you now.
  */
 export default class BusStop extends Room {
   readonly keys: readonly RoomKey[] = [
     { t: 0, at: [EYE_X, EYE_Y, EYE_Z[0]], yaw: 0, pitch: EYE_PITCH, fov: EYE_FOV },
     { t: 5 / 16, at: [EYE_X, EYE_Y, EYE_Z[1]], yaw: 0, pitch: EYE_PITCH, fov: EYE_FOV },
-    { t: TURN_AT / 16, at: [EYE_X, EYE_Y, EYE_Z[2]], yaw: 0, pitch: EYE_PITCH - 0.2, fov: EYE_FOV - 0.6 },
+    { t: DOOR_CLOSES / 16, at: [EYE_X, EYE_Y, EYE_Z[2]], yaw: 0, pitch: EYE_PITCH - 0.2, fov: EYE_FOV - 0.6 },
     { t: SHUTTER_AT / 16, at: [EYE_X, EYE_Y, EYE_Z[3]], yaw: 0, pitch: EYE_PITCH - 0.2, fov: EYE_FOV - 1 },
     { t: 1, at: [EYE_X, EYE_Y, EYE_Z[4]], yaw: 0, pitch: EYE_PITCH - 0.2, fov: EYE_FOV - 1 },
   ];
@@ -584,20 +593,12 @@ export default class BusStop extends Room {
   private doorGlow!: DreamLight;
   private nearFill!: DreamLight;
 
-  private headMesh!: InstancedMesh;
-  private readonly rankBase: Matrix4[] = [];
-  private readonly turnTo: number[] = [];
-  private neck: V3 = [0, 1.45, 0];
-  private turnedTo = -1;
-
+  private readonly farRow = new Group();
   private readonly nearRow = new Group();
   private headPoints!: Points;
-  private readonly glowing: { m: MeshBasicMaterial; base: Color }[] = [];
-  private boardMaterial!: MeshStandardMaterial;
   private leafA!: Group;
   private leafB!: Group;
   private spill!: Mesh;
-  private levelNow = -1;
 
   private lensHair!: Mesh;
   private shot = false;
@@ -607,11 +608,6 @@ export default class BusStop extends Room {
   private bedIdle: RoomVoice | null = null;
   private bedGrowl: RoomVoice | null = null;
 
-  private readonly mA = new Matrix4();
-  private readonly mB = new Matrix4();
-  private readonly mC = new Matrix4();
-  private readonly mD = new Matrix4();
-  private readonly mE = new Matrix4();
   private readonly at = new Vector3();
 
   constructor(ctx: RoomContext) {
@@ -733,7 +729,7 @@ export default class BusStop extends Room {
     this.blots([[BENCH[0], BENCH[2], 1.35], [LAMP[0], LAMP[2], 0.42]], 0.55, this.root);
   }
 
-  /** Coats from one body, sacks from another, and the sacks free to turn on their own. */
+  /** Coats from one body, sacks from another: the sack's head sits better on a coat than the coat's own. */
   private buildQueue(): void {
     const figures = this.kit.figures;
     const bodies = figures.crowd({ avatar: 'figure_man', clip: CLIP, time: CLIP_AT, face: 'blank', white: false, tint: COAT_TINT, bleach: COAT_BLEACH }, RANK_N);
@@ -747,38 +743,12 @@ export default class BusStop extends Room {
       if (!/head/.test(name(part))) sacks.root.remove(part);
       else part.castShadow = true;
     }
-    this.headMesh = sacks.root.children[0] as InstancedMesh;
-    const sack = (this.headMesh.material as MeshStandardMaterial).clone();
+    const heads = sacks.root.children[0] as InstancedMesh;
+    const sack = (heads.material as MeshStandardMaterial).clone();
     sack.emissive.set(0xffffff);
     sack.emissiveMap = sack.map;
     sack.emissiveIntensity = SACK_GLOW;
-    // the hole is not the night behind it: the inside of the sack shows, darkest straight in
-    const sackBefore = sack.onBeforeCompile;
-    sack.onBeforeCompile = (shader, renderer) => {
-      sackBefore.call(sack, shader, renderer);
-      shader.fragmentShader = shader.fragmentShader.replace(
-        '#include <emissivemap_fragment>',
-        `#include <emissivemap_fragment>
-        totalEmissiveRadiance += vec3(${HOLLOW_FILL.map((c) => c.toFixed(4)).join(', ')}) * (1.0 - smoothstep(0.002, 0.012, max(emissiveColor.r, max(emissiveColor.g, emissiveColor.b)))) * mix(1.0, ${HOLLOW_DEEP.toFixed(3)}, abs(dot(normal, normalize(vViewPosition))));`,
-      );
-    };
-    sack.customProgramCacheKey = () => 'busstop-sack-hollow';
-    this.headMesh.material = sack;
-
-    // the axle a head turns on: the middle of the ring where its neck begins
-    const neckAt = this.headMesh.geometry.getAttribute('position');
-    let low = Infinity;
-    for (let i = 0; i < neckAt.count; i++) low = Math.min(low, neckAt.getY(i));
-    let sumX = 0;
-    let sumZ = 0;
-    let n = 0;
-    for (let i = 0; i < neckAt.count; i++) {
-      if (neckAt.getY(i) > low + 0.05) continue;
-      sumX += neckAt.getX(i);
-      sumZ += neckAt.getZ(i);
-      n++;
-    }
-    this.neck = [sumX / n, low, sumZ / n];
+    heads.material = sack;
 
     const skirtMaterial = new MeshStandardMaterial({ color: 0x15171a, roughness: 0.92 });
     const skirt = coatSkirt();
@@ -788,16 +758,13 @@ export default class BusStop extends Room {
     const places: [number, number, number][] = [];
     const rot = new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), Math.PI);
     const scale = new Vector3().setScalar(RANK_SCALE);
-    const eyeZ = EYE_Z[2];
     for (let i = 0; i < RANK_N; i++) {
       const z = RANK_Z + i * RANK_STEP;
       bodies.set(i, RANK_X, 0, z, Math.PI, RANK_SCALE);
       sacks.set(i, RANK_X, 0, z, Math.PI, RANK_SCALE);
       const base = new Matrix4().compose(new Vector3(RANK_X, 0, z), rot, scale);
-      this.rankBase.push(base);
       skirtParts.push(skirt.clone().applyMatrix4(base));
       hairParts.push(hairOnCoat.clone().applyMatrix4(base));
-      this.turnTo.push(Math.atan2(EYE_X - RANK_X, eyeZ - z) - Math.PI);
       places.push([RANK_X, z, 0.62]);
     }
     bodies.commit();
@@ -844,10 +811,10 @@ export default class BusStop extends Room {
     return g;
   }
 
-  /** Seven sit across the road. Seven more wait in the fog behind you, and are nearer each time. */
+  /** Seven sit across the road until the bus hides them. Seven more wait in the fog behind you, and are nearer each time. */
   private buildPack(): void {
-    const eyes = this.glintMaterial(1);
-    this.root.add(this.dogRow(FAR_DOG_X, FAR_DOG_Z, FAR_LOOKS_FROM_Z, FAR_DOG_SIZE, this.root, eyes));
+    this.root.add(this.farRow);
+    this.farRow.add(this.dogRow(FAR_DOG_X, FAR_DOG_Z, FAR_LOOKS_FROM_Z, FAR_DOG_SIZE, this.farRow, this.glintMaterial(1)));
     this.root.add(this.nearRow);
     this.nearRow.visible = false;
     this.nearRow.add(this.dogRow(NEAR_DOG_X, NEAR_DOG_Z, NEAR_LOOKS_FROM_Z, NEAR_DOG_SIZE, this.nearRow, this.glintMaterial(0)));
@@ -1065,9 +1032,7 @@ export default class BusStop extends Room {
   }
 
   private glow(color: number, map?: CanvasTexture): MeshBasicMaterial {
-    const m = new MeshBasicMaterial({ color, map: map ?? null });
-    this.glowing.push({ m, base: m.color.clone() });
-    return m;
+    return new MeshBasicMaterial({ color, map: map ?? null });
   }
 
   private buildBus(): void {
@@ -1159,7 +1124,6 @@ export default class BusStop extends Room {
     const tube = new Mesh(new BoxGeometry(0.05, 0.035, 10), this.glow(0xffffff));
     tube.position.set(CABIN_FAR - 0.08, 2.43, 0);
     (tube.material as MeshBasicMaterial).color.setRGB(2.2, 2.5, 2.2);
-    this.glowing[this.glowing.length - 1].base.copy((tube.material as MeshBasicMaterial).color);
     shell.add(tube);
 
     const poleParts: BufferGeometry[] = [];
@@ -1248,7 +1212,6 @@ export default class BusStop extends Room {
     );
     board.mesh.position.set(-1.13, 2.34, 2.7);
     board.mesh.rotation.y = -Math.PI / 2;
-    this.boardMaterial = board.mesh.material as MeshStandardMaterial;
     shell.add(board.mesh);
 
     // the dark on the road under it
@@ -1386,27 +1349,28 @@ export default class BusStop extends Room {
       this.bedFog = sound.bed('rooms/road_fog.mp3', { gain: 0.25, lowpass: 1500, fade: 1.2 });
       this.bedWind = sound.bed('rooms/night_wind_far.mp3', { gain: 0.09, lowpass: 1200, fade: 1.5 });
     });
-    this.beat(1, () => sound.play('rooms/bus_approach.mp3', { gain: 0.4, pan: -0.55 }).pan(0.05, 6.8));
+    // the engine in the file arrives seven seconds after it begins: started a second in, it arrives as the bus stops
+    this.beat(0, () => sound.play('rooms/bus_approach.mp3', { gain: 0.4, pan: -0.55, offset: APPROACH_ARRIVES - BUS_STOPS }).pan(0.05, BUS_STOPS));
     this.beat(BUS_STOPS, () => {
       sound.play('rooms/air_brakes.mp3', { gain: 0.5, pan: 0.05 });
-      sound.play('rooms/dog_growl_nearer.mp3', { gain: 0.6 });
       this.bedIdle = sound.bed('rooms/bus_idle.mp3', { gain: 0.2, pan: 0.05, fade: 0.8 });
     });
-    this.beat(9.3, () => sound.play('rooms/air_brakes_2.mp3', { gain: 0.45, pan: 0.2 }));
-    this.beat(DOOR_OPENS, () => sound.play('rooms/bus_door_open.mp3', { gain: 0.5, pan: 0.15 }));
-    // everything but the buzz and the growl has stopped by the moment they turn
-    this.beat(TURN_AT - 0.65, () => {
-      this.bedIdle?.gain(0, 0.5);
-      this.bedFog?.gain(0, 0.5);
-      this.bedWind?.gain(0, 0.5);
+    this.beat(DOOR_OPENS, () => sound.play('rooms/bus_door_open.mp3', { gain: 0.5, pan: DOOR_PAN }));
+    // the same growl coming nearer, still dull where it starts, under the narrator; its whole chest is behind you at GROWL_BEHIND
+    this.beat(GROWL_BEHIND - (NEARER_CHEST - NEARER_FROM), () => sound.play('rooms/dog_growl_nearer.mp3', { gain: 0.6, offset: NEARER_FROM }));
+    // the door shuts with the breath it opened with, a little slower
+    this.beat(DOOR_CLOSES, () => sound.play('rooms/bus_door_open.mp3', { gain: 0.42, pan: DOOR_PAN, rate: 0.9 }));
+    // it pulls away, and everything but the buzz and the growl goes with it
+    this.beat(LEAVE_FROM, () => {
+      sound.play('rooms/air_brakes_2.mp3', { gain: 0.45, pan: 0.2 });
+      this.bedIdle?.rate(1.45, 1.6);
+      this.bedIdle?.pan(0.9, 1.9);
+      this.bedIdle?.gain(0, 1.9);
+      this.bedFog?.gain(0, 1.6);
+      this.bedWind?.gain(0, 1.6);
     });
-    this.beat(TURN_AT, () => {
-      sound.play('rooms/coat_move.mp3', { gain: 0.4, pan: 0.05, rate: 0.94, reverb: 0.1 });
-      sound.play('rooms/coat_move.mp3', { gain: 0.4, pan: 0.3, rate: 1, reverb: 0.1 });
-      sound.play('rooms/coat_move.mp3', { gain: 0.4, pan: 0.62, rate: 1.05, reverb: 0.1 });
-    });
-    this.beat(LIGHTS_OUT, () => {
-      this.bedGrowl?.gain(0.07, 1.6);
+    this.beat(GROWL_BEHIND, () => {
+      this.bedGrowl?.gain(0, 1.2);
       sound.bed('rooms/dog_growl_close.mp3', { gain: 0.3, fade: 0.25 });
     });
     this.beat(CUT, () => sound.stopAll(0.02));
@@ -1425,15 +1389,18 @@ export default class BusStop extends Room {
     this.pixel.value = PIXEL_FACTOR / Math.max(240, window.innerHeight);
     for (const c of this.clocks) c.value = frame.time;
 
-    // the bus comes down the curve, its lights ahead of it
-    this.bus.visible = s >= HEADLIGHTS_FROM - 0.2;
+    // the bus comes down the curve, its lights ahead of it, and stops; then it pulls away along the road, the way the curve ends
+    const leaving = Math.max(0, s - LEAVE_FROM);
+    const away = 0.5 * LEAVE_PULL * leaving * leaving;
+    this.bus.visible = s >= HEADLIGHTS_FROM - 0.2 && away < LEAVE_FAR;
+    const here = this.bus.visible ? 1 : 0;
     const u = this.busTrack.at(Math.min(BUS_STOPS, Math.max(HEADLIGHTS_FROM, s)));
     const v = 1 - u;
     const ca = v * v * v;
     const cb = 3 * v * v * u;
     const cc = 3 * v * u * u;
     const cd = u * u * u;
-    const busX = ca * BUS_P0[0] + cb * BUS_P1[0] + cc * BUS_P2[0] + cd * BUS_P3[0];
+    const busX = ca * BUS_P0[0] + cb * BUS_P1[0] + cc * BUS_P2[0] + cd * BUS_P3[0] + away;
     const busZ = ca * BUS_P0[1] + cb * BUS_P1[1] + cc * BUS_P2[1] + cd * BUS_P3[1];
     const dx = 3 * v * v * (BUS_P1[0] - BUS_P0[0]) + 6 * v * u * (BUS_P2[0] - BUS_P1[0]) + 3 * u * u * (BUS_P3[0] - BUS_P2[0]);
     const dz = 3 * v * v * (BUS_P1[1] - BUS_P0[1]) + 6 * v * u * (BUS_P2[1] - BUS_P1[1]) + 3 * u * u * (BUS_P3[1] - BUS_P2[1]);
@@ -1444,24 +1411,18 @@ export default class BusStop extends Room {
     const sinH = Math.sin(heading);
     const cosH = Math.cos(heading);
 
-    const level = 1 - ramp(LIGHTS_OUT, LIGHTS_OUT + 0.2, s) * (1 - BUS_DARK);
-    if (level !== this.levelNow) {
-      this.levelNow = level;
-      for (const g of this.glowing) g.m.color.copy(g.base).multiplyScalar(level);
-      this.boardMaterial.emissiveIntensity = 1.5 * level;
-    }
-    const near = ramp(HEADLIGHTS_FROM + 2, BUS_STOPS - 0.8, s);
-    this.placeBusLight(this.busGlow[0], -1.9, 1.15, -2.2, busX, busY, busZ, sinH, cosH, BUS_LIGHT_POWER * near * level);
-    this.placeBusLight(this.busGlow[1], -1.9, 1.15, 2.4, busX, busY, busZ, sinH, cosH, BUS_LIGHT_POWER * near * level);
+    const near = ramp(HEADLIGHTS_FROM + 2, BUS_STOPS - 0.8, s) * here;
+    this.placeBusLight(this.busGlow[0], -1.9, 1.15, -2.2, busX, busY, busZ, sinH, cosH, BUS_LIGHT_POWER * near);
+    this.placeBusLight(this.busGlow[1], -1.9, 1.15, 2.4, busX, busY, busZ, sinH, cosH, BUS_LIGHT_POWER * near);
 
-    // the door
-    const open = ramp(DOOR_OPENS, DOOR_OPENS + DOOR_TAKES, s);
+    // the door: it opens in front of the first of them, stands open, and shuts on nobody
+    const open = ramp(DOOR_OPENS, DOOR_OPENS + DOOR_TAKES, s) * (1 - ramp(DOOR_CLOSES, DOOR_CLOSES + DOOR_SHUTS, s));
     const mid = (DOOR_Z[0] + DOOR_Z[1]) / 2;
     const out = Math.min(1, open * 5) * 0.07;
     this.leafA.position.set(-1.14 - out, this.leafA.position.y, mid - 0.29 - open * DOOR_SLIDE);
     this.leafB.position.set(-1.14 - out, this.leafB.position.y, mid + 0.29 + open * DOOR_SLIDE);
-    this.placeBusLight(this.doorGlow, -1.5, 1.7, mid, busX, busY, busZ, sinH, cosH, 3.2 * open * level);
-    (this.spill.material as MeshBasicMaterial).opacity = 0.16 * open * level;
+    this.placeBusLight(this.doorGlow, -1.5, 1.7, mid, busX, busY, busZ, sinH, cosH, 3.2 * open);
+    (this.spill.material as MeshBasicMaterial).opacity = 0.16 * open;
 
     // two lights in the fog: the air swells with them, the dogs' eyes answer
     const fx = busX + sinH * 5.45 * BUS_SCALE;
@@ -1472,7 +1433,7 @@ export default class BusStop extends Room {
     const toEyeZ = eyeZ - fz;
     const distance = Math.hypot(toEyeX, toEyeZ) + 0.001;
     const facing = Math.max(0, (sinH * toEyeX + cosH * toEyeZ) / distance);
-    const swell = ramp(HEADLIGHTS_FROM, 5.6, s);
+    const swell = ramp(HEADLIGHTS_FROM, HEADLIGHTS_FROM + 1.8, s) * here;
     const thick = Math.exp(-Math.pow(distance * 0.034, 2));
     const sprite = swell * facing * facing * thick * 2.4;
     const positions = this.headPoints.geometry.getAttribute('position') as BufferAttribute;
@@ -1492,25 +1453,10 @@ export default class BusStop extends Room {
     this.headTo[1] = o.y;
     this.headTo[2] = fz + cosH * 12 + o.z;
     this.headX.value = busX + 8;
-    this.head.value = swell * (1 - ramp(6.6, 7.6, s));
+    this.head.value = swell * Math.max(1 - ramp(BUS_STOPS - 1.4, BUS_STOPS - 0.4, s), LEAVE_GLOW * ramp(LEAVE_FROM, LEAVE_FROM + 0.8, s));
 
-    // not one foot moves: only the heads come round, all together, to you
-    const k = ramp(TURN_AT, TURN_AT + TURN_TAKES, s);
-    if (k !== this.turnedTo) {
-      this.turnedTo = k;
-      const nx = this.neck[0];
-      const ny = this.neck[1];
-      const nz = this.neck[2];
-      this.mA.makeTranslation(nx, ny, nz);
-      this.mB.makeRotationZ(HEAD_ROLL * k);
-      this.mC.makeTranslation(-nx, -ny, -nz);
-      for (let i = 0; i < RANK_N; i++) {
-        this.mD.makeRotationY(this.turnTo[i] * k);
-        this.mE.copy(this.rankBase[i]).multiply(this.mA).multiply(this.mD).multiply(this.mB).multiply(this.mC);
-        this.headMesh.setMatrixAt(i, this.mE);
-      }
-      this.headMesh.instanceMatrix.needsUpdate = true;
-    }
+    // across the road they sit until the bus is in front of them; when it has gone, there is nothing there
+    this.farRow.visible = s < BUS_STOPS;
 
     if (!this.shot && s >= SHUTTER_AT && (Math.abs(frame.input.gazeYaw) < 0.6 || s >= SHUTTER_LATEST)) {
       this.shot = true;
@@ -1524,12 +1470,12 @@ export default class BusStop extends Room {
     this.nearRow.position.z = z;
     this.nearFill.intensity = this.nearRow.visible ? 2.2 : 0;
 
-    const lensDown = ramp(LIGHTS_OUT + 0.15, LIGHTS_OUT + 1.2, s);
+    const lensDown = ramp(GROWL_BEHIND + 0.15, GROWL_BEHIND + 1.2, s);
     this.lensHair.visible = lensDown > 0;
     this.lensHair.position.y = 0.06 - 0.13 * lensDown;
 
-    this.drift = REDUCED_MOTION || s > TURN_AT - 0.8 ? 0 : 0.5;
-    this.fear = s < 5 ? 0.5 : s < TURN_AT ? 0.62 : 0.9;
+    this.drift = REDUCED_MOTION ? 0 : 0.5 * (1 - ramp(DOOR_CLOSES, LEAVE_FROM + 0.8, s));
+    this.fear = s < HEADLIGHTS_FROM + 1.5 ? 0.5 : s < GROWL_BEHIND ? 0.62 : 0.9;
     this.black = s >= CUT ? 1 : 0;
   }
 

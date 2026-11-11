@@ -38,14 +38,19 @@ const BLINKS = [
 
 /** Over this stretch of the walk the rain becomes hair. */
 const GROW = dreamConfig.rain.hair.grow;
+const CAST = dreamConfig.cast;
 /** Nothing here can be seen from past the end wall. */
 const SEEN_UNTIL = LAYOUT.hall.from - 2.5;
 
-/** The three who are not in the real alley: only in the picture. */
+/**
+ * The three who are not in the real alley, only in the picture, and the film's own cast: a woman in a dark dress
+ * whose white hair hangs over where her face would be, a man in a dark suit with no head, a body of stitched cloth
+ * with a hollow for a face. They stand as no one stands, arms down, utterly still.
+ */
 const WATCHERS: readonly { spec: FigureSpec; slot: number }[] = [
-  { spec: { avatar: 'figure_woman', clip: 'f_idle_touch_hair_01', time: 1.7, veil: true }, slot: 3 },
-  { spec: { avatar: 'figure_man', clip: 'm_idle_roll_head_01', time: 5 }, slot: 4 },
-  { spec: { avatar: 'figure_nurse', clip: 'f_listen_door', time: 1.5 }, slot: 1 },
+  { spec: CAST.veiled, slot: 3 },
+  { spec: CAST.headless, slot: 4 },
+  { spec: CAST.sack, slot: 1 },
 ];
 const SIDE = 1.42;
 /**
@@ -109,6 +114,21 @@ const PAYPHONE = {
 /** The far lamp over the door: it reaches the capture, so the three stand in the light of the photograph. */
 const FAR_LAMP = { at: [-1.5, 2.85, -28.5] as V3, color: 0xffb985, intensity: 5, distance: 12 };
 
+/**
+ * A bare bulb on the wall over the rocking chair, so that it rocks in a pool of its own: socket, bulb, its light
+ * (candela; a reach in m long enough that the pool picks it up from the capture, so it is in the photograph too) and
+ * the glow of its glass.
+ */
+const CHAIR_LAMP = {
+  socket: [1.82, 2.66, -20.4] as V3,
+  bulb: [1.82, 2.51, -20.4] as V3,
+  light: { at: [1.55, 2.4, -20.4] as V3, color: 0xffc08a, intensity: 3.4, distance: 6.5 },
+  glow: 5,
+};
+
+/** Once the walk is under way (fractions of it: starts, done) the cold security light sinks to this share, and the warm lamps light the alley. */
+const SECURITY_SINKS = { over: [0.03, 0.07] as const, to: 0.35 };
+
 /** The alley's lamps go out behind you (z: starting, out), leaving the pool to the street's. */
 const LAMPS_DIE = [-33, -38] as const;
 /** The lantern behind the photographer and the light at the far end of the alley die as you come to the end (z), so nothing pops where the street takes over. */
@@ -157,7 +177,9 @@ export class AlleyDream implements DreamModule {
   private readonly lampFlicker = new Flicker(PAYPHONE.flicker.seed, PAYPHONE.flicker.every);
   private readonly phoneLight: DreamLight;
   private readonly farLight: DreamLight;
+  private readonly chairLight: DreamLight;
   private readonly bulbGlass: MeshStandardMaterial | null;
+  private readonly chairGlass: MeshStandardMaterial | null;
 
   constructor(kit: DreamKit, moments: readonly Texture[]) {
     this.root.name = 'AlleyDream';
@@ -179,28 +201,31 @@ export class AlleyDream implements DreamModule {
     this.chair.rotation.order = 'YXZ';
 
     kit.prop('payphone', PAYPHONE.at, { rotation: [0, 90, 0], anchor: 'center' }, this.built);
-    kit.prop('pull_chain_socket', PAYPHONE.socket, { anchor: 'top' }, this.built);
-    const bulb = kit.prop('lightbulb', PAYPHONE.bulb, { rotation: [180, 0, 0], anchor: 'top' }, this.built);
-    this.bulbGlass = this.ownGlass(bulb);
+    this.bulbGlass = this.bareBulb(kit, PAYPHONE);
+    this.chairGlass = this.bareBulb(kit, CHAIR_LAMP);
     const p = PAYPHONE.light;
     this.phoneLight = kit.lights.add(p.at, p.color, p.intensity, p.distance);
     const f = FAR_LAMP;
     this.farLight = kit.lights.add(f.at, f.color, f.intensity, f.distance);
+    const c = CHAIR_LAMP.light;
+    this.chairLight = kit.lights.add(c.at, c.color, c.intensity, c.distance);
 
     this.ravens = new Ravens(kit, this.perches(kit));
     this.built.add(this.ravens.root);
     this.reset();
   }
 
-  /** This bulb's own glass, so that it can fail by itself. */
-  private ownGlass(bulb: Object3D): MeshStandardMaterial | null {
+  /** A bulb hanging from a socket on the wall, its glass its own, so that it can fail by itself. */
+  private bareBulb(kit: DreamKit, lamp: typeof PAYPHONE | typeof CHAIR_LAMP): MeshStandardMaterial | null {
+    kit.prop('pull_chain_socket', lamp.socket, { anchor: 'top' }, this.built);
+    const bulb = kit.prop('lightbulb', lamp.bulb, { rotation: [180, 0, 0], anchor: 'top' }, this.built);
     let glass: MeshStandardMaterial | null = null;
     bulb.traverse((o) => {
       const mesh = o as Mesh;
       if (!mesh.isMesh || !/glass/.test((mesh.material as Material).name)) return;
       glass = (mesh.material as MeshStandardMaterial).clone();
-      glass.emissive.set(PAYPHONE.light.color);
-      glass.emissiveIntensity = PAYPHONE.glow;
+      glass.emissive.set(lamp.light.color);
+      glass.emissiveIntensity = lamp.glow;
       mesh.material = glass;
     });
     return glass;
@@ -288,7 +313,8 @@ export class AlleyDream implements DreamModule {
 
     // light
     this.spots[0].intensity = lightingConfig.key.intensity * b.level * (1 - smootherstep(range(LANTERN_DIES[0], LANTERN_DIES[1], eye.z)));
-    this.spots[1].intensity = lightingConfig.security.intensity * b.level;
+    const sinking = 1 - (1 - SECURITY_SINKS.to) * smootherstep(range(SECURITY_SINKS.over[0], SECURITY_SINKS.over[1], walk));
+    this.spots[1].intensity = lightingConfig.security.intensity * b.level * sinking;
     this.spots[2].intensity = lightingConfig.crossStreet.intensity * b.level * (1 - smootherstep(range(CROSS_LIGHT_DIES[0], CROSS_LIGHT_DIES[1], eye.z)));
 
     this.lampFlicker.update(dt);
@@ -297,6 +323,8 @@ export class AlleyDream implements DreamModule {
     this.phoneLight.intensity = PAYPHONE.light.intensity * lamp * b.level * going;
     if (this.bulbGlass) this.bulbGlass.emissiveIntensity = PAYPHONE.glow * lamp * b.level;
     this.farLight.intensity = FAR_LAMP.intensity * b.level * going;
+    this.chairLight.intensity = CHAIR_LAMP.light.intensity * b.level * going;
+    if (this.chairGlass) this.chairGlass.emissiveIntensity = CHAIR_LAMP.glow * b.level;
 
     // what happens when it is not seen
     for (const w of this.watchers) {
@@ -343,6 +371,8 @@ export class AlleyDream implements DreamModule {
     this.spots[2].intensity = lightingConfig.crossStreet.intensity;
     this.phoneLight.intensity = PAYPHONE.light.intensity;
     this.farLight.intensity = FAR_LAMP.intensity;
+    this.chairLight.intensity = CHAIR_LAMP.light.intensity;
+    if (this.chairGlass) this.chairGlass.emissiveIntensity = CHAIR_LAMP.glow;
     const lens = new Vector3(0, 0, 0);
     for (const w of this.watchers) {
       this.stand(w, w.home, lens);

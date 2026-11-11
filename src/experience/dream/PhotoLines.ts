@@ -350,7 +350,6 @@ export class PhotoLines {
       position: new Vector3(0, (yLeft + yRight) / 2 - sag - (print.height * S) / 2, (zLeft + zRight) / 2),
       radius: L.poi.radius,
       zoom: L.poi.zoom,
-      memory: 'faces',
     });
   }
 

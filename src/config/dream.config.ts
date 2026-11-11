@@ -1,4 +1,5 @@
 /** The dream inside the photograph: what differs from the real alley, and how it unfolds along the walk. */
+import type { FigureSpec } from '../experience/dream/FigureKit';
 import { lightingConfig } from './scene.config';
 import { walkConfig } from './walk.config';
 
@@ -254,7 +255,7 @@ export const dreamConfig = {
       [3, 1],
       [5, 2],
     ] as const,
-    /** The densest line (its faces are a memory), and which of its places holds the one face not yet scratched. */
+    /** The densest line (the gaze is drawn to it), and which of its places holds the one face not yet scratched. */
     densest: 4,
     unscratched: 2,
     /** Size of a print (times a real print) and of a mask (times a real one). */
@@ -262,9 +263,21 @@ export const dreamConfig = {
     maskScale: 1.25,
     /** Pegged by their top edge: sway (rad) and period (s). */
     sway: { amount: 0.08, period: 6.5 },
-    /** The memory on the densest line: angular radius (deg) and how far a long look narrows the view. */
+    /** What draws the gaze on the densest line: angular radius (deg) and how far a long look narrows the view. */
     poi: { radius: 16, zoom: 0.62 },
   },
+
+  /**
+   * The film's own cast, wherever the walk has people (LEVEL_BIBLE, "The bodies"): a man in a dark suit with no head
+   * (the body ends at the collar, this many m above its feet), a body of stitched cloth with a hollow for a face, a
+   * woman in a dark dress whose long white hair hangs over where her face would be. They stand as no one stands: arms
+   * down, utterly still (a pose is a clip and a time in it, s). Tints multiply the clothes' map; bleach drains their color (0..1).
+   */
+  cast: {
+    headless: { avatar: 'figure_man', clip: 'm_idle_roll_head_01', time: 0.2, half: 'lower', cutAt: 1.47, tint: 0x2a2e32, bleach: 0.35 },
+    sack: { avatar: 'figure_man', clip: 'm_idle_roll_head_01', time: 3.3, skin: 'sack', face: 'hollow', white: false, tint: 0xc4b9a0 },
+    veiled: { avatar: 'figure_woman', clip: 'm_idle_roll_head_01', time: 0.2, veil: true, tint: 0x34302f, bleach: 0.7 },
+  } satisfies Record<string, FigureSpec>,
 
   /** The pictures drifting over the sea: views rendered once, before the piece starts. */
   moments: {

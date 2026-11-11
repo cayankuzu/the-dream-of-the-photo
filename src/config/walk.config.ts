@@ -7,6 +7,7 @@
  * print is drawn at `seaConfig.offset` from where the walk frame puts it (see sea.config.ts), so the
  * passage through the print is a pure translation and stays invisible.
  */
+import type { HomeWindow } from './film.config';
 
 /** One pose of the walk. */
 export interface WalkKey {
@@ -22,6 +23,13 @@ export interface WalkKey {
 }
 
 type V3 = readonly [number, number, number];
+
+/**
+ * A key of the ending's camera (at: EXPLORATION fraction; fov: deg): a place in the street and what it looks at, or
+ * `onPrint` m in front of the print in his hand, looking straight at the window of the house in its picture. The
+ * way into a key bends through `via` (a point it passes near), to go round his head.
+ */
+export type EndingShot = { at: number; fov: number; via?: V3 } & ({ position: V3; target: V3 | 'print' } | { onPrint: number });
 
 export const walkConfig = {
   /**
@@ -68,25 +76,36 @@ export const walkConfig = {
   /** Fraction of the walk over which the light of the photograph turns into the dream's. */
   gradeSpan: 0.06,
   /** The viewer's look fades out over this span before the last photograph (WORLD fraction, EXPLORATION fraction). */
-  faceTheCamera: [0.985, 0.04] as const,
-  /** The last photograph: taken by the photographer standing on the water, from their eye. */
+  faceTheCamera: [0.985, 0.0147] as const,
+  /**
+   * The last photograph, taken by the photographer standing on the water; and the street again, thirty-three years
+   * on, where the print in his hand comes up: it is the street as he photographed it, with four at the table.
+   */
   ending: {
     /** EXPLORATION fractions: the flash peaks at `flash`; under the white the view goes back outside at `cut`. */
-    flash: 0.04,
-    cut: 0.07,
+    flash: 0.0147,
+    cut: 0.0257,
     /** Rise and fall of the white (fractions of EXPLORATION), and its strength (exposure multiplier). */
-    whiteIn: 0.03,
-    whiteOut: 0.22,
+    whiteIn: 0.011,
+    whiteOut: 0.0807,
     white: 14,
-    /** The print in the photographer's hand develops the new picture over this span. */
-    develop: [0.12, 0.5] as const,
-    /** Where the last picture is taken from (walk frame) and what it looks at. */
-    lens: { position: [0.15, 1.6, -269.6] as V3, target: [0.1, 1.55, -230] as V3 },
-    /** Back outside: over the photographer's shoulder, then pulling away (position, look target, fov). */
+    /** The print in the photographer's hand develops the new picture over this span ("Belirdim" falls at its end). */
+    develop: [0.03, 0.16] as const,
+    /** Where the eye of the photographer standing on the water is (walk frame): the last picture is taken from there. */
+    lens: { position: [0.15, 1.6, -269.6] as V3 },
+    /** The window of the house in that picture: lit, and nobody's chair is empty. */
+    picture: { light: 1, kind: 'lamp', seated: 4 } satisfies HomeWindow,
+    /**
+     * Back outside: over his shoulder onto the print; in, close over it, to the window of the house in it, held
+     * there; at "Saçına bak" out again past his right shoulder, and away, while his head comes round.
+     */
     shots: [
-      { at: 0.07, position: [0.3, 1.8, 0.36] as V3, target: 'print' as const, fov: 30 },
-      { at: 1, position: [1.05, 2.35, 3.4] as V3, target: [0, 1.45, -0.6] as V3, fov: 40 },
-    ],
+      { at: 0.0257, position: [0.3, 1.8, 0.36], target: 'print', fov: 30 },
+      { at: 0.3, onPrint: 0.1, via: [0.42, 1.76, -0.05], fov: 9 },
+      { at: 0.5, onPrint: 0.1, fov: 9 },
+      { at: 0.66, position: [0.5, 1.86, 0.42], via: [0.45, 1.78, -0.1], target: 'print', fov: 26 },
+      { at: 0.95, position: [1.05, 2.35, 3.4], target: [0, 1.45, -0.6], fov: 40 },
+    ] as readonly EndingShot[],
     /** Depth of field of the waking shots. */
     aperture: 9,
     /**

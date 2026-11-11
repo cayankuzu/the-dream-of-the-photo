@@ -11,7 +11,7 @@ export interface DebugSnapshot {
 
 /**
  * Development-only overlay (?debug): frame stats, timeline state and phase seeking
- * (keys 1-9, 0, -, = jump to the twelve phases).
+ * (keys 1-9, 0, -, = jump to the first twelve phases).
  */
 export class Debug {
   private readonly el = document.createElement('pre');

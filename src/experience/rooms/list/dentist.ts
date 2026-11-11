@@ -1711,7 +1711,8 @@ export default class Dentist extends Room {
       this.breath = s.bed('rooms/breath_calm.mp3', { gain: 0.1, fade: 2 });
       s.play('rooms/chair_motor.mp3', { gain: 0.3 });
     });
-    this.beat(LINE_OPEN, () => this.say({ tr: 'Açık tut. Birazdan geçer.', en: 'Keep it open. It will pass.' }, 5));
+    // the dentist speaks in the dream's whisper
+    this.beat(LINE_OPEN, () => this.say({ tr: 'Açık tut. Birazdan geçer.', en: 'Keep it open. It will pass.' }, 5, 'dream'));
     this.beat(3.2, () => s.play('rooms/gloves_on.mp3', { gain: 0.4, pan: 0.15 }));
     this.beat(NURSE_ON[1] - 0.1, () => s.play('rooms/glove_snap.mp3', { gain: 0.3, pan: -0.35 }));
     this.beat(8, () => s.play('rooms/suction_air.mp3', { gain: 0.25, pan: 0.35 }));
@@ -1797,7 +1798,7 @@ export default class Dentist extends Room {
     });
     this.beat(LINE_ONE_MORE, () => {
       this.hairVoice?.gain(0, 0.4);
-      this.say({ tr: 'Bir tane daha.', en: 'One more.' }, 4.5);
+      this.say({ tr: 'Bir tane daha.', en: 'One more.' }, 4.5, 'dream');
     });
     this.beat(LINE_ONE_MORE + 0.4, () => s.bed('rooms/machine_breathing.mp3', { gain: 0.1, reverb: 0.2, fade: 1.2 }));
     this.beat(62, () => s.bed('rooms/drill_low.mp3', { gain: 0.08, lowpass: 3000, fade: 1.8 }));

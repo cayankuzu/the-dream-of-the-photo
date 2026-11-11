@@ -85,6 +85,8 @@ const eye = new Vector3();
 const windowAt = new Vector3();
 const UP = new Vector3(0, 1, 0);
 const SEA = new Vector3(...seaConfig.offset);
+/** A room that begins this far into its own script (s) has been cut into late (see journey.config: `play`). */
+const LATE_START = 0.25;
 const VIEW_MARGIN = 12;
 /** How far (m) curved space can move something of the alley off its place. */
 const ALLEY_BEND = 12;
@@ -126,7 +128,7 @@ interface Piece {
 
 const PIECES: readonly Piece[] = [
   { key: 'alley', walk: [0, 0.3], models: ['gas_mask', 'payphone', 'raven', 'rocking_chair'], materials: [], make: (d) => [new AlleyDream(d.kit, d.momentTextures)] },
-  { key: 'street', walk: [0, 0.38], models: ['caged_light', 'fluorescent', 'gnome'], materials: ['conc_board', 'conc_stained'], make: (d) => [new Street(d.kit)] },
+  { key: 'street', walk: [0, 0.38], models: ['gnome'], materials: ['conc_board', 'conc_stained'], make: (d) => [new Street(d.kit)] },
   {
     key: 'hall',
     walk: [0.33, 0.54],
@@ -191,6 +193,8 @@ export class DreamDirector {
   private roomT = 0;
   private roomInput!: RoomInput;
   private readonly rooms = new Set<Room>();
+  /** Rooms that have run their first frame. */
+  private readonly begun = new WeakSet<Room>();
   /** The space of the camera of the last main pass. */
   region: RegionName = 'alley';
   /** The main pass needs its shadow map rendered once: the shadow-casting light has moved. */
@@ -267,7 +271,7 @@ export class DreamDirector {
     this.windowGlow = anchors.get('roomWindow') as Mesh | undefined;
     this.windowMaterial.color.setScalar(D.window.brightness);
     if (this.windowGlow) {
-      ctx.look.pointsOfInterest.push({ position: this.windowGlow.getWorldPosition(new Vector3()), radius: D.window.poiRadius, zoom: D.window.zoom, active: () => this.state.window, memory: 'window' });
+      ctx.look.pointsOfInterest.push({ position: this.windowGlow.getWorldPosition(new Vector3()), radius: D.window.poiRadius, zoom: D.window.zoom, active: () => this.state.window });
     }
     this.windowRoomMaterial = this.windowGlow?.material as Material | undefined;
     this.bulb = ctx.alley.bulbLight;
@@ -345,7 +349,7 @@ export class DreamDirector {
     print.position.copy(spot);
     print.rotation.set(0, -Math.PI / 2, D.found.tilt * DEG, 'YXZ');
     this.root.add(print);
-    this.ctx.look.pointsOfInterest.push({ position: spot, radius: D.found.radius, zoom: D.found.zoom, memory: 'found' } satisfies PointOfInterest);
+    this.ctx.look.pointsOfInterest.push({ position: spot, radius: D.found.radius, zoom: D.found.zoom } satisfies PointOfInterest);
   }
 
   /**
@@ -739,8 +743,13 @@ export class DreamDirector {
       rf.t = this.roomT;
       rf.seconds = this.roomT * room.seconds;
       rf.input = this.roomInput;
+      // cut into after its beginning: everything up to here happens at once, and makes no sound
+      const late = !this.begun.has(room) && rf.seconds > LATE_START;
+      this.begun.add(room);
+      if (late) room.skipping = true;
       if (!paused) room.advance(this.roomT);
       room.update(rf);
+      if (late) room.skipping = false;
     } else if (inside > 0) {
       for (const m of this.modules) {
         if (Boolean(m.inSea) !== sea || eye.z > m.span[0] + REGION_MARGIN || eye.z < m.span[1] - REGION_MARGIN) continue;

@@ -5,7 +5,6 @@ import {
   Euler,
   Group,
   LoopRepeat,
-  MathUtils,
   Matrix4,
   Mesh,
   MeshBasicMaterial,
@@ -68,19 +67,148 @@ const PRINT_GRIP = {
 
 const AXIS_Z = new Vector3(0, 0, 1);
 const AXIS_Y = new Vector3(0, 1, 0);
+
 /**
- * Where hair lies on a head map (see FACE in dream/FigureKit.ts): outside the face, on the far side from the neck.
- * The loose strands (the cards) thin out past half white and are gone when the hair is all white: they catch
- * little light, and on a white head, seen from behind in the waking, they stood as dark marks.
+ * Hair goes white the way hair does: strand by strand, so that on the way it is salt and pepper, never an even grey
+ * cap. A strand is a texel of the hair's own map, and the light strands drawn in it go first, so the white follows
+ * the way the hair lies; the strands of a lock go a little together, the temples a little early. A white strand keeps
+ * the light and dark of its map around the white's own brightness, so a white head is still a head of hair; and the
+ * loose cards, which stand off the head and catch more light, are a shade less white than the scalp under them.
  */
-const WHITENING_GLSL = (card: boolean) => /* glsl */ `
+const HAIR = {
+  /** How many locks lie across and along the map (they turn a little together): on the head, and on the loose cards. */
+  locks: { scalp: [30, 12], cards: [6, 6] },
+  /** Share of a strand's moment of turning white that its lock decides (the rest is its own): how streaky it goes. */
+  lock: 0.2,
+  /** Share of a strand's own moment that its light decides (light strands of the map go first), and how strongly. */
+  detail: 0.55,
+  detailGain: 3,
+  /** How much earlier the temples go (share of the whole way). */
+  temples: 0.12,
+  /** How long one strand takes to turn (share of the whole way). */
+  soft: 0.08,
+  /** Texels to a pixel over which single strands give way to their lock's share (more than this and they would glitter). */
+  blur: [0.5, 1.5] as const,
+  /** Where the temples lie on the head map (centers, and their reach in u and v). */
+  templeAt: [[0.31, 0.77], [0.69, 0.77]] as const,
+  templeReach: [0.07, 0.09] as const,
+  /**
+   * White hair, in the map's own (perceptual) brightness: its level on the scalp and on the cards, how strongly the
+   * strands of the map show in it (times their difference from the map's mean), its darkest strand, its tint (linear).
+   */
+  white: { level: { scalp: 0.86, cards: 0.62 }, strands: 2.2, least: 0.45, tint: [0.92, 0.92, 0.9] as const },
+  /** A card texel below this alpha is cut away (the material's alpha test) and does not count toward its mean. */
+  cardAlpha: 0.45,
+  /** How much of a white card's alpha goes (share): its strands thin out, so it never lies on the head as a flat sheet. */
+  cardThin: 0.3,
+  /** The mean is taken on the map scaled down to at most this many texels a side. */
+  meanSize: 256,
+} as const;
+
+const glslFloat = (v: number) => v.toFixed(4);
+const glslVec2 = ([x, y]: readonly number[]) => `vec2(${glslFloat(x)}, ${glslFloat(y)})`;
+
+/** On the head map: outside the face, on the far side from the neck (see FACE in dream/FigureKit.ts). */
+const onScalp = (u: number, v: number) => (v >= 0.5 ? smootherstep(range(1, 1.25, Math.hypot((u - 0.5) / 0.165, (v - 0.685) / 0.205))) : 0);
+
+/** The mean brightness of the hair on a map (0..1, as stored): on the head map its scalp, on a card map what is not cut away. */
+function hairMean(map: Texture, card: boolean): number {
+  const image = map.image as HTMLImageElement | ImageBitmap;
+  const canvas = document.createElement('canvas');
+  const w = (canvas.width = Math.min(HAIR.meanSize, image.width));
+  const h = (canvas.height = Math.min(HAIR.meanSize, image.height));
+  const g = canvas.getContext('2d', { willReadFrequently: true })!;
+  g.drawImage(image, 0, 0, w, h);
+  const d = g.getImageData(0, 0, w, h).data;
+  let sum = 0;
+  let weight = 0;
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const i = (y * w + x) * 4;
+      const on = card ? Number(d[i + 3] > HAIR.cardAlpha * 255) : onScalp((x + 0.5) / w, (y + 0.5) / h);
+      sum += (on * (d[i] * 0.3 + d[i + 1] * 0.59 + d[i + 2] * 0.11)) / 255;
+      weight += on;
+    }
+  }
+  return weight > 0 ? sum / weight : HAIR.white.least;
+}
+
+/**
+ * How white the hair is at a texel of its map (`light`: how light that texel is against the map's mean, 0..1), for
+ * `uWhite` of the whole head; far away (a texel smaller than a pixel) the share of its lock that has turned. And the
+ * white a strand turns to.
+ */
+const HAIR_GLSL = /* glsl */ `
+uniform float uWhite;
+float hairHash(vec2 p) {
+  vec3 p3 = fract(vec3(p.xyx) * 0.1031);
+  p3 += dot(p3, p3.yzx + 33.33);
+  return fract((p3.x + p3.y) * p3.z);
+}
+float hairNoise(vec2 p) {
+  vec2 i = floor(p);
+  vec2 f = fract(p);
+  f = f * f * (3.0 - 2.0 * f);
+  return mix(mix(hairHash(i), hairHash(i + vec2(1.0, 0.0)), f.x), mix(hairHash(i + vec2(0.0, 1.0)), hairHash(i + vec2(1.0, 1.0)), f.x), f.y);
+}
+float hairWhiteness(vec2 uv, vec2 texels, vec2 locks, float temples, float light) {
+  const float LOCK = ${glslFloat(HAIR.lock)};
+  const float SOFT = ${glslFloat(HAIR.soft)};
+  vec2 cell = uv * texels;
+  float own = mix(hairHash(floor(cell)), 1.0 - light, ${glslFloat(HAIR.detail)});
+  float early = LOCK * hairNoise(uv * locks) - ${glslFloat(HAIR.temples)} * temples * smoothstep(0.0, 0.15, uWhite);
+  float w = uWhite * (1.0 + SOFT);
+  float turn = early + (1.0 - LOCK) * own;
+  float fine = smoothstep(turn, turn + SOFT, w);
+  float coarse = clamp((w - 0.5 * SOFT - early) / (1.0 - LOCK), 0.0, 1.0);
+  vec2 footprint = fwidth(cell);
+  return mix(fine, coarse, smoothstep(${glslFloat(HAIR.blur[0])}, ${glslFloat(HAIR.blur[1])}, max(footprint.x, footprint.y)));
+}
+vec3 whiteHair(float strands, float level) {
+  float v = clamp(level + strands * ${glslFloat(HAIR.white.strands)}, ${glslFloat(HAIR.white.least)}, 1.0);
+  return vec3(${HAIR.white.tint.map(glslFloat).join(', ')}) * v * v;
+}
+`;
+
+/** Turn the hair of a map white by `uWhite`, given its mean brightness (see hairMean). */
+const WHITENING_GLSL = (card: boolean, mean: number) => {
+  const [a, b] = HAIR.templeAt;
+  const reach = glslVec2(HAIR.templeReach);
+  return /* glsl */ `
   #ifdef USE_MAP
-    float whiteHair = ${card ? '1.0' : 'step(0.5, vMapUv.y) * smoothstep(1.0, 1.25, length((vMapUv - vec2(0.5, 0.685)) / vec2(0.165, 0.205)))'};
-    float hairLight = dot(diffuseColor.rgb, vec3(0.3, 0.59, 0.11));
-    diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.86, 0.84, 0.78) * clamp(0.46 + hairLight * 2.6, 0.3, 1.15), uWhite * whiteHair);
-    ${card ? 'diffuseColor.a *= 1.0 - smoothstep(0.5, 0.9, uWhite);' : ''}
+    float onHair = ${card ? '1.0' : 'step(0.5, vMapUv.y) * smoothstep(1.0, 1.25, length((vMapUv - vec2(0.5, 0.685)) / vec2(0.165, 0.205)))'};
+    vec2 templeA = (vMapUv - ${glslVec2(a)}) / ${reach};
+    vec2 templeB = (vMapUv - ${glslVec2(b)}) / ${reach};
+    float temples = ${card ? '0.0' : 'exp(-min(dot(templeA, templeA), dot(templeB, templeB)))'};
+    float strands = sqrt(dot(diffuseColor.rgb, vec3(0.3, 0.59, 0.11))) - ${glslFloat(mean)};
+    float light = clamp(0.5 + strands * ${glslFloat(HAIR.detailGain)}, 0.0, 1.0);
+    float whiteness = onHair * hairWhiteness(vMapUv, vec2(textureSize(map, 0)), ${glslVec2(card ? HAIR.locks.cards : HAIR.locks.scalp)}, temples, light);
+    diffuseColor.rgb = mix(diffuseColor.rgb, whiteHair(strands, ${glslFloat(card ? HAIR.white.level.cards : HAIR.white.level.scalp)}), whiteness);
+    ${card ? `diffuseColor.a *= 1.0 - ${glslFloat(HAIR.cardThin)} * whiteness;` : ''}
   #endif
 `;
+};
+
+/**
+ * The loose strands are cards standing off the head: lit by their own flat normals they catch little light and,
+ * on a light head, stood as dark marks. They are lit as the scalp under them is: their normals point away from
+ * where the head sits on the neck (the head bone, in the pose the body was made in), the same on both faces.
+ */
+function bendCardNormals(card: SkinnedMesh): void {
+  const bones = card.skeleton.bones;
+  const head = bones.findIndex((b) => b.name === BONES.head);
+  if (head < 0) return;
+  const middle = new Vector3().setFromMatrixPosition(m1.copy(card.skeleton.boneInverses[head]).invert()).applyMatrix4(card.bindMatrixInverse);
+  const position = card.geometry.getAttribute('position');
+  const normal = card.geometry.getAttribute('normal');
+  const n = new Vector3();
+  for (let i = 0; i < position.count; i++) {
+    n.fromBufferAttribute(position, i).sub(middle).normalize();
+    normal.setXYZ(i, n.x, n.y, n.z);
+  }
+  normal.needsUpdate = true;
+}
+
 const v1 = new Vector3();
 const v2 = new Vector3();
 const v3 = new Vector3();
@@ -135,8 +263,9 @@ export class Photographer {
   private readonly ghostModel: Object3D;
   private readonly ghostCamera: Object3D;
 
-  /** The one being watched: where the head turns on waking (set once by the piece). */
-  viewer: Vector3 | null = null;
+  /** In the street between two evenings: how white the hair is by then (null: as the timeline has it), and a head that stays as it is. */
+  whiteOverride: number | null = null;
+  calm = false;
   private readonly white = { value: 0 };
   private readonly whitening = new NumberTrack(P.whitening);
   private headMaterial: MeshStandardMaterial | null = null;
@@ -163,19 +292,27 @@ export class Photographer {
       const mat = mesh.material as MeshStandardMaterial;
       mat.envMapIntensity = P.envMapIntensity;
       const isHead = /_head$/.test(mat.name);
-      if (isHead || /_opacity$/.test(mat.name)) {
+      const isCard = /_opacity$/.test(mat.name);
+      if (isCard && (mesh as SkinnedMesh).isSkinnedMesh) bendCardNormals(mesh as SkinnedMesh);
+      // the cards' shadow on the scalp under them would be a dark mark on a light head
+      if (isCard) mesh.castShadow = false;
+      if ((isHead || isCard) && mat.map && !mat.userData.hairMean) mat.userData.hairMean = hairMean(mat.map, isCard);
+      if (isHead || isCard) {
         mat.onBeforeCompile = (shader: WebGLProgramParametersWithUniforms) => {
           shader.uniforms.uWhite = this.white;
           shader.fragmentShader = shader.fragmentShader
-            .replace('#include <common>', '#include <common>\nuniform float uWhite;')
-            .replace('#include <map_fragment>', `#include <map_fragment>\n${WHITENING_GLSL(!isHead)}`);
+            .replace('#include <common>', `#include <common>\n${HAIR_GLSL}`)
+            .replace('#include <map_fragment>', `#include <map_fragment>\n${WHITENING_GLSL(isCard, (mat.userData.hairMean as number | undefined) ?? HAIR.white.least)}`)
+            // a card's bent normal holds on both of its faces
+            .replace('#include <normal_fragment_begin>', `#include <normal_fragment_begin>\n${isCard ? 'normal = normalize(vNormal);' : ''}`);
         };
-        mat.customProgramCacheKey = () => (isHead ? 'hair-on-head' : 'hair-card');
+        mat.customProgramCacheKey = () => (isHead ? 'hair-on-head-strands' : 'hair-card-strands');
       }
       if (isHead && mat.map) {
         this.headMaterial = mat;
         this.realFace = mat.map;
-        this.scratchedFace = headMap(mat.map, 'scratched', true, 1);
+        // its hair keeps its own shade: the hair goes white here, as on the real map
+        this.scratchedFace = headMap(mat.map, 'scratched', false, 1);
       }
     });
 
@@ -255,7 +392,7 @@ export class Photographer {
   }
 
   update(p: number, time: number): void {
-    const intro = 1 - range(0, P.introFade, p);
+    const intro = 1 - range(phaseStart('INTRO'), phaseStart('INTRO') + P.introFade, p);
     this.take.time = this.clipTime.at(p) + intro * P.idleSway * wobble(time * 0.6, 1);
     // breathing is time-driven while the performance itself is scrubbed by the timeline
     this.breathe.time = time % this.breathe.getClip().duration;
@@ -264,9 +401,10 @@ export class Photographer {
 
     // order matters: the clavicles hang from the neck, so the gaze is set before anything is held
     // (it follows the print's previous position, which is smooth from frame to frame)
-    this.white.value = this.whitening.at(p);
+    this.white.value = this.whiteOverride ?? this.whitening.at(p);
     this.updateHead(p);
-    this.updateStare(p);
+    if (this.calm && this.headMaterial) this.headMaterial.map = this.realFace;
+    else this.updateStare(p);
     this.updateCamera(p);
     this.updatePrint(p, time);
   }
@@ -409,34 +547,28 @@ export class Photographer {
     }
   }
 
-  /** Waking: the head comes all the way round on its neck, and it has no face anymore. */
+  /** The ending: the head begins to come round on its neck toward you (to his right), and it has no face anymore. */
   private updateStare(p: number): void {
     const s = P.stare;
     const turn = range(s.from, s.to, phaseProgress(p, 'EXPLORATION'));
     if (this.headMaterial) this.headMaterial.map = turn > 0 ? this.scratchedFace : this.realFace;
-    if (turn <= 0 || !this.viewer) return;
+    if (turn <= 0) return;
     const steps = turn * s.catches;
     const whole = Math.floor(steps);
     const amount = (whole + smootherstep(steps - whole)) / s.catches;
+    // the neck takes its share, the head the rest (it hangs from the neck, so it turns on from there)
     for (const [bone, share] of [
       [this.bones.neck, s.neckShare],
-      [this.bones.head, 1],
+      [this.bones.head, 1 - s.neckShare],
     ] as const) {
-      const pos = bone.getWorldPosition(v1);
-      const target = v2.subVectors(this.viewer, pos).normalize();
-      // Biped head/neck look along their local +Y
-      const forward = v3.set(0, 1, 0).applyQuaternion(bone.getWorldQuaternion(q1)).normalize();
-      let yaw = Math.atan2(target.x, target.z) - Math.atan2(forward.x, forward.z);
-      yaw = MathUtils.euclideanModulo(yaw, Math.PI * 2) - Math.PI * 2; // always the same way round
-      q2.setFromAxisAngle(AXIS_Y, yaw * amount * share);
-      forward.applyQuaternion(q2);
-      setWorldQuaternion(bone, q2.multiply(q1));
-      if (share === 1) {
-        // and tips up to meet your eye
-        const tip = new Quaternion().setFromUnitVectors(forward, target).slerp(new Quaternion(), 1 - amount * s.pitch);
-        setWorldQuaternion(bone, tip.multiply(bone.getWorldQuaternion(q1)));
-      }
+      q2.setFromAxisAngle(AXIS_Y, -s.angle * DEG * amount * share);
+      setWorldQuaternion(bone, q2.multiply(bone.getWorldQuaternion(q1)));
     }
+  }
+
+  /** Where the head is (world space). */
+  headPosition(out: Vector3): Vector3 {
+    return this.bones.head.getWorldPosition(out);
   }
 
   /** The scratched face, ready before it is needed. */

@@ -121,6 +121,8 @@ const WALK_RATE = 0.8;
 const NECK_R = 0.052;
 const NECK_TAPER = 0.36;
 
+/** "Evde yalnızsın." is said at the first of these, and the viewer's own time stands as the room's prompt until the second (s). */
+const TIME_SHOWN = [3, 8] as const;
 /** Seconds into the room. */
 const RING_AT = 12;
 const ANSWER_LATEST = 20;
@@ -1632,17 +1634,16 @@ export default class Home extends Room {
       this.clockVoice = s.bed('rooms/clock_tick.mp3', { gain: 0.08, pan: -0.05, reverb: 0.12 });
       this.beds.drone = s.bed('rooms/dream_drone_low.mp3', { gain: 0.03, fade: 3 });
     });
-    this.beat(3, () => {
-      const time = clockNow();
-      this.say({ tr: `Saat ${time}. Evde yalnızsın.`, en: `It is ${time}. You are alone in the house.` }, 5);
-    });
+    // the viewer's own time stands at the foot of the picture meanwhile (see TIME_SHOWN)
+    this.beat(TIME_SHOWN[0], () => this.say({ tr: 'Evde yalnızsın.', en: 'You are alone in the house.' }, 5));
     for (const at of [RING_AT, RING_AT + 3, RING_AT + 6]) {
       this.beat(at, () => {
         if (this.answeredAt === Infinity) this.ringVoice = s.play('rooms/phone_ring.mp3', { gain: 0.55, reverb: 0.2, pan: 0.42 });
       });
     }
     this.beat(ANSWER_LATEST, () => this.answer(ANSWER_LATEST));
-    this.beat(21, () => this.say({ tr: 'Üst kattayım.', en: 'I am upstairs.' }, 3.4));
+    // the caller speaks in the dream's whisper, through the receiver
+    this.beat(21, () => this.say({ tr: 'Üst kattayım.', en: 'I am upstairs.' }, 3.4, 'dream'));
     this.beat(23.4, () => {
       this.beds.phone?.stop(0.08);
       s.play('rooms/phone_hangup_2.mp3', { gain: 0.3, pan: 0.3, lowpass: 2600 });
@@ -1710,7 +1711,7 @@ export default class Home extends Room {
     });
     this.beat(RING_AGAIN, () => {
       s.play('rooms/phone_ring.mp3', { gain: 0.55, reverb: 0.2, pan: -0.2, duration: 1.15 });
-      this.say({ tr: 'Arkandayım.', en: 'I am behind you.' }, 3.2);
+      this.say({ tr: 'Arkandayım.', en: 'I am behind you.' }, 3.2, 'dream');
     });
     this.beat(73.3, () => s.play('rooms/coat_move.mp3', { gain: 0.22, reverb: 0.08, duration: 0.8 }));
     this.beat(CUT_AT, () => s.stopAll(0.08));
@@ -1725,9 +1726,14 @@ export default class Home extends Room {
     this.setHint('');
   }
 
-  private setHint(which: 'answer' | 'hold' | ''): void {
+  private setHint(which: 'answer' | 'hold' | 'time' | ''): void {
     if (this.hintShown === which) return;
     this.hintShown = which;
+    if (which === 'time') {
+      const time = clockNow();
+      this.hint({ tr: `Saat ${time}`, en: `It is ${time}` });
+      return;
+    }
     this.hint(which === 'answer' ? { tr: 'Bas: aç', en: 'Press: answer' } : which === 'hold' ? { tr: 'Basılı tut: nefesini tut', en: 'Hold: hold your breath' } : null);
   }
 
@@ -1865,7 +1871,7 @@ export default class Home extends Room {
     if (s > HOLD_TO) this.setHint('');
   }
 
-  /** Your own breath: loud, and gone the moment you hold it; and the hint that says you can. */
+  /** Your own breath: loud, and gone the moment you hold it; and the prompt: what you can do, or at first your own time. */
   private breath(frame: RoomFrame): void {
     const s = frame.seconds;
     const holding = s >= HOLD_FROM && s < HOLD_TO && frame.input.holding;
@@ -1880,7 +1886,8 @@ export default class Home extends Room {
       }
     }
     const hold = (s >= HOLD_FROM && s < 44) || (s >= 50.2 && s < 53);
-    this.setHint(hold && !holding ? 'hold' : s >= RING_AT - 0.2 && s < ANSWER_LATEST && this.answeredAt === Infinity ? 'answer' : '');
+    const answer = s >= RING_AT - 0.2 && s < ANSWER_LATEST && this.answeredAt === Infinity;
+    this.setHint(hold && !holding ? 'hold' : answer ? 'answer' : s >= TIME_SHOWN[0] && s < TIME_SHOWN[1] ? 'time' : '');
     const beat = frame.heartbeat > 0.8;
     if (holding && beat && !this.beatBefore) this.sound.play('rooms/heart_beat.mp3', { gain: 0.4 });
     this.beatBefore = beat;

@@ -1,8 +1,9 @@
 import { Group, Vector3, type BufferGeometry, type InstancedMesh, type Material, type Mesh, type Object3D, type RenderTarget, type ShaderMaterial, type SkinnedMesh, type Sprite, type Texture } from 'three';
 import type { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import type { Text } from '../../config/copy.config';
-import { isRoom, JOURNEY, ROOM_SLOTS, ROOM_SPACE, ROOM_STEP, roomFile, roomVisit, type Cut, type WalkStep } from '../../config/journey.config';
+import { isRoom, JOURNEY, ROOM_SLOTS, ROOM_SPACE, ROOM_STEP, roomFile, roomVisit, scriptSeconds, type Cut, type RoomStep, type WalkStep } from '../../config/journey.config';
 import { at } from '../../config/experience.config';
+import type { VoiceStyle } from '../../config/film.config';
 import type { AudioEngine } from '../audio/AudioEngine';
 import type { Assets, MaterialMaps } from '../assets/Assets';
 import type { DreamDirector } from '../director/DreamDirector';
@@ -22,11 +23,15 @@ const FILES = import.meta.glob<RoomFile>('./list/*.ts');
 /** Seconds of the piece before a step that its files start to be fetched, and that it is built (under the cut). */
 const FETCH_AHEAD = at(40);
 const BUILD_AHEAD = at(0.5);
-/** Black before and after a cut (seconds of the piece). */
-const CUT_OUT = at(0.45);
-const CUT_IN = at(0.7);
-const FLASH_OUT = at(0.12);
-const FLASH_IN = at(1.1);
+/** What covers the picture before and after each kind of cut, for how long (seconds of the piece). */
+const CUTS: Record<Exclude<Cut, 'none'>, { out: number; into: number; white: boolean }> = {
+  black: { out: at(0.4), into: at(0.6), white: false },
+  flash: { out: at(0.12), into: at(0.9), white: true },
+  // a splice: a few frames of black, enough for what a new place does on its first frame to go unseen
+  hard: { out: at(0.09), into: at(0.2), white: false },
+};
+/** Steps ahead whose files are fetched (a short step leaves too little time to fetch the one after it). */
+const FETCH_STEPS = 3;
 
 type State = 'none' | 'fetching' | 'fetched' | 'building' | 'ready' | 'failed';
 
@@ -34,7 +39,7 @@ const breathe = () => new Promise((resolve) => setTimeout(resolve));
 
 /** What a room can reach on the page around it. */
 export interface RoomStage {
-  say(text: Text, seconds: number): void;
+  say(text: Text, seconds: number, voice?: VoiceStyle): void;
   hint(text: Text | null): void;
 }
 
@@ -161,8 +166,9 @@ export class JourneyDirector {
   readonly bounds: [number, number] = [0, 1];
   /** What the shutter has kept. */
   readonly album = new Album();
-  /** The room asked for the shutter: the piece takes the picture once this frame has been drawn. */
+  /** The room asked for the shutter: the piece takes the picture once this frame has been drawn (with its flash, or without). */
   shutterAsked = false;
+  shutterFlash = true;
   /** Where the timeline must jump to: a room that could not be had (a lost connection) is passed over in the dark. */
   jump: number | null = null;
 
@@ -231,17 +237,25 @@ export class JourneyDirector {
         slot.state = 'building';
         await breathe();
         const index = JOURNEY.findIndex((s) => isRoom(s) && s.room === id);
+        const skipping = () => this.sound.skipping;
         const room = new slot.file!.default({
           kit: this.dream.kit,
           sound: this.sound,
           origin: new Vector3(ROOM_SPACE + (index % ROOM_SLOTS) * ROOM_STEP, 0, 0),
           id,
           visit: roomVisit(id),
-          seconds: JOURNEY[index].seconds,
+          seconds: scriptSeconds(JOURNEY[index] as RoomStep),
           album: this.album,
-          say: this.stage.say,
+          // what lies before the moment a room is cut into is neither said nor photographed
+          say: (text, seconds, voice) => {
+            if (!skipping()) this.stage.say(text, seconds, voice);
+          },
           hint: this.stage.hint,
-          shutter: () => (this.shutterAsked = true),
+          shutter: (flash) => {
+            if (skipping()) return;
+            this.shutterAsked = true;
+            this.shutterFlash = flash;
+          },
         });
         this.dream.adoptRoom(room);
         await this.compile(room.root);
@@ -348,21 +362,22 @@ export class JourneyDirector {
     const step = JOURNEY[index];
     if (!step) return true;
     if (isRoom(step)) return this.roomSlot(step.room).state === 'ready' || this.roomSlot(step.room).state === 'failed';
-    return this.dream.piecesReady(step.walk);
+    // the street is always there
+    return 'walk' in step ? this.dream.piecesReady(step.walk) : true;
   }
 
   private fetchStep(index: number): void {
     const step = JOURNEY[index];
     if (!step) return;
     if (isRoom(step)) void this.fetchRoom(step.room);
-    else void this.fetchWalk(step);
+    else if ('walk' in step) void this.fetchWalk(step);
   }
 
   private buildStep(index: number): void {
     const step = JOURNEY[index];
     if (!step) return;
     if (isRoom(step)) void this.buildRoom(step.room);
-    else void this.dream.buildPieces(step.walk, this.compile);
+    else if ('walk' in step) void this.dream.buildPieces(step.walk, this.compile);
   }
 
   /** What the journey is at `p` now: called every frame before anything else of the dream. */
@@ -374,7 +389,7 @@ export class JourneyDirector {
       // what lies behind is dropped: the dream does not go back past a cut
       for (const [id] of this.rooms) {
         const i = JOURNEY.findIndex((s) => isRoom(s) && s.room === id);
-        if (i < index || i > index + 1) this.dropRoom(id);
+        if (i < index || i > index + FETCH_STEPS) this.dropRoom(id);
       }
       this.current = index;
       const step = JOURNEY[index];
@@ -385,7 +400,7 @@ export class JourneyDirector {
 
     // the way to the next step
     if (index >= 0 && next < JOURNEY.length) {
-      if (nextStart - p < FETCH_AHEAD) this.fetchStep(next);
+      for (let k = next; k < JOURNEY.length && k <= index + FETCH_STEPS && JOURNEY_STEPS[k].from - p < FETCH_AHEAD; k++) this.fetchStep(k);
       if (nextStart - p < BUILD_AHEAD) this.buildStep(next);
     } else if (index < 0 && phaseStart('WORLD') - p < FETCH_AHEAD) {
       this.fetchStep(0);
@@ -412,19 +427,17 @@ export class JourneyDirector {
       const thisCut: Cut = JOURNEY[index].cut ?? 'black';
       if (!readyHere) cover = 1;
       if (next < JOURNEY.length && nextCut !== 'none') {
-        const span = nextCut === 'flash' ? FLASH_OUT : CUT_OUT;
-        const out = 1 - Math.min(1, (nextStart - p) / span);
+        const out = 1 - Math.min(1, (nextStart - p) / CUTS[nextCut].out);
         if (out > cover) {
           cover = out;
-          white = nextCut === 'flash';
+          white = CUTS[nextCut].white;
         }
       }
       if (index > 0 && thisCut !== 'none') {
-        const span = thisCut === 'flash' ? FLASH_IN : CUT_IN;
-        const into = 1 - Math.min(1, (p - placed.from) / span);
+        const into = 1 - Math.min(1, (p - placed.from) / CUTS[thisCut].into);
         if (into > cover) {
           cover = into;
-          white = thisCut === 'flash';
+          white = CUTS[thisCut].white;
         }
       }
     }
@@ -450,7 +463,7 @@ export class JourneyDirector {
   /** The piece's opening: what must exist before the title lets you in. */
   async prepareOpening(): Promise<void> {
     const first = JOURNEY[0];
-    if (first && !isRoom(first)) await this.dream.buildPieces(first.walk, this.compile);
+    if (first && 'walk' in first) await this.dream.buildPieces(first.walk, this.compile);
   }
 
   /** Development: build one room at once. */

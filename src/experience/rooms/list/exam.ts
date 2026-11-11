@@ -199,7 +199,7 @@ const SHUTTER_AT = 49.45;
 /** The shutter waits for an eye that is turned this far away (rad), but not longer than this (s). */
 const SHUTTER_GAZE = 1.1;
 const SHUTTER_LATE = 2;
-const LINE_AT = 52;
+const LINE_AT = 51;
 const CUT_AT = 54;
 /** The light of the wave of flashes: at its crest on the front rows, and laid over the picture. */
 const SWEEP_POWER = 38;
@@ -1689,7 +1689,7 @@ export default class Exam extends Room {
       this.tone?.gain(0.12, 1.2);
       this.silence?.gain(0.25, 1.2);
     });
-    this.beat(LINE_AT, () => this.say({ tr: 'Süren doldu.', en: 'Your time is up.' }, 3));
+    this.beat(LINE_AT, () => this.say({ tr: 'Süren doldu.', en: 'Your time is up.' }, 3, 'dream'));
     this.beat(CUT_AT, () => this.sound.play('rooms/breaker_clunk_2.mp3', { gain: 0.4, reverb: 0.2 }));
   }
 

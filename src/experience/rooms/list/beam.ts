@@ -238,7 +238,8 @@ const CREAK_FILES = ['rooms/steel_creak_1.mp3', 'rooms/steel_creak_2.mp3', 'room
 const BOLT_FILES = ['rooms/bolt_ping_1.mp3', 'rooms/bolt_ping_2.mp3', 'rooms/bolt_ping_3.mp3'];
 
 const DOWN_LINE = { tr: 'Aşağı bakma.', en: 'Do not look down.' };
-const PHONE_LINE = { tr: 'Yemek soğuyor. Neredesin?', en: 'Dinner is getting cold. Where are you?' };
+/** From the receiver, in the narrator's own voice: what you said as you left. */
+const PHONE_LINE = { tr: 'Hemen dönerim.', en: "I'll be right back." };
 const PROMPT = { tr: 'Bas: aç', en: 'Press: answer' };
 
 const WALKS: RoomControl = { look: true, scroll: true, hurry: 2.5 };
@@ -1269,7 +1270,7 @@ export default class Beam extends Room {
     if (this.answered !== null && !this.spoke && s >= this.answered + 1) {
       this.spoke = true;
       if (s < LINE_CUTS - 0.5) {
-        this.say(PHONE_LINE, 3.6);
+        this.say(PHONE_LINE, 3.6, 'phone');
         this.lineBreath = this.sound.bed('rooms/phone_line_breath.mp3', { gain: 0.2, fade: 1.2 });
       }
     }

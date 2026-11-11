@@ -18,8 +18,8 @@ import {
   Vector4,
   WebGLRenderTarget,
 } from 'three';
-import { endTitleFrom } from '../config/copy.config';
-import { EVENINGS, eveningStarts } from '../config/journey.config';
+import { LAST_WINDOW, STREET_CHOICE, WAKES } from '../config/film.config';
+import { EVENINGS, eveningStarts, JOURNEY } from '../config/journey.config';
 import {
   at,
   DEBUG_MODE,
@@ -33,7 +33,7 @@ import {
   transitionConfig,
 } from '../config/experience.config';
 import { lightingConfig } from '../config/scene.config';
-import { inSea, seaConfig } from '../config/sea.config';
+import { seaConfig } from '../config/sea.config';
 import { walkConfig } from '../config/walk.config';
 import { say } from '../ui/i18n';
 import { Overlay } from '../ui/Overlay';
@@ -48,25 +48,26 @@ import { Scares } from './director/Scares';
 import { FourthWall } from './rooms/FourthWall';
 import { JourneyDirector } from './rooms/JourneyDirector';
 import type { Room, RoomPose } from './rooms/Room';
+import { Film } from './film/Film';
 import { RoomInputs } from './interaction/RoomInputs';
 import { LookControls } from './interaction/LookControls';
-import { Memories } from './Memories';
 import { ScrollInput } from './interaction/ScrollInput';
 import { clamp, DEG, range, smootherstep } from './math';
 import { Photograph } from './photograph/Photograph';
 import { Grade } from './render/Grade';
 import './render/Warp';
 import { Pipeline, restingFx, type CompositeState } from './render/Pipeline';
-import { cueToProgress, phaseEnd, phaseProgress, phaseStart, roomAt, SHUTTER_PROGRESS, spanProgress, stepAt, Timeline } from './timeline/Timeline';
+import { cueToProgress, phaseEnd, phaseProgress, phaseStart, roomAt, SHUTTER_PROGRESS, spanProgress, stepAt, Timeline, wakeAt } from './timeline/Timeline';
 import { PhotoPortal } from './transition/PhotoPortal';
 import { Alley } from './world/Alley';
 import { SkyDome } from './world/SkyDome';
 
 /**
  * outer: the real moment. portal: the print is a window. world: inside the picture, in the alley.
- * sea: beyond the giant print. awake: outside again, after the last photograph.
+ * sea: beyond the giant print. wake: the street again, where an evening broke off (and once more after the
+ * credits). awake: outside again, after the last photograph.
  */
-type View = 'outer' | 'portal' | 'world' | 'sea' | 'awake';
+type View = 'outer' | 'portal' | 'world' | 'sea' | 'wake' | 'awake';
 
 /** Only what the first minutes need: everything else comes when the journey nears it (see rooms/JourneyDirector.ts). */
 const MODELS = [
@@ -84,13 +85,21 @@ const END = walkConfig.ending;
 /** Of the loader's bar: the files; the rest is the building and the shaders. */
 const FILES_SHARE = 0.6;
 const WALK_START = phaseStart('WORLD');
+const STREET_SEEN = phaseStart('INTRO');
+/** The waking that is the glimpse of the cold open (the street as it will be): not a break in the dream. */
+const GLIMPSE = WAKES.length - 1;
+/** Under the names the world falls back to this share of itself (the voice and the score stay). */
+const CREDITS_QUIET = 0.2;
+/** After Begin, the film waits this long at most (s) for the sound to start before it runs without it. */
+const START_WAIT = 0.6;
+/** How far the print in the hand comes up when the viewer lets the last street be (0..1), and over how long (s). */
+const STAY_DEVELOP = { to: 0.14, over: 1.6 };
 const LOOK_IN = cueToProgress(['WORLD', lookConfig.blendIn]);
 const GRADE_IN = cueToProgress(['WORLD', walkConfig.gradeSpan]);
 const LAST_PICTURE = cueToProgress(['EXPLORATION', END.flash]);
 const AWAKE = cueToProgress(['EXPLORATION', END.cut]);
 const FACE_FROM = cueToProgress(['WORLD', walkConfig.faceTheCamera[0]]);
 const FACE_TO = cueToProgress(['EXPLORATION', walkConfig.faceTheCamera[1]]);
-const TITLE_BACK = cueToProgress(['EXPLORATION', endTitleFrom]);
 /** Pitch limit of walk + look together (rad). */
 const MAX_PITCH = 85 * DEG;
 /** What has just come into the journey is drawn once more, unseen, into a picture of this size (px): only that it is drawn matters. */
@@ -122,7 +131,8 @@ export class Experience {
   private readonly camera = new PerspectiveCamera(36, 1, renderConfig.near, renderConfig.far);
   /** The sea seen from where the viewer stands, for the giant print's live window. */
   private readonly seaWindow = new PerspectiveCamera(58, 1, renderConfig.near, renderConfig.far);
-  private readonly lastLens = new PerspectiveCamera(photoConfig.captureFov, 1, renderConfig.near, renderConfig.far);
+  /** The lens that took the first picture, seeing the real street: what comes up on the print at the end. */
+  private readonly streetLens = new PerspectiveCamera(photoConfig.captureFov, 1, renderConfig.near, renderConfig.far);
   private readonly timeline = new Timeline();
   private readonly overlay = new Overlay();
   private readonly audio = new AudioEngine();
@@ -130,7 +140,6 @@ export class Experience {
   private readonly walk = new DreamWalk();
   private readonly look: LookControls;
   private readonly followers = new Group();
-  private readonly memories = new Memories();
   private readonly scroll: ScrollInput;
   private readonly assets = new Assets(import.meta.env.BASE_URL);
   private readonly captureRT = new WebGLRenderTarget(photoConfig.captureResolution, photoConfig.captureResolution, {
@@ -150,6 +159,20 @@ export class Experience {
   private readonly roomPose: RoomPose = { position: new Vector3(), yaw: 0, pitch: 0, roll: 0, fov: 60 };
   private readonly roomInputs: RoomInputs;
   private readonly fourthWall = new FourthWall();
+  /** The narrator, the lines at the foot of the picture and the score. */
+  private readonly film: Film;
+  private inWake = false;
+  /** When Begin was pressed (s of `time`; -1 before), and whether the film has started (the sound is ready, or it was waited for). */
+  private begunAt = -1;
+  private started = false;
+  /** The share of itself the world is heard at now (see CREDITS_QUIET). */
+  private quietNow = -1;
+  /** The last street: what the viewer chose, when, and what of it has happened. */
+  private choice: 'none' | 'home' | 'stay' = 'none';
+  private choiceAt = 0;
+  private choiceDone = false;
+  /** The prompt of the choice is showing. */
+  private overlayAsks = false;
   /** When a room's shutter last fired (see updateLights). */
   private roomShutter = -10;
   /** The evening reached, and the one an earlier visit reached (0 for none). */
@@ -191,6 +214,7 @@ export class Experience {
     this.roomInputs = new RoomInputs(canvas);
     this.scroll = new ScrollInput(this.timeline, canvas);
     this.scroll.enabled = false;
+    this.film = new Film(this.audio.film, this.overlay);
     this.look.touchAllowed = () => this.scroll.touchAxis === 'x';
     canvas.addEventListener('webglcontextlost', (e) => {
       e.preventDefault();
@@ -198,14 +222,12 @@ export class Experience {
     });
     this.camera.layers.set(LAYERS.WORLD);
     this.camera.layers.enable(LAYERS.OUTER);
-    for (const cam of [this.portal.capture, this.portal.world, this.seaWindow, this.lastLens]) {
+    for (const cam of [this.portal.capture, this.portal.world, this.seaWindow]) {
       cam.layers.set(LAYERS.WORLD);
       cam.layers.enable(LAYERS.DREAM);
     }
-    // the last picture: from the eye of the photographer standing on the water
-    this.lastLens.position.set(...inSea(END.lens.position));
-    this.lastLens.lookAt(...inSea(END.lens.target));
-    this.lastLens.updateMatrixWorld(true);
+    this.streetLens.layers.set(LAYERS.WORLD);
+    this.streetLens.layers.enable(LAYERS.OUTER);
     this.composite = {
       focus: 10,
       aperture: 0,
@@ -221,6 +243,7 @@ export class Experience {
       fx: restingFx(),
     };
     this.overlay.onSoundToggle = () => void this.audio.toggle().then((on) => this.overlay.setSound(on));
+    this.overlay.onVoiceToggle = (on) => (this.film.voiceOn = on);
     // the first gesture anywhere switches sound on (pointerup and most keydowns are user activations, also
     // on touch; Esc is not); the sound switches handle their own clicks. It listens until the browser
     // actually lets the sound play.
@@ -237,6 +260,7 @@ export class Experience {
     window.addEventListener('keydown', unlock);
     // Begin (a click or a key) is a gesture too; beginning by scrolling is not, and waits for the next one
     this.overlay.onBegin = (gesture) => {
+      if (this.begunAt < 0) this.begunAt = this.time;
       if (!this.continued) this.journey.album.clear();
       this.timeline.auto = this.autoWalk;
       if (gesture) void this.audio.unlock().then((on) => this.overlay.setSound(on));
@@ -405,12 +429,12 @@ export class Experience {
       this.audio,
       (root) => this.pipeline.compileScene(root, this.portal.capture, this.scene).then(() => undefined),
       {
-        say: (text, seconds) => this.overlay.say(text, this.timeline.progress, this.timeline.progress + at(seconds)),
+        say: (text, seconds, voice) => this.film.speak(text, voice, seconds),
         hint: (text) => this.overlay.roomPrompt(text),
       },
       (material) => (this.pipeline.renderer.properties.get(material) as { uniforms?: Record<string, { value: unknown }> }).uniforms,
     );
-    this.photographer.viewer = this.camera.position;
+    this.alley.castFrom(this.dream.kit.figures);
     this.buildFollowers();
 
     // shutter, mechanics and paper as scroll crosses their beats
@@ -524,8 +548,55 @@ export class Experience {
     this.journey.shutterAsked = false;
     if (!this.room) return;
     this.journey.album.take(this.room.id, this.pipeline.renderer.domElement);
-    this.roomShutter = this.time;
+    if (this.journey.shutterFlash) this.roomShutter = this.time;
     this.audio.shutter();
+  }
+
+  /**
+   * The last street, the one choice of the film (see STREET_CHOICE): pressed while it is asked, the house is heard
+   * taking you back in the dark; not pressed, the print starts to come up and the picture is taken. Leaving the
+   * street (going back, starting over) forgets the choice.
+   */
+  private lastStreet(seconds: number, asking: boolean, pressed: boolean): void {
+    const C = STREET_CHOICE;
+    if (seconds < 0) {
+      if (this.choice !== 'none' || this.overlayAsks) this.overlay.roomPrompt(null);
+      this.choice = 'none';
+      this.choiceDone = this.overlayAsks = false;
+      return;
+    }
+    if (asking !== this.overlayAsks) {
+      this.overlayAsks = asking;
+      this.overlay.roomPrompt(asking ? C.prompt : null);
+    }
+    if (this.choice === 'none' && asking && pressed) {
+      this.choice = 'home';
+      this.choiceAt = this.time;
+      this.overlay.roomPrompt(null);
+      this.film.cue(C.home.cue);
+    } else if (this.choice === 'none' && seconds >= C.decide) {
+      this.choice = 'stay';
+      this.choiceAt = this.time;
+      this.film.speak(C.stay.text, C.stay.voice);
+    }
+    const since = this.time - this.choiceAt;
+    if (this.choice === 'home' && !this.choiceDone && since >= C.home.after) {
+      this.choiceDone = true;
+      this.film.speak(C.home.text, C.home.voice);
+    } else if (this.choice === 'stay' && !this.choiceDone && since >= C.stay.shutterAfter) {
+      this.choiceDone = true;
+      this.roomShutter = this.time;
+      this.audio.shutter();
+    }
+  }
+
+  /** How black the last street has gone after the choice (0..1). */
+  private streetBlack(): number {
+    const C = STREET_CHOICE;
+    const since = this.time - this.choiceAt;
+    if (this.choice === 'home') return smootherstep(range(0, C.black.home, since));
+    if (this.choice === 'stay') return since >= C.stay.shutterAfter + C.black.stay ? 1 : 0;
+    return 0;
   }
 
   /** Remember how far the viewer got, so a half hour need not be sat through at once. */
@@ -541,11 +612,32 @@ export class Experience {
     }
   }
 
-  /** The photographer standing on the water takes the last picture: of you, arriving. */
+  /**
+   * The photographer standing on the water takes the last picture. What comes up on the print in your hand is the
+   * street as you photographed it, its window lit and four at the table: the real street, seen by the lens that
+   * took the first picture, with nobody standing in it.
+   */
   private takeLastPicture(): void {
     this.lastTaken = true;
     this.dream.photographerGone = true;
-    this.renderDream(this.captureRT, this.lastLens);
+    const lens = this.streetLens;
+    lens.position.copy(this.portal.capture.position);
+    lens.quaternion.copy(this.portal.capture.quaternion);
+    lens.updateMatrixWorld(true);
+    const shown = this.alley.homeShown;
+    this.alley.setHome(END.picture, this.time);
+    const followers = this.followers.visible;
+    this.photographer.root.visible = this.followers.visible = false;
+    // the real street's shadows, not the dream's (the dream draws its own again on its next frame)
+    const shadows = this.pipeline.renderer.shadowMap;
+    const auto = shadows.autoUpdate;
+    shadows.autoUpdate = true;
+    this.dream.setPass('real', lens);
+    this.pipeline.renderTo(this.captureRT, this.scene, lens);
+    shadows.autoUpdate = auto;
+    this.photographer.root.visible = true;
+    this.followers.visible = followers;
+    if (shown) this.alley.setHome(shown, this.time);
     this.audio.shutter();
   }
 
@@ -585,8 +677,10 @@ export class Experience {
     this.time += dt;
     this.pipeline.renderer.info.reset();
 
+    // the film begins once the sound can be heard (or has been waited for): the table in the dark is half of it
+    if (!this.started && this.begunAt >= 0 && (this.audio.running || this.time - this.begunAt > START_WAIT)) this.started = true;
     // paused, the dream goes on breathing but time in it stands still
-    if (!this.paused) this.timeline.update(dt);
+    if (!this.paused && (this.begunAt < 0 || this.started)) this.timeline.update(dt);
     const p = this.timeline.progress;
     const room = this.journey.update(p);
     this.room = room;
@@ -594,11 +688,16 @@ export class Experience {
     else this.timeline.bounds = this.journey.bounds;
     this.timeline.locked = room ? !room.control.scroll : false;
     this.timeline.hurry = room ? (room.control.hurry ?? timelineConfig.hurryRoom) : p >= WALK_START && p < phaseStart('EXPLORATION') ? timelineConfig.hurryWalk : Infinity;
-    this.roomInputs.listening = Boolean(room?.control.press);
+    const streetSeconds = p >= phaseStart('STREET') && p < phaseStart('CREDITS') ? (p - phaseStart('STREET')) / timelineConfig.autoRate : -1;
+    const asking = this.choice === 'none' && streetSeconds >= STREET_CHOICE.ask && streetSeconds < STREET_CHOICE.decide;
+    this.roomInputs.listening = Boolean(room?.control.press) || asking;
     this.scroll.spaceTaken = this.roomInputs.listening;
-    this.dream.setRoom(room, roomAt(p)?.t ?? 0, this.roomInputs.update(dt, this.timeline.legs, this.look.yawOffset, this.look.pitchOffset, this.fourthWall.returned));
+    const input = this.roomInputs.update(dt, this.timeline.legs, this.look.yawOffset, this.look.pitchOffset, this.fourthWall.returned);
+    this.dream.setRoom(room, roomAt(p)?.t ?? 0, input);
+    this.lastStreet(streetSeconds, asking, input.pressed);
     this.fourthWall.returned = 0;
     this.noteEvening(p);
+    this.film.ahead(p < WALK_START ? -1 : p >= phaseStart('EXPLORATION') ? JOURNEY.length : stepAt(p).index);
     this.scares.journeyCut.cover = this.journey.cover;
     this.scares.journeyCut.white = this.journey.coverWhite;
     if (p > SHUTTER_PROGRESS && !this.captured) {
@@ -615,9 +714,33 @@ export class Experience {
     else if (p < LAST_PICTURE && this.lastTaken) this.untakeLastPicture();
     const speed = Math.abs(p - this.lastProgress) / Math.max(dt, 1e-3);
     this.lastProgress = p;
+    // the street between two evenings: the hair as white as it is by then, and a head that only looks at the print
+    const wake = wakeAt(p);
+    // the dream breaks off in the middle of a word: nothing of it is left in the air of the street (the glimpse in
+    // the cold open is not a break: the table goes on being heard)
+    const broken = wake !== null && wake.n !== GLIMPSE;
+    if (broken && !this.inWake) this.film.cut();
+    this.inWake = broken;
+    this.audio.street(broken);
+    if (this.started) this.film.update(p, this.paused);
+    // only the table and the voices are heard in the dark of the cold open; under the names the world falls back
+    const worldShare = p < STREET_SEEN ? 0 : p >= phaseStart('CREDITS') ? CREDITS_QUIET : 1;
+    if (worldShare !== this.quietNow) {
+      this.audio.film.quiet(worldShare, this.quietNow < 0 || worldShare === 0 ? 0 : renderConfig.fadeInSeconds);
+      this.quietNow = worldShare;
+    }
+    this.photographer.whiteOverride = wake ? WAKES[wake.n].white : null;
+    this.photographer.calm = wake !== null;
+    // the window of the house as that evening left it, dark from the last picture to the end, else as at half past six; and who stands in the street
+    this.alley.setHome(wake ? WAKES[wake.n].window : p >= LAST_PICTURE && p < phaseStart('STREET') ? LAST_WINDOW : WAKES[0].window, this.time);
+    this.alley.setPeople(wake ? WAKES[wake.n].people : undefined);
     this.photographer.update(p, this.time);
     const aspect = this.pipeline.size.x / Math.max(1, this.pipeline.size.y);
-    const shot = p >= AWAKE ? this.director.poseEnding(this.camera, phaseProgress(p, 'EXPLORATION'), this.time, aspect) : this.director.pose(this.camera, p, this.time, dt, aspect);
+    const shot = wake
+      ? this.director.poseWake(this.camera, wake.n, wake.t, this.time, aspect)
+      : p >= AWAKE
+        ? this.director.poseEnding(this.camera, phaseProgress(p, 'EXPLORATION'), this.time, aspect)
+        : this.director.pose(this.camera, p, this.time, dt, aspect);
 
     // the passage: flat print -> live window -> world
     const depth = phaseProgress(p, 'PHOTO_DEPTH');
@@ -627,7 +750,7 @@ export class Experience {
     const portalMix = smootherstep(range(0, transitionConfig.portalFade, depth));
 
     // inside: the gaze is yours (except at the passage through the giant print and before the last picture)
-    this.look.enabled = p >= WALK_START && p < LAST_PICTURE && (!room || room.control.look);
+    this.look.enabled = p >= WALK_START && p < LAST_PICTURE && !wake && (!room || room.control.look);
     this.scroll.lookEnabled = this.look.enabled;
     const walking = clamp(speed / lookConfig.walkSpeed, 0, 1);
     // the dream's own pace does not count as hurrying: attention can still narrow the view
@@ -640,12 +763,12 @@ export class Experience {
       world.position.add(SEA);
       world.updateMatrixWorld(true);
     }
-    // paused, the gaze holds still: nothing is found behind the menu
+    // paused, the gaze holds still: nothing draws it in behind the menu
     this.look.updateAttention(world.quaternion, world.position, world.fov, this.paused ? 0 : dt);
-    if (!this.paused) this.discover();
 
     const previous = this.view;
-    if (p < phaseStart('PHOTO_DEPTH')) this.view = 'outer';
+    if (wake) this.view = 'wake';
+    else if (p < phaseStart('PHOTO_DEPTH')) this.view = 'outer';
     else if (p >= AWAKE) this.view = 'awake';
     else if (p < phaseEnd('PHOTO_DEPTH') && !covered) this.view = 'portal';
     else this.view = sea ? 'sea' : 'world';
@@ -655,12 +778,14 @@ export class Experience {
 
     this.followers.visible = this.view === 'awake';
     this.updateLights(p);
-    this.updatePrintMaterial(p, depth, entry, portalMix);
+    const stayed = wake?.n === 0 && this.choice === 'stay' ? STAY_DEVELOP.to * smootherstep(range(this.choiceAt, this.choiceAt + STAY_DEVELOP.over, this.time)) : 0;
+    this.updatePrintMaterial(p, depth, entry, portalMix, wake ? Math.max(WAKES[wake.n].develop, stayed) : -1);
     this.updateComposite(p, shot, entry);
     const within = inside(this.view) ? smootherstep(range(phaseStart('PHOTO_ENTRY'), phaseEnd('PHOTO_ENTRY'), p)) : 0;
     this.dream.update(this.time, dt, world, within, this.look.enabled, phaseProgress(p, 'WORLD'), this.paused);
     this.updateGiantPrint(world);
-    this.scares.update(p, phaseProgress(p, 'WORLD'), this.time, dt, this.paused);
+    this.scares.update(p, phaseProgress(p, 'WORLD'), this.time, dt, this.paused, wake !== null);
+    this.composite.fx.black = Math.max(this.composite.fx.black, this.streetBlack());
 
     // render
     const shadows = this.pipeline.renderer.shadowMap;
@@ -678,7 +803,9 @@ export class Experience {
       this.pipeline.present(world, this.composite, this.time);
       if (this.journey.shutterAsked) this.roomPicture();
     } else {
-      shadows.autoUpdate = true;
+      // the street between two evenings holds still (a breath moves nothing a shadow would show): its shadows are drawn once, on the cut to it
+      shadows.autoUpdate = this.view !== 'wake';
+      if (this.view === 'wake' && previous !== 'wake') shadows.needsUpdate = true;
       if (this.view === 'portal') {
         this.pipeline.portalRT.scissorTest = false;
         this.dream.setPass('dream', world);
@@ -691,12 +818,13 @@ export class Experience {
 
     const duck = directorConfig.duckRelease;
     const awake = this.view === 'awake';
+    const street = awake || this.view === 'wake';
     // a room keeps its own sound and its own silences: to the story around it, it is the inside of the picture
     const picture = room ? 1 : within;
     this.audio.update(
       {
         focusDuck: smootherstep(range(phaseStart('FOCUS'), phaseEnd('FOCUS'), p)) * (1 - range(SHUTTER_PROGRESS + duck[0], SHUTTER_PROGRESS + duck[1], p)),
-        depth: awake ? 0 : spanProgress(p, 'PHOTO_APPROACH', 'PHOTO_DEPTH'),
+        depth: street ? 0 : spanProgress(p, 'PHOTO_APPROACH', 'PHOTO_DEPTH'),
         inside: picture,
         sea: this.view === 'sea' ? 1 : 0,
         chord: awake ? 4 : this.view === 'sea' ? 3 : picture > 0.5 ? 2 : p > SHUTTER_PROGRESS ? 1 : 0,
@@ -713,16 +841,11 @@ export class Experience {
       },
       dt,
     );
-    const focus = this.look.focus?.memory;
     this.overlay.update({
       progress: p,
       exploring: this.look.enabled,
       turned: this.look.turned,
       dragHintAfter: lookConfig.hintFadeAfterDegrees,
-      ending: p >= TITLE_BACK,
-      focus: focus ? { memory: focus, progress: this.look.focusSeconds / lookConfig.discoverSeconds, known: this.memories.has(focus) } : null,
-      found: this.memories.count,
-      total: this.memories.total,
     });
     // resolution never changes mid-transition, around the shutter or at the passages
     const quiet = this.view === 'portal' || Math.abs(p - SHUTTER_PROGRESS) < directorConfig.adaptQuiet || Math.abs(p - LAST_PICTURE) < directorConfig.adaptQuiet;
@@ -736,14 +859,6 @@ export class Experience {
         assets: `${this.assets.loaded}/${this.assets.total}${this.assets.failed.length ? ` failed ${this.assets.failed.length}` : ''}`,
       });
     }
-  }
-
-  /** A memory holding the gaze long enough is found. */
-  private discover(): void {
-    const id = this.look.focus?.memory;
-    if (!id || this.look.focusSeconds < lookConfig.discoverSeconds || !this.memories.find(id)) return;
-    this.overlay.memoryFound(id);
-    this.audio.discover();
   }
 
   /**
@@ -836,13 +951,13 @@ export class Experience {
     this.composite.flash = (flash + roomFlash) * f.screen + white * END.white;
   }
 
-  private updatePrintMaterial(p: number, depth: number, entry: number, portalMix: number): void {
+  private updatePrintMaterial(p: number, depth: number, entry: number, portalMix: number, wakeDevelop: number): void {
     const u = this.print.uniforms;
     u.uResolution.value.copy(this.pipeline.resolution);
     u.uTime.value = this.time;
-    if (this.view === 'awake') {
-      // the print in the photographer's hand develops the last picture
-      u.uDevelop.value = range(END.develop[0], END.develop[1], phaseProgress(p, 'EXPLORATION'));
+    if (this.view === 'awake' || this.view === 'wake') {
+      // the print in the photographer's hand: as far along as that evening left it; at the end it develops the last picture
+      u.uDevelop.value = this.view === 'wake' ? wakeDevelop : range(END.develop[0], END.develop[1], phaseProgress(p, 'EXPLORATION'));
       u.uLit.value = photoConfig.litFrom;
       u.uPortal.value = 0;
       u.uSheen.value = 0;
@@ -864,7 +979,9 @@ export class Experience {
 
   private updateComposite(p: number, shot: ShotState, entry: number): void {
     const c = this.composite;
-    c.fade = 1 - smootherstep(range(0, renderConfig.fadeInSeconds, this.time));
+    // the picture comes up out of black twice: when the page opens, and when the street is first seen
+    const seen = this.view === 'wake' ? 1 : smootherstep(range(STREET_SEEN, STREET_SEEN + at(renderConfig.fadeInSeconds), p));
+    c.fade = 1 - Math.min(seen, smootherstep(range(0, renderConfig.fadeInSeconds, this.time)));
     if (this.view === 'world' || this.view === 'sea') {
       c.aperture = this.room?.aperture ?? 0;
       c.focus = this.room?.focus ?? c.focus;
@@ -875,7 +992,7 @@ export class Experience {
       c.focus = shot.focus;
       c.aperture = shot.aperture;
       // the lens hunting for focus while the camera is raised to the eye
-      c.soft = this.view === 'awake' ? 0 : directorConfig.lensHunt * Math.sin(Math.PI * range(phaseStart('AIM'), phaseEnd('FOCUS'), p)) * (1 - range(phaseStart('FOCUS'), phaseEnd('FOCUS'), p));
+      c.soft = this.view === 'outer' ? directorConfig.lensHunt * Math.sin(Math.PI * range(phaseStart('AIM'), phaseEnd('FOCUS'), p)) * (1 - range(phaseStart('FOCUS'), phaseEnd('FOCUS'), p)) : 0;
       this.gradeNow.copy(this.gradeOuter);
     }
   }

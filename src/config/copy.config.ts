@@ -11,118 +11,9 @@ export const LANGS: readonly Lang[] = ['tr', 'en'];
 
 export type Text = Readonly<Record<Lang, string>>;
 
-/** A line of narration, shown between two cues (see src/ui/Narration.ts for how it is set). */
-export interface NarrationLine {
-  from: Cue;
-  to: Cue;
-  text: Text;
-}
-
-/** The voice of the nightmare: few words, each on its own, never over a moment that speaks for itself. */
-export const narration: readonly NarrationLine[] = [
-  {
-    from: ['CAMERA_RAISE', 0.15],
-    to: ['AIM', 0.9],
-    text: { en: 'You should not have taken this.', tr: 'Bunu çekmemeliydin.' },
-  },
-  {
-    from: ['PHOTO_EJECT', 0.15],
-    to: ['PHOTO_REVEAL', 0.5],
-    text: { en: 'No one comes out of the developer the same.', tr: 'Banyodan kimse eskisi gibi çıkmaz.' },
-  },
-  {
-    from: ['PHOTO_REVEAL', 0.65],
-    to: ['PHOTO_APPROACH', 0.9],
-    text: { en: 'Look. No one stands behind you. In the picture, someone does.', tr: 'Bak. Arkanda kimse yok. Fotoğrafta var.' },
-  },
-  {
-    from: ['WORLD', 0.012],
-    to: ['WORLD', 0.05],
-    text: { en: 'This is not rain. It is hair. Someone\'s.', tr: 'Bu yağmur değil. Saç. Birinin saçı.' },
-  },
-  {
-    from: ['WORLD', 0.055],
-    to: ['WORLD', 0.09],
-    text: { en: 'Every strand, a night gone white.', tr: 'Her tel, ağarmış bir gece.' },
-  },
-  {
-    from: ['WORLD', 0.1],
-    to: ['WORLD', 0.15],
-    text: { en: 'You did not scratch out the faces. Not yet.', tr: 'Yüzleri kazıyan sen değilsin. Henüz.' },
-  },
-  {
-    from: ['WORLD', 0.2],
-    to: ['WORLD', 0.25],
-    text: { en: 'They walk when you are not looking.', tr: 'Bakmadığın zaman yürüyorlar.' },
-  },
-  {
-    from: ['WORLD', 0.27],
-    to: ['WORLD', 0.33],
-    text: { en: 'Half of them are here. The other half sits down to dinner every evening.', tr: 'Yarısı burada. Öteki yarısı her akşam sofraya oturuyor.' },
-  },
-  {
-    from: ['WORLD', 0.355],
-    to: ['WORLD', 0.4],
-    text: { en: 'This was not built for you. It was not built for anyone.', tr: 'Burası senin için yapılmadı. Kimse için yapılmadı.' },
-  },
-  {
-    from: ['WORLD', 0.43],
-    to: ['WORLD', 0.47],
-    text: { en: 'When you wake, your head stays here.', tr: 'Uyanınca başın burada kalacak.' },
-  },
-  {
-    from: ['WORLD', 0.48],
-    to: ['WORLD', 0.52],
-    text: { en: 'The back on the screen is yours. What stands behind it isn\'t.', tr: 'Ekrandaki sırt senin. Arkandaki değil.' },
-  },
-  {
-    from: ['WORLD', 0.55],
-    to: ['WORLD', 0.62],
-    text: { en: 'With every frame it is one step closer.', tr: 'Her kare bir adım daha yakın.' },
-  },
-  {
-    from: ['WORLD', 0.645],
-    to: ['WORLD', 0.69],
-    text: { en: 'The wall is breathing. You are not.', tr: 'Duvar nefes alıyor. Sen almıyorsun.' },
-  },
-  {
-    from: ['WORLD', 0.7],
-    to: ['WORLD', 0.74],
-    text: { en: 'It remembers you. With its teeth.', tr: 'Seni hatırlıyor. Dişleriyle.' },
-  },
-  {
-    from: ['WORLD', 0.79],
-    to: ['WORLD', 0.87],
-    text: { en: 'No one leaves a photograph. You only fall deeper into it.', tr: 'Bir fotoğraftan çıkılmaz. Daha derinine düşülür.' },
-  },
-  {
-    from: ['WORLD', 0.905],
-    to: ['WORLD', 0.94],
-    text: { en: 'Every evening the sun stops halfway.', tr: 'Güneş her akşam yarıda kalır.' },
-  },
-  {
-    from: ['WORLD', 0.945],
-    to: ['WORLD', 0.98],
-    text: { en: 'They are all you. All their hair is white.', tr: 'Hepsi sensin. Hepsinin saçı beyaz.' },
-  },
-  {
-    from: ['WORLD', 0.985],
-    to: ['EXPLORATION', 0.03],
-    text: { en: 'It was always you pressing the shutter.', tr: 'Deklanşöre basan hep sendin.' },
-  },
-  {
-    from: ['EXPLORATION', 0.18],
-    to: ['EXPLORATION', 0.42],
-    text: { en: 'Do not keep the photograph.', tr: 'Fotoğrafı saklama.' },
-  },
-];
-
-/** The motto comes on at the end (EXPLORATION fraction), and stays until everything goes black. */
-export const endTitleFrom = 0.45;
-
 /**
- * Chapters of the journey: where each begins, and its name. The HUD names the one you are in and
- * marks them all on the journey bar; an evening is stamped with its title and its number.
+ * Chapters of the film: where each begins, and its name. The HUD names the one you are in and marks where
+ * each evening begins on the journey bar; an evening is stamped on the picture with its title and its number.
  */
 export const chapters: readonly { at: Cue; name: Text; title?: Text; number?: string }[] = [
   { at: ['INTRO', 0], name: { en: 'The Shutter', tr: 'Deklanşör' } },
@@ -132,36 +23,26 @@ export const chapters: readonly { at: Cue; name: Text; title?: Text; number?: st
   { at: ['EXPLORATION', 0.07], name: { en: 'Waking', tr: 'Uyanış' } },
 ];
 
-/** Memories: things inside the dream that reveal themselves to a long look (the HUD counts them). */
-export const memories = {
-  found: { en: 'The found photograph', tr: 'Bulunmuş fotoğraf' },
-  window: { en: 'A window onto the real moment', tr: 'Gerçek ana açılan pencere' },
-  faces: { en: 'The scratched faces', tr: 'Kazınmış yüzler' },
-  half: { en: 'The one left halfway', tr: 'Yarım kalan' },
-  head: { en: 'The half-buried head', tr: 'Yarısı gömülü baş' },
-  dinner: { en: 'The table, every evening', tr: 'Her akşamki sofra' },
-  screens: { en: 'The screens that show you', tr: 'Seni gösteren ekranlar' },
-  frame: { en: 'One frame closer', tr: 'Bir kare daha yakın' },
-  eye: { en: 'The eye that looks back', tr: 'Sana bakan göz' },
-  teeth: { en: 'The teeth', tr: 'Dişler' },
-  giant: { en: 'The print that waits', tr: 'Bekleyen fotoğraf' },
-  sun: { en: 'The half sun', tr: 'Yarım güneş' },
-  moon: { en: 'The moon is a photograph', tr: 'Ay bir fotoğraf' },
-  photographer: { en: 'The photographer on the water', tr: 'Sudaki fotoğrafçı' },
-} satisfies Record<string, Text>;
-
-export type MemoryId = keyof typeof memories;
+/** Who made the piece (the credits name them as they are, in either language). */
+export const DIRECTOR = 'Çayan Kuzu';
+/** The speech engine the voices were made with, named in the credits (see scripts/voice). */
+export const VOICE_ENGINE = 'Chatterbox Multilingual (Resemble AI, MIT); voices designed with VoxCPM2 (OpenBMB, Apache-2.0)';
 
 export const ui = {
   kicker: { en: 'seven evenings, thirty-three minutes', tr: 'yedi akşam, otuz üç dakika' },
-  /** The piece's motto: on the title screen, and the last words. */
+  /** The piece's motto, whole: in the credits. */
   motto: {
     en: 'The dream of a photograph turns hair white,\nThe dream of a photograph, every evening, half.',
     tr: 'Bir fotoğrafın rüyası saç beyazlatır,\nBir fotoğrafın rüyası her akşam yarım.',
   },
+  /** The motto on the title screen: its second line breaks off, as every evening of the dream does. */
+  mottoTitle: {
+    en: 'The dream of a photograph turns hair white,\nThe dream of a photograph, every evening,',
+    tr: 'Bir fotoğrafın rüyası saç beyazlatır,\nBir fotoğrafın rüyası her akşam',
+  },
   warning: {
-    en: 'For adults (18+). Disturbing images, sudden sounds and flickering light. It goes after common fears: spiders, insects, needles, dentists, tight spaces, heights, deep water, the dark, sleep paralysis, dolls, clowns, clusters of holes, being buried, death. Any part can be skipped from the menu.',
-    tr: 'Yetişkinler içindir (18+). Rahatsız edici görüntüler, ani sesler ve titreyen ışık içerir. Yaygın korkuların üzerine gider: örümcek, böcek, iğne, dişçi, kapalı alan, yükseklik, derin su, karanlık, karabasan, oyuncak bebek, palyaço, delik kümeleri, diri diri gömülme, ölüm. Her bölüm menüden atlanabilir.',
+    en: 'For adults (18+). Disturbing images, sudden sounds, flickering light and common fears: spiders, insects, needles, dentists, tight spaces, heights, flying, deep water, being lost, the dark, sleep paralysis, dolls, clowns, birds, clusters of holes, being buried, death. Any part can be skipped from the menu.',
+    tr: 'Yetişkinler içindir (18+). Rahatsız edici görüntüler, ani sesler, titreyen ışık ve yaygın korkular: örümcek, böcek, iğne, dişçi, kapalı alan, yükseklik, uçuş, derin su, kaybolma, karanlık, karabasan, oyuncak bebek, palyaço, kuş, delik kümeleri, diri diri gömülme, ölüm. Her bölüm menüden atlanabilir.',
   },
   skip: { en: 'Skip this part', tr: 'Bu bölümü atla' },
   continueFrom: { en: 'Go on from', tr: 'Şuradan devam et:' },
@@ -178,6 +59,8 @@ export const ui = {
   paused: { en: 'Paused', tr: 'Duraklatıldı' },
   language: { en: 'Language', tr: 'Dil' },
   sound: { en: 'Sound', tr: 'Ses' },
+  /** The voices that say the lines (switched off, the lines are still shown). */
+  voice: { en: 'Voice', tr: 'Seslendirme' },
   on: { en: 'On', tr: 'Açık' },
   off: { en: 'Off', tr: 'Kapalı' },
   fullscreen: { en: 'Full screen', tr: 'Tam ekran' },
@@ -189,8 +72,6 @@ export const ui = {
   source: { en: 'Source code', tr: 'Kaynak kod' },
   notices: { en: 'Licences', tr: 'Lisanslar' },
   menu: { en: 'Menu', tr: 'Menü' },
-  memories: { en: 'Memories', tr: 'Anılar' },
-  memoryFound: { en: 'Memory found', tr: 'Anı bulundu' },
   scroll: { en: 'Scroll', tr: 'Kaydır' },
   look: { en: 'Look', tr: 'Bak' },
   wheel: { en: 'Wheel', tr: 'Tekerlek' },
@@ -200,8 +81,21 @@ export const ui = {
   swipeSide: { en: 'Swipe sideways', tr: 'Yana kaydır' },
   tutorialLook: { en: 'Look around', tr: 'Etrafına bak' },
   tutorialLookTouch: { en: 'Swipe sideways to look, up to hurry', tr: 'Bakmak için yana, hızlanmak için yukarı kaydır' },
-  tutorialMemory: { en: 'Do not look away: what you stare at becomes a memory', tr: 'Gözünü ayırma: baktığın şey anı olur' },
-  endMemories: { en: 'memories found', tr: 'anı bulundu' },
+  /** The credits, rolling up over black after the last street. */
+  creditDirection: { en: 'Concept and direction', tr: 'Konsept ve yönetim' },
+  creditVoice: { en: "The narrator's voice is synthetic", tr: 'Anlatıcının sesi sentetiktir' },
+  creditScore: { en: 'Score', tr: 'Müzik' },
+  creditScoreText: { en: 'The lullaby was composed for this piece', tr: 'Ninni bu eser için bestelendi' },
+  creditAssets: { en: 'Assets and licences', tr: 'Varlıklar ve lisanslar' },
+  creditCc0: {
+    en: 'CC0 and public domain: Poly Haven, ambientCG, Freesound, SMK, Smithsonian, Khronos, OpenGameArt, Wikimedia Commons, Poly Pizza, The Base Mesh',
+    tr: 'CC0 ve kamu malı: Poly Haven, ambientCG, Freesound, SMK, Smithsonian, Khronos, OpenGameArt, Wikimedia Commons, Poly Pizza, The Base Mesh',
+  },
+  creditCcBy: {
+    en: 'CC BY: Poly by Google, neshallads, Nagaoka Municipal Science Museum, li chang, p0ss, sunburn, Andrew-John Hickman, Christopher F, Cormac White, Don Carson, GRADD CO, Brady Arnold, J-Toastie, Justin Randall, Nick Ladd, qubodup, Zsky',
+    tr: 'CC BY: Poly by Google, neshallads, Nagaoka Municipal Science Museum, li chang, p0ss, sunburn, Andrew-John Hickman, Christopher F, Cormac White, Don Carson, GRADD CO, Brady Arnold, J-Toastie, Justin Randall, Nick Ladd, qubodup, Zsky',
+  },
+  creditOther: { en: 'MIT: Microsoft Rocketbox. Fonts: OFL, Apache 2.0.', tr: 'MIT: Microsoft Rocketbox. Yazı tipleri: OFL, Apache 2.0.' },
   endAlbum: { en: 'It was always you pressing the shutter. These are yours.', tr: 'Deklanşöre basan hep sendin. Bunlar senin.' },
   menuLabel: { en: 'Open the menu', tr: 'Menüyü aç' },
   noWebgl: { en: 'This piece needs a browser with WebGL 2.', tr: 'Bu eser WebGL 2 destekleyen bir tarayıcı gerektirir.' },
