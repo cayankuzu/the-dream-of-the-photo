@@ -424,6 +424,16 @@ export class DreamDirector {
     return PIECES.filter((p) => overlaps(p, range)).every((p) => this.pieceSlot(p.key).ready);
   }
 
+  /**
+   * Everything of the dream that is not shown from here (out of reach, behind, or kept for later), lights apart:
+   * what is drawn once, unseen, when a stretch of the walk begins (see Experience.warm).
+   */
+  hiddenNow(into: Object3D[]): void {
+    this.root.traverse((o) => {
+      if (!o.visible && !(o as PointLight).isLight) into.push(o);
+    });
+  }
+
   /** A room has been built: it waits, unseen, until the journey reaches it. */
   adoptRoom(room: Room): void {
     room.root.traverse((o) => {

@@ -93,8 +93,10 @@ const FACE_TO = cueToProgress(['EXPLORATION', walkConfig.faceTheCamera[1]]);
 const TITLE_BACK = cueToProgress(['EXPLORATION', endTitleFrom]);
 /** Pitch limit of walk + look together (rad). */
 const MAX_PITCH = 85 * DEG;
-/** A room's first frame is drawn once more, unseen, into a picture of this size (px): only that it is drawn matters. */
+/** What has just come into the journey is drawn once more, unseen, into a picture of this size (px): only that it is drawn matters. */
 const WARM_SIZE: readonly [number, number] = [64, 36];
+/** A stretch of the walk gets that drawing only while the cut still covers this much of the picture (0..1). */
+const WARM_UNDER = 0.9;
 
 /** How far an earlier visit got (the evening's number; only here, on the viewer's own machine). */
 const REACHED_KEY = 'dream-of-the-photo/evening';
@@ -155,8 +157,9 @@ export class Experience {
   private continued = false;
   private flash!: PointLight;
   private debug: Debug | null = null;
-  /** Rooms already drawn once with all they keep hidden (see warmRoom); what was hidden in the one being drawn; where. */
+  /** Rooms, and the last stretch of the walk, already drawn once with all they keep hidden (see warm); what was hidden; where it is drawn. */
   private readonly warmed = new WeakSet<Room>();
+  private warmedStep = -1;
   private readonly warmHidden: Object3D[] = [];
   private readonly warmTarget = new WebGLRenderTarget(WARM_SIZE[0], WARM_SIZE[1]);
 
@@ -480,17 +483,26 @@ export class Experience {
   }
 
   /**
-   * A room's first frame lies under the cut. There it is drawn once more, small and unseen, with everything it
-   * keeps hidden for later, so that what a late arrival needs for the first time (the shadow pass of a new kind
-   * of body, a picture or a buffer never drawn before) is made now, where a held frame is not seen, and not in
-   * the middle of a scene. Its shaders for the picture itself are compiled when it is built (see JourneyDirector).
+   * What has just come into the journey is drawn once more, small and unseen, with everything it keeps hidden or
+   * out of reach for later: a room on its first frame, the set pieces of a stretch of the walk on theirs. Both
+   * lie under the cut. So what a late arrival needs for the first time (the shadow pass of a new kind of body, a
+   * picture or a buffer never drawn before) is made where a held frame is not seen, and not in the middle of a
+   * scene. The shaders of the picture itself are compiled when a thing is built (see Pipeline.compileScene).
    */
-  private warmRoom(room: Room, camera: PerspectiveCamera): void {
-    this.warmed.add(room);
+  private warm(p: number, room: Room | null, camera: PerspectiveCamera): void {
     const hidden = this.warmHidden;
-    room.root.traverse((o) => {
-      if (!o.visible && !(o as Light).isLight) hidden.push(o);
-    });
+    if (room) {
+      if (this.warmed.has(room)) return;
+      this.warmed.add(room);
+      room.root.traverse((o) => {
+        if (!o.visible && !(o as Light).isLight) hidden.push(o);
+      });
+    } else {
+      const step = stepAt(p).index;
+      if (step === this.warmedStep || this.journey.cover < WARM_UNDER || this.journey.buildingNow()) return;
+      this.warmedStep = step;
+      this.dream.hiddenNow(hidden);
+    }
     if (hidden.length === 0) return;
     const shadows = this.pipeline.renderer.shadowMap;
     for (const o of hidden) o.visible = true;
@@ -498,7 +510,7 @@ export class Experience {
     try {
       this.pipeline.renderTo(this.warmTarget, this.scene, camera);
     } catch (reason) {
-      console.error(`room ${room.id} could not be drawn ahead`, reason);
+      console.error(`${room ? `room ${room.id}` : 'the walk'} could not be drawn ahead`, reason);
     } finally {
       for (const o of hidden) o.visible = false;
       hidden.length = 0;
@@ -661,7 +673,7 @@ export class Experience {
         shadows.needsUpdate = true;
         this.dream.shadowDirty = false;
       }
-      if (room && !this.warmed.has(room)) this.warmRoom(room, world);
+      this.warm(p, room, world);
       this.pipeline.renderTo(this.pipeline.sceneRT, this.scene, world);
       this.pipeline.present(world, this.composite, this.time);
       if (this.journey.shutterAsked) this.roomPicture();
