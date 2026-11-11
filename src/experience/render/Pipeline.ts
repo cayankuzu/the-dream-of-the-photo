@@ -30,6 +30,10 @@ import { clamp, damp, lerp, wobble } from '../math';
 import { AGX_GLSL, FILM_GLSL, FILM_SCRATCHES, GRADE_GLSL, HASH_GLSL, LUMA_GLSL, SHEEN_GLSL } from './glsl';
 import type { Grade } from './Grade';
 
+/** Graphics cards that get the sharper picture (see renderConfig.high), and those that never do, by their renderer's name. */
+const STRONG_CARD = /nvidia|geforce|rtx|quadro|radeon rx|radeon pro|apple m\d/i;
+const WEAK_CARD = /intel|uhd|iris|mali|adreno|powervr|swiftshader|llvmpipe|basic render/i;
+
 /** Depth-of-field sizes are designed at this drawing-buffer height and scaled to the real one. */
 const DOF_REFERENCE_HEIGHT = 1080;
 
@@ -611,6 +615,9 @@ export class Pipeline {
 
   private frameTimes: number[] = [];
   private sampleClock = 0;
+  /** How much this graphics card is given to draw (see renderConfig.high). */
+  readonly tier: 'high' | 'normal';
+  private readonly quality: { maxPixelRatio: number; maxPixels: number; msaaSamples: number; denseSamples: number };
 
   constructor(canvas: HTMLCanvasElement) {
     this.renderer = new WebGLRenderer({
@@ -628,9 +635,11 @@ export class Pipeline {
     this.renderer.debug.checkShaderErrors = import.meta.env.DEV;
     this.renderer.info.autoReset = false;
 
-    this.pixelRatio = Pipeline.maxRatio(window.innerWidth, window.innerHeight);
+    this.tier = Pipeline.strongCard(this.renderer) ? 'high' : 'normal';
+    this.quality = this.tier === 'high' ? { ...renderConfig, ...renderConfig.high } : renderConfig;
+    this.pixelRatio = this.maxRatio(window.innerWidth, window.innerHeight);
 
-    const rtOptions = { type: HalfFloatType, samples: renderConfig.msaaSamples };
+    const rtOptions = { type: HalfFloatType, samples: this.quality.msaaSamples };
     this.sceneRT = new WebGLRenderTarget(1, 1, { ...rtOptions, depthTexture: new DepthTexture(1, 1) });
     this.portalRT = new WebGLRenderTarget(1, 1, rtOptions);
     this.portalRT.resolveDepthBuffer = false;
@@ -743,17 +752,32 @@ export class Pipeline {
     this.renderer.render(this.screen, this.screenCamera);
   }
 
-  /** Highest pixel ratio allowed for a screen: device density, the cap, and the pixel budget. */
-  private static maxRatio(width: number, height: number): number {
-    const budget = Math.sqrt(renderConfig.maxPixels / Math.max(1, width * height));
-    return Math.min(window.devicePixelRatio, renderConfig.maxPixelRatio, budget);
+  /** Highest pixel ratio allowed for a screen: device density, the cap, and the pixel budget (of this card's tier). */
+  private maxRatio(width: number, height: number): number {
+    const budget = Math.sqrt(this.quality.maxPixels / Math.max(1, width * height));
+    return Math.min(window.devicePixelRatio, this.quality.maxPixelRatio, budget);
+  }
+
+  /** Whether this graphics card is a strong one (see renderConfig.high): by its name, unless the address says otherwise. */
+  private static strongCard(renderer: WebGLRenderer): boolean {
+    const asked = new URLSearchParams(window.location.search).get('quality');
+    if (asked === 'high' || asked === 'normal') return asked === 'high';
+    const gl = renderer.getContext();
+    // most browsers name the card themselves now; Chrome and Safari still hide it behind an extension (which
+    // Firefox would warn about, so it is only asked for when needed)
+    let name = String(gl.getParameter(gl.RENDERER));
+    if (/webkit webgl/i.test(name)) {
+      const info = gl.getExtension('WEBGL_debug_renderer_info');
+      name = info ? String(gl.getParameter(info.UNMASKED_RENDERER_WEBGL)) : '';
+    }
+    return STRONG_CARD.test(name) && !WEAK_CARD.test(name);
   }
 
   setSize(width: number, height: number): void {
     this.size.set(width, height);
-    this.pixelRatio = Math.min(this.pixelRatio, Pipeline.maxRatio(width, height));
+    this.pixelRatio = Math.min(this.pixelRatio, this.maxRatio(width, height));
     // dense screens hide aliasing: fewer samples there (both targets equal, so the hand-off stays exact)
-    const samples = this.pixelRatio >= renderConfig.denseRatio ? renderConfig.denseSamples : renderConfig.msaaSamples;
+    const samples = this.pixelRatio >= renderConfig.denseRatio ? this.quality.denseSamples : this.quality.msaaSamples;
     for (const rt of [this.sceneRT, this.portalRT]) {
       if (rt.samples !== samples) {
         rt.samples = samples;
@@ -997,7 +1021,7 @@ export class Pipeline {
     this.frameTimes = [];
     this.sampleClock = 0;
     const fps = 1 / avg;
-    const max = Pipeline.maxRatio(this.size.x, this.size.y);
+    const max = this.maxRatio(this.size.x, this.size.y);
     let next = this.pixelRatio;
     // step down in proportion to how slow it is, up gently
     if (fps < cfg.lowFps) next = Math.max(renderConfig.minPixelRatio, this.pixelRatio * clamp(Math.sqrt(fps / cfg.highFps), 0.75, 0.95));

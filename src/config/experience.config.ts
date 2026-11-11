@@ -109,6 +109,12 @@ export const renderConfig = {
   fadeInSeconds: 2.4,
   minPixelRatio: 0.65,
   msaaSamples: 2,
+  /**
+   * A strong graphics card (a discrete or Apple-silicon GPU, by the name the browser gives its renderer; `?quality=high`
+   * or `?quality=normal` forces either) gets a sharper picture: more pixels and more samples. The adaptive resolution
+   * still steps the pixels down whenever the frame rate falls.
+   */
+  high: { maxPixelRatio: 2, maxPixels: 4.2e6, msaaSamples: 4, denseSamples: 2 },
   near: 0.05,
   /** Near plane while the camera is centimeters from the photograph. */
   photoNear: 0.004,
