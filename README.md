@@ -128,6 +128,11 @@ src/
 - **The photograph is a real render.** At the shutter the scene is rendered from the lens of the instant
   camera into a texture, and that texture is the print. The dream's captured differences (another sky in
   the puddles, the figure at the far end, the photographer's shadow that stays) are already in it.
+- **Nothing is made in the middle of a scene.** Shader programs are compiled ahead (`Pipeline.compileScene`)
+  for the linear target the scene draws into, never for the screen: at load for the real moment and for the
+  dream, and for each room while the cut to black holds. On a room's first frame, still under the cut,
+  everything it keeps hidden for later is drawn once more, small and unseen, so that no shadow pass, picture
+  or buffer is first needed at a reveal.
 
 ### Through the dream
 

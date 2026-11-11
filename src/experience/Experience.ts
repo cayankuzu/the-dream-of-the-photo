@@ -3,6 +3,8 @@ import {
   Euler,
   EquirectangularReflectionMapping,
   Group,
+  type Light,
+  type Object3D,
   type Texture,
   FogExp2,
   HalfFloatType,
@@ -91,6 +93,8 @@ const FACE_TO = cueToProgress(['EXPLORATION', walkConfig.faceTheCamera[1]]);
 const TITLE_BACK = cueToProgress(['EXPLORATION', endTitleFrom]);
 /** Pitch limit of walk + look together (rad). */
 const MAX_PITCH = 85 * DEG;
+/** A room's first frame is drawn once more, unseen, into a picture of this size (px): only that it is drawn matters. */
+const WARM_SIZE: readonly [number, number] = [64, 36];
 
 /** How far an earlier visit got (the evening's number; only here, on the viewer's own machine). */
 const REACHED_KEY = 'dream-of-the-photo/evening';
@@ -151,6 +155,10 @@ export class Experience {
   private continued = false;
   private flash!: PointLight;
   private debug: Debug | null = null;
+  /** Rooms already drawn once with all they keep hidden (see warmRoom); what was hidden in the one being drawn; where. */
+  private readonly warmed = new WeakSet<Room>();
+  private readonly warmHidden: Object3D[] = [];
+  private readonly warmTarget = new WebGLRenderTarget(WARM_SIZE[0], WARM_SIZE[1]);
 
   private readonly gradeOuter = Grade.from(directorConfig.outerGrade);
   private readonly gradePhoto = Grade.from(photoConfig.grade);
@@ -299,11 +307,11 @@ export class Experience {
    * frame, so nothing compiles on the shutter beat or on the way.
    */
   private async precompile(): Promise<void> {
-    const r = this.pipeline.renderer;
-    await r.compileAsync(this.scene, this.camera);
+    const p = this.pipeline;
+    await p.compileScene(this.scene, this.camera);
     this.dream.setPass('dream', this.portal.capture);
-    await r.compileAsync(this.scene, this.portal.capture);
-    await this.dream.whileFullyDreamt(() => r.compileAsync(this.scene, this.portal.capture), this.portal.capture);
+    await p.compileScene(this.scene, this.portal.capture);
+    await this.dream.whileFullyDreamt(() => p.compileScene(this.scene, this.portal.capture), this.portal.capture);
     this.dream.setPass('real', this.camera);
   }
 
@@ -392,7 +400,7 @@ export class Experience {
       this.assets,
       this.dream,
       this.audio,
-      (root) => this.pipeline.renderer.compileAsync(root, this.portal.capture, this.scene).then(() => undefined),
+      (root) => this.pipeline.compileScene(root, this.portal.capture, this.scene).then(() => undefined),
       {
         say: (text, seconds) => this.overlay.say(text, this.timeline.progress, this.timeline.progress + at(seconds)),
         hint: (text) => this.overlay.roomPrompt(text),
@@ -469,6 +477,34 @@ export class Experience {
   private untakePicture(): void {
     this.captured = false;
     this.photographer.ghost.visible = false;
+  }
+
+  /**
+   * A room's first frame lies under the cut. There it is drawn once more, small and unseen, with everything it
+   * keeps hidden for later, so that what a late arrival needs for the first time (the shadow pass of a new kind
+   * of body, a picture or a buffer never drawn before) is made now, where a held frame is not seen, and not in
+   * the middle of a scene. Its shaders for the picture itself are compiled when it is built (see JourneyDirector).
+   */
+  private warmRoom(room: Room, camera: PerspectiveCamera): void {
+    this.warmed.add(room);
+    const hidden = this.warmHidden;
+    room.root.traverse((o) => {
+      if (!o.visible && !(o as Light).isLight) hidden.push(o);
+    });
+    if (hidden.length === 0) return;
+    const shadows = this.pipeline.renderer.shadowMap;
+    for (const o of hidden) o.visible = true;
+    shadows.needsUpdate = true;
+    try {
+      this.pipeline.renderTo(this.warmTarget, this.scene, camera);
+    } catch (reason) {
+      console.error(`room ${room.id} could not be drawn ahead`, reason);
+    } finally {
+      for (const o of hidden) o.visible = false;
+      hidden.length = 0;
+      // the shadows this frame shows are those of what is really there
+      shadows.needsUpdate = true;
+    }
   }
 
   /** A room's worst moment: the picture on the screen goes into the album, and then the flash. */
@@ -625,6 +661,7 @@ export class Experience {
         shadows.needsUpdate = true;
         this.dream.shadowDirty = false;
       }
+      if (room && !this.warmed.has(room)) this.warmRoom(room, world);
       this.pipeline.renderTo(this.pipeline.sceneRT, this.scene, world);
       this.pipeline.present(world, this.composite, this.time);
       if (this.journey.shutterAsked) this.roomPicture();

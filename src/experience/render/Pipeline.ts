@@ -21,6 +21,7 @@ import {
   Vector4,
   WebGLRenderer,
   WebGLRenderTarget,
+  type Object3D,
   type Texture,
 } from 'three';
 import { renderConfig } from '../../config/experience.config';
@@ -807,6 +808,20 @@ export class Pipeline {
   renderTo(target: WebGLRenderTarget | null, scene: Scene, camera: Camera): void {
     this.renderer.setRenderTarget(target);
     this.renderer.render(scene, camera);
+  }
+
+  /**
+   * Make the programs `root` needs before it is first drawn (lit as `scene` is, or as itself). A program is made
+   * for the place it draws into, and the scene only ever draws into linear targets (the screen gets the composite):
+   * so one of those stands as the target while they are made. Made for the screen they would never be used, and
+   * each would be made a second time at its first frame, while everything waits.
+   */
+  compileScene(root: Object3D, camera: Camera, scene: Scene | null = null): Promise<unknown> {
+    const target = this.renderer.getRenderTarget();
+    this.renderer.setRenderTarget(this.sceneRT);
+    const made = this.renderer.compileAsync(root, camera, scene);
+    this.renderer.setRenderTarget(target);
+    return made;
   }
 
   /** The glow: only while it is asked for. Everything before the grade: light spilling in the lens. */

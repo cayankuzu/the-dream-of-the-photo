@@ -244,14 +244,7 @@ export class JourneyDirector {
           shutter: () => (this.shutterAsked = true),
         });
         this.dream.adoptRoom(room);
-        // what a room shows only later must still have its shader now, under the cut, not mid-scene
-        const hidden: Object3D[] = [];
-        room.root.traverse((o) => {
-          if (!o.visible) hidden.push(o);
-        });
-        for (const o of hidden) o.visible = true;
         await this.compile(room.root);
-        for (const o of hidden) o.visible = false;
         room.develop?.(this.dream.picture);
         slot.room = room;
         slot.state = 'ready';
