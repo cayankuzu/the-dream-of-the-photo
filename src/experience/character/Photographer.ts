@@ -68,12 +68,17 @@ const PRINT_GRIP = {
 
 const AXIS_Z = new Vector3(0, 0, 1);
 const AXIS_Y = new Vector3(0, 1, 0);
-/** Where hair lies on a head map (see FACE in dream/FigureKit.ts): outside the face, on the far side from the neck. */
+/**
+ * Where hair lies on a head map (see FACE in dream/FigureKit.ts): outside the face, on the far side from the neck.
+ * The loose strands (the cards) thin out past half white and are gone when the hair is all white: they catch
+ * little light, and on a white head, seen from behind in the waking, they stood as dark marks.
+ */
 const WHITENING_GLSL = (card: boolean) => /* glsl */ `
   #ifdef USE_MAP
     float whiteHair = ${card ? '1.0' : 'step(0.5, vMapUv.y) * smoothstep(1.0, 1.25, length((vMapUv - vec2(0.5, 0.685)) / vec2(0.165, 0.205)))'};
     float hairLight = dot(diffuseColor.rgb, vec3(0.3, 0.59, 0.11));
     diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.86, 0.84, 0.78) * clamp(0.46 + hairLight * 2.6, 0.3, 1.15), uWhite * whiteHair);
+    ${card ? 'diffuseColor.a *= 1.0 - smoothstep(0.5, 0.9, uWhite);' : ''}
   #endif
 `;
 const v1 = new Vector3();
